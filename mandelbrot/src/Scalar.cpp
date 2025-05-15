@@ -1,12 +1,11 @@
 #include <cstdint>
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include "Scalar.h"
 #include "GlobalsScalar.h"
 
 inline float normCos(float x) {
-    return (cosf(x - M_PI_2) + 1.0f) * 0.5f;
+    return (cosf(x - (float)M_PI_2) + 1.0f) * 0.5f;
 }
 
 inline void getColorPixel(float val, float &outR, float &outG, float &outB) {
@@ -24,13 +23,9 @@ inline uint8_t pixelToInt(float val) {
 }
 
 inline void setPixel(uint8_t *pixels, int &pos, float R, float G, float B) {
-    uint8_t R_i = pixelToInt(R);
-    uint8_t G_i = pixelToInt(G);
-    uint8_t B_i = pixelToInt(B);
-
-    pixels[pos++] = R_i;
-    pixels[pos++] = G_i;
-    pixels[pos++] = B_i;
+    pixels[pos++] = pixelToInt(R);
+    pixels[pos++] = pixelToInt(G);
+    pixels[pos++] = pixelToInt(B);
 }
 
 float getSmoothIterVal(int i, float mag) {

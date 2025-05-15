@@ -1,25 +1,18 @@
-#include <immintrin.h>
-#include <emmintrin.h>
-#define _USE_MATH_DEFINES
-#include <cmath>
-
-#include "GlobalsScalar.h"
 #include "GlobalsVector.h"
-
-const __m128i i_zero = _mm_setzero_si128();
-
-const __m128 f_zero = _mm_set1_ps(0.0f);
-const __m128 f_one = _mm_set1_ps(1.0f);
-const __m128 f_half = _mm_set1_ps(0.5f);
-const __m128 f_invLn2_vec = _mm_set1_ps(invLn2);
-const __m128 f_invLnBail_vec = _mm_set1_ps(invLnBail);
-const __m128 f_pi_2 = _mm_set1_ps((float)M_PI_2);
-const __m128 f_255 = _mm_set1_ps(255.0f);
-
-const __m256d d_zero = _mm256_set1_pd(0.0);
-const __m256d d_one = _mm256_set1_pd(1.0);
-const __m256d d_bailout_vec = _mm256_set1_pd(BAILOUT);
+#include "GlobalsScalar.h"
 
 __m128 f_invCount_vec;
 __m128 f_freq_r_vec, f_freq_g_vec, f_freq_b_vec;
 __m128 f_light_r_vec, f_light_i_vec, f_light_h_vec;
+
+void initVectors() {
+    f_invCount_vec = _mm_set1_ps(invCount);
+
+    f_freq_r_vec = _mm_set1_ps(freq_r);
+    f_freq_g_vec = _mm_set1_ps(freq_g);
+    f_freq_b_vec = _mm_set1_ps(freq_b);
+
+    f_light_r_vec = _mm_set1_ps(light_r);
+    f_light_i_vec = _mm_set1_ps(light_i);
+    f_light_h_vec = _mm_set1_ps(light_h);
+}

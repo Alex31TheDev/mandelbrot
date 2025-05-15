@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #define BAILOUT 256.0
 
 #define DEFAULT_FREQ_R 1.0f
@@ -10,8 +12,8 @@
 #define DEFAULT_LIGHT_R 1.0f
 #define DEFAULT_LIGHT_I 1.0f
 
-extern const float invLn2;
-extern const float invLnBail;
+const float invLn2 = 1.0f / (float)M_LN2;
+const float invLnBail = 1.0f / logf(BAILOUT);
 
 extern int width, height, colorMethod;
 extern int count;
@@ -19,6 +21,11 @@ extern int count;
 extern double half_w, half_h;
 extern double point_r, point_i, scale;
 
-extern float invCount;
+extern float aspect, invCount;
 extern float freqMult, freq_r, freq_g, freq_b;
 extern float light_r, light_i, light_h;
+
+bool setImageGlobals(int img_w, int img_h);
+bool setScaleGlobals(double zoomScale);
+bool setColorGlobals(float R, float G, float B, float mult);
+bool setLightGlobals(float real, float imag);
