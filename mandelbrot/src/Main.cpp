@@ -1,17 +1,22 @@
-#include "Args.h"
-#include "Image.h"
+#include "args/ArgsParser.h"
+#include "image/Image.h"
 
-#include "GlobalsScalar.h"
 #ifdef __AVX2__
-#include "Vector.h"
-#include "GlobalsVector.h"
+#include "vector/VectorRenderer.h"
+#include "vector/VectorGlobals.h"
+
+using namespace VectorRenderer;
+using namespace VectorGlobals;
 #else
-#include "Scalar.h"
+#include "scalar/ScalarRenderer.h"
+using namespace ScalarRenderer;
 #endif
+#include "scalar/ScalarGlobals.h"
+using namespace ScalarGlobals;
 
 const char filename[] = "mandelbrot.png";
 
-void renderImage() {
+void renderImage(Image &image) {
     int pos = 0;
 
     for (int y = 0; y < height; y++) {
@@ -22,22 +27,24 @@ void renderImage() {
             int pixels_left = width - x;
             int simd_width = (pixels_left < SIMD_WIDTH ? pixels_left : SIMD_WIDTH);
 
-            renderPixelSimd(pixels, pos, simd_width, x, ci);
+            renderPixelSimd(image.pixels(), pos, simd_width, x, ci);
         }
 #else
         for (int x = 0; x < width; x++) {
-            renderPixelScalar(pixels, pos, x, ci);
+            renderPixelScalar(image.pixels(), pos, x, ci);
         }
 #endif
     }
 }
 
 int main(int argc, char **argv) {
-    if (!parseArgs(argc, argv)) return 1;
-    if (!allocPixels(width, height)) return 1;
+    if (!ArgsParser::parse(argc, argv)) return 1;
 
-    renderImage();
+    auto image = Image::create(width, height);
+    if (image == nullptr) return 1;
 
-    if (!saveImage(filename)) return 1;
+    renderImage(*image);
+
+    if (!image->saveToFile(filename)) return 1;
     return 0;
 }
