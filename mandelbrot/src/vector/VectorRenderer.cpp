@@ -4,6 +4,8 @@
 #include <immintrin.h>
 #include <emmintrin.h>
 
+#include "../render/CenterCoords.h"
+
 #include "../scalar/ScalarGlobals.h"
 #include "VectorGlobals.h"
 
@@ -111,7 +113,7 @@ namespace VectorRenderer {
 
         for (int i = 0; i < SIMD_WIDTH; i++) {
             if (i < width) {
-                cr_vals[i] = (x + i - half_w) * scale + point_r;
+                cr_vals[i] = getCenterReal(x + i);
             } else cr_vals[i] = 0.0;
         }
 
@@ -126,7 +128,7 @@ namespace VectorRenderer {
 
         __m256d active = _mm256_castsi256_pd(_mm256_set1_epi64x(-1));
 
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < ScalarGlobals::count; i++) {
             __m256d zr2 = _mm256_mul_pd(zr, zr);
             __m256d zi2 = _mm256_mul_pd(zi, zi);
             mag = _mm256_add_pd(zr2, zi2);
@@ -134,7 +136,7 @@ namespace VectorRenderer {
             active = _mm256_and_pd(active, _mm256_cmp_pd(mag, d_bailout_vec, _CMP_LT_OQ));
             if (_mm256_movemask_pd(active) == 0) break;
 
-            switch (colorMethod) {
+            switch (ScalarGlobals::colorMethod) {
                 case 1:
                 {
                     __m256d t1 = _mm256_sub_pd(_mm256_mul_pd(zr, dr), _mm256_mul_pd(zi, di));
@@ -163,7 +165,7 @@ namespace VectorRenderer {
         __m128 r_vec, g_vec, b_vec;
         r_vec = g_vec = b_vec = f_zero;
 
-        switch (colorMethod) {
+        switch (ScalarGlobals::colorMethod) {
             case 0:
             {
                 __m128 f_iter = _mm256_cvtpd_ps(iter);

@@ -40,9 +40,9 @@ namespace ArgsParser {
         point_r = strtod(argv[3], nullptr);
         point_i = strtod(argv[4], nullptr);
 
-        double zoomScale = strtod(argv[5], nullptr);
+        float zoomScale = strtof(argv[5], nullptr);
 
-        if (!setScaleGlobals(zoomScale)) {
+        if (!setZoomGlobals(zoomScale)) {
             fprintf(stderr, "Invalid args.\nScale must be > 0.\n");
             return false;
         }

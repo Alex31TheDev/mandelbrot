@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <cmath>
 
+#include "../render/CenterCoords.h"
+
 #include "ScalarGlobals.h"
 using namespace ScalarGlobals;
 
@@ -50,7 +52,7 @@ namespace ScalarRenderer {
     }
 
     void renderPixelScalar(uint8_t *pixels, int &pos, int x, double ci) {
-        double cr = (x - half_w) * scale + point_r;
+        double cr = getCenterReal(x);
 
         double zr = 0.0, zi = 0.0;
         double dr = 1.0, di = 0.0;

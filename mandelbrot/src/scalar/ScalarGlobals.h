@@ -22,12 +22,12 @@ namespace ScalarGlobals {
     extern double half_w, half_h;
     extern double point_r, point_i, scale;
 
-    extern float aspect, invCount;
+    extern float zoom, aspect, invCount;
     extern float freqMult, freq_r, freq_g, freq_b;
     extern float light_r, light_i, light_h;
 
     bool setImageGlobals(int img_w, int img_h);
-    bool setScaleGlobals(double zoomScale);
+    bool setZoomGlobals(float zoomScale);
     bool setColorGlobals(float R, float G, float B, float mult);
     bool setLightGlobals(float real, float imag);
 }

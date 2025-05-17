@@ -10,7 +10,7 @@ namespace ScalarGlobals {
     double half_w, half_h;
     double point_r, point_i, scale;
 
-    float aspect, invCount;
+    float zoom, aspect, invCount;
     float freqMult, freq_r, freq_g, freq_b;
     float light_r, light_i, light_h;
 
@@ -27,13 +27,13 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setScaleGlobals(double zoomScale) {
+    bool setZoomGlobals(float zoomScale) {
         if (zoomScale <= 0) return false;
-        scale = zoomScale;
+        zoom = zoomScale;
 
-        count = (int)(pow(1.3, scale) + 22.0 * scale);
+        count = (int)(powf(1.3f, zoom) + 22.0f * zoom);
         invCount = 1.0f / (float)count;
-        scale = 1.0 / pow(2.0, scale);
+        scale = 1.0 / pow(2.0, (double)zoom);
 
         return true;
     }

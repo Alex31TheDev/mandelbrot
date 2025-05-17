@@ -7,20 +7,32 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mandelbrot", "mandelbrot\ma
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
+		Debug - AVX2|x64 = Debug - AVX2|x64
+		Debug - AVX2|x86 = Debug - AVX2|x86
+		Debug - Scalar|x64 = Debug - Scalar|x64
+		Debug - Scalar|x86 = Debug - Scalar|x86
+		Release - AVX2|x64 = Release - AVX2|x64
+		Release - AVX2|x86 = Release - AVX2|x86
+		Release - Scalar|x64 = Release - Scalar|x64
+		Release - Scalar|x86 = Release - Scalar|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug|x64.ActiveCfg = Debug|x64
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug|x64.Build.0 = Debug|x64
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug|x86.ActiveCfg = Debug|Win32
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug|x86.Build.0 = Debug|Win32
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release|x64.ActiveCfg = Release|x64
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release|x64.Build.0 = Release|x64
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release|x86.ActiveCfg = Release|Win32
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release|x86.Build.0 = Release|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - AVX2|x64.ActiveCfg = Debug - AVX2|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - AVX2|x64.Build.0 = Debug - AVX2|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - AVX2|x86.ActiveCfg = Debug - AVX2|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - AVX2|x86.Build.0 = Debug - AVX2|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - Scalar|x64.ActiveCfg = Debug|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - Scalar|x64.Build.0 = Debug|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - Scalar|x86.ActiveCfg = Debug|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - Scalar|x86.Build.0 = Debug|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - AVX2|x64.ActiveCfg = Release - AVX2|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - AVX2|x64.Build.0 = Release - AVX2|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - AVX2|x86.ActiveCfg = Release - AVX2|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - AVX2|x86.Build.0 = Release - AVX2|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - Scalar|x64.ActiveCfg = Release|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - Scalar|x64.Build.0 = Release|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - Scalar|x86.ActiveCfg = Release|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - Scalar|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
