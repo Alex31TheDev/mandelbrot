@@ -112,16 +112,39 @@ namespace VectorRenderer {
         double cr_vals[SIMD_WIDTH] = { 0 };
 
         for (int i = 0; i < SIMD_WIDTH; i++) {
-            if (i < width) {
-                cr_vals[i] = getCenterReal(x + i);
-            } else cr_vals[i] = 0.0;
+            if (i < width) cr_vals[i] = getCenterReal(x + i);
         }
 
         __m256d cr_vec = _mm256_loadu_pd(cr_vals);
         __m256d ci_vec = _mm256_set1_pd(ci);
 
-        __m256d zr = d_zero, zi = d_zero;
+        if (isInverse) {
+            __m256d cr2 = _mm256_mul_pd(cr_vec, cr_vec);
+            __m256d ci2 = _mm256_mul_pd(ci_vec, ci_vec);
+            __m256d cmag = _mm256_add_pd(cr2, ci2);
+
+            __m256d mask = _mm256_cmp_pd(cmag, d_zero, _CMP_NEQ_OQ);
+
+            cmag = _mm256_blendv_pd(d_one, cmag, mask);
+            __m256d inv_cmag = _mm256_div_pd(d_one, cmag);
+
+            cr_vec = _mm256_mul_pd(cr_vec, inv_cmag);
+            ci_vec = _mm256_mul_pd(ci_vec, _mm256_mul_pd(inv_cmag, d_neg_one));
+        }
+
+        __m256d zr, zi;
         __m256d dr = d_one, di = d_zero;
+
+        if (isJuliaSet) {
+            zr = cr_vec;
+            zi = ci_vec;
+
+            cr_vec = d_seed_r_vec;
+            ci_vec = d_seed_i_vec;
+        } else {
+            zr = d_seed_r_vec;
+            zi = d_seed_i_vec;
+        }
 
         __m256d iter = d_zero;
         __m256d mag = d_zero;

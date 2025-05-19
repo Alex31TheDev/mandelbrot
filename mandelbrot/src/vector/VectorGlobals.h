@@ -21,7 +21,10 @@ namespace VectorGlobals {
 
     const __m256d d_zero = _mm256_set1_pd(0.0);
     const __m256d d_one = _mm256_set1_pd(1.0);
+    const __m256d d_neg_one = _mm256_set1_pd(-1.0);
     const __m256d d_bailout_vec = _mm256_set1_pd(ScalarGlobals::BAILOUT);
+
+    extern __m256d d_seed_r_vec, d_seed_i_vec;
 
     extern __m128 f_invCount_vec;
     extern __m128 f_freq_r_vec, f_freq_g_vec, f_freq_b_vec;

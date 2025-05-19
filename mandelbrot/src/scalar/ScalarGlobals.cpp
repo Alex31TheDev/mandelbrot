@@ -7,8 +7,11 @@ namespace ScalarGlobals {
     int width, height, colorMethod;
     int count;
 
+    bool isJuliaSet, isInverse;
+
     double half_w, half_h;
     double point_r, point_i, scale;
+    double seed_r, seed_i;
 
     float zoom, aspect, invCount;
     float freqMult, freq_r, freq_g, freq_b;

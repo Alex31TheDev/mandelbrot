@@ -5,6 +5,9 @@
 namespace ScalarGlobals {
     constexpr double BAILOUT = 256.0;
 
+    constexpr double DEFAULT_SEED_R = 0.0;
+    constexpr double DEFAULT_SEED_I = 0.0;
+
     constexpr float DEFAULT_FREQ_R = 1.0f;
     constexpr float DEFAULT_FREQ_G = 0.5f;
     constexpr float DEFAULT_FREQ_B = 0.12f;
@@ -19,8 +22,11 @@ namespace ScalarGlobals {
     extern int width, height, colorMethod;
     extern int count;
 
+    extern bool isJuliaSet, isInverse;
+
     extern double half_w, half_h;
     extern double point_r, point_i, scale;
+    extern double seed_r, seed_i;
 
     extern float zoom, aspect, invCount;
     extern float freqMult, freq_r, freq_g, freq_b;

@@ -54,8 +54,28 @@ namespace ScalarRenderer {
     void renderPixelScalar(uint8_t *pixels, int &pos, int x, double ci) {
         double cr = getCenterReal(x);
 
-        double zr = 0.0, zi = 0.0;
+        if (isInverse) {
+            double cmag = cr * cr + ci * ci;
+
+            if (cmag != 0) {
+                cr = cr / cmag;
+                ci = -ci / cmag;
+            }
+        }
+
+        double zr, zi;
         double dr = 1.0, di = 0.0;
+
+        if (isJuliaSet) {
+            zr = cr;
+            zi = ci;
+
+            cr = seed_r;
+            ci = seed_i;
+        } else {
+            zr = seed_r;
+            zi = seed_i;
+        }
 
         int i = 0;
         double mag = 0;
