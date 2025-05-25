@@ -6,6 +6,7 @@
 class Image {
 public:
     static constexpr int STRIDE = 3;
+    static constexpr int ALIGNMENT = 16;
 
     static std::unique_ptr<Image> create(int width, int height);
 
@@ -31,7 +32,11 @@ private:
     int _height = 0;
     float _aspect = 0;
 
-    std::unique_ptr<uint8_t[]> _pixels;
+    struct _AlignedDeleter {
+        void operator()(uint8_t *ptr) const;
+    };
+
+    std::unique_ptr<uint8_t[], _AlignedDeleter> _pixels;
 
     void _setDimensions(int width, int height);
     bool _allocate(int width, int height);

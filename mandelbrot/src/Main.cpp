@@ -2,6 +2,7 @@
 #include "scalar/ScalarGlobals.h"
 
 #include "image/Image.h"
+#include "scalar/ScalarGlobals.h"
 #include "render/RenderImage.h"
 
 const char filename[] = "mandelbrot.png";
@@ -12,7 +13,11 @@ int main(int argc, char **argv) {
     auto image = Image::create(ScalarGlobals::width, ScalarGlobals::height);
     if (image == nullptr) return 1;
 
-    renderImage(*image);
+    if (ScalarGlobals::useThreads) {
+        renderImageParallel(*image);
+    } else {
+        renderImage(*image);
+    }
 
     if (!image->saveToFile(filename)) return 1;
     return 0;

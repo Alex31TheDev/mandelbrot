@@ -10,13 +10,14 @@ namespace VectorGlobals {
     constexpr int SIMD_WIDTH = 4;
 
     const __m128i i_zero = _mm_setzero_si128();
+    const __m256i i_neg_one = _mm256_set1_epi64x(-1);
 
     const __m128 f_zero = _mm_set1_ps(0.0f);
     const __m128 f_one = _mm_set1_ps(1.0f);
     const __m128 f_half = _mm_set1_ps(0.5f);
     const __m128 f_invLn2_vec = _mm_set1_ps(ScalarGlobals::invLn2);
     const __m128 f_invLnBail_vec = _mm_set1_ps(ScalarGlobals::invLnBail);
-    const __m128 f_pi_2 = _mm_set1_ps((float)M_PI_2);
+    const __m128 f_pi_2 = _mm_set1_ps(static_cast<float>(M_PI_2));
     const __m128 f_255 = _mm_set1_ps(255.0f);
 
     const __m256d d_zero = _mm256_set1_pd(0.0);
@@ -24,9 +25,13 @@ namespace VectorGlobals {
     const __m256d d_neg_one = _mm256_set1_pd(-1.0);
     const __m256d d_bailout_vec = _mm256_set1_pd(ScalarGlobals::BAILOUT);
 
+    extern __m256d d_idx_vec;
+    extern __m256d d_halfWidth_vec, d_invWidth_vec;
+    extern __m256d d_scale_vec, d_point_r_vec;
+
     extern __m256d d_seed_r_vec, d_seed_i_vec;
 
-    extern __m128 f_invCount_vec;
+    extern __m128 f_phase_r_vec, f_phase_g_vec, f_phase_b_vec;
     extern __m128 f_freq_r_vec, f_freq_g_vec, f_freq_b_vec;
     extern __m128 f_light_r_vec, f_light_i_vec, f_light_h_vec;
 

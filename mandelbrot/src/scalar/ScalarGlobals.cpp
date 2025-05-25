@@ -7,14 +7,17 @@ namespace ScalarGlobals {
     int width, height, colorMethod;
     int count;
 
-    bool isJuliaSet, isInverse;
+    bool useThreads = false;
+    bool isJuliaSet = false, isInverse = false;
 
-    double half_w, half_h;
-    double point_r, point_i, scale;
-    double seed_r, seed_i;
+    double halfWidth, halfHeight, invWidth, invHeight;
+    double point_r = 0, point_i = 0, scale;
+    double seed_r = 0, seed_i = 0;
 
-    float zoom, aspect, invCount;
-    float freqMult, freq_r, freq_g, freq_b;
+    float zoom, aspect;
+
+    float freq_r, freq_g, freq_b, freqMult;
+    float phase_r, phase_g, phase_b, cosPhase = DEFAULT_COS_PHASE;
     float light_r, light_i, light_h;
 
     bool setImageGlobals(int img_w, int img_h) {
@@ -22,31 +25,51 @@ namespace ScalarGlobals {
         width = img_w;
         height = img_h;
 
-        aspect = (float)width / (float)height;
+        aspect = static_cast<float>(width) / height;
 
-        half_w = (double)width * 0.5;
-        half_h = (double)height * 0.5;
+        halfWidth = static_cast<double>(width) / 2.0;
+        halfHeight = static_cast<double>(height) / 2.0;
+
+        invWidth = 1.0 / static_cast<double>(width);
+        invHeight = 1.0 / static_cast<double>(height);
 
         return true;
     }
 
-    bool setZoomGlobals(float zoomScale) {
-        if (zoomScale <= 0) return false;
+    bool setZoomGlobals(int iterCount, float zoomScale) {
+        if (iterCount < MIN_ITERATIONS) {
+            count = MIN_ITERATIONS;
+        } else {
+            count = iterCount;
+        }
+
+        if (zoomScale < -3.25) return false;
         zoom = zoomScale;
 
-        count = (int)(powf(1.3f, zoom) + 22.0f * zoom);
-        invCount = 1.0f / (float)count;
-        scale = 1.0 / pow(2.0, (double)zoom);
+        double zoomPow = pow(10.0, zoom);
+        scale = 1.0 / zoomPow;
+
+        if (iterCount == 0) {
+            count = MIN_ITERATIONS;
+
+            float visualRange = static_cast<float>(zoomPow) * aspect;
+            count += static_cast<int>(powf(log10f(visualRange), 5.0f));
+        }
 
         return true;
     }
 
     bool setColorGlobals(float R, float G, float B, float mult) {
+        phase_r = cosPhase + DEFAULT_PHASE_R;
+        phase_g = cosPhase + DEFAULT_PHASE_G;
+        phase_b = cosPhase + DEFAULT_PHASE_R;
+
         if (abs(mult) <= 0.0001f) return false;
 
         freq_r = R * mult;
         freq_g = G * mult;
         freq_b = B * mult;
+        freqMult = mult;
 
         return true;
     }

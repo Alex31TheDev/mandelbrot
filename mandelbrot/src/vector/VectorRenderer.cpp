@@ -1,10 +1,13 @@
 #include "VectorRenderer.h"
 
 #include <cstdint>
+#include <cstring>
+
 #include <immintrin.h>
 #include <emmintrin.h>
+#include <tmmintrin.h>
 
-#include "../render/CenterCoords.h"
+#include "../image/Image.h"
 
 #include "../scalar/ScalarGlobals.h"
 #include "VectorGlobals.h"
@@ -12,110 +15,125 @@
 using namespace ScalarGlobals;
 using namespace VectorGlobals;
 
+#include "VectorCoords.h"
+
+static const __m128i byteMask = _mm_setr_epi8(
+    0, 4, 8, 12,
+    -1, -1, -1, -1,
+    -1, -1, -1, -1,
+    -1, -1, -1, -1
+);
+
+static const __m128i rgbMask = _mm_setr_epi8(
+    0, 1, 8,
+    2, 3, 9,
+    4, 5, 10,
+    6, 7, 11,
+    -1, -1, -1, -1
+);
+
+static inline __m128 normCos_vec(__m128 x) {
+    __m128 a = _mm_cos_ps(x);
+    return _mm_mul_ps(_mm_add_ps(a, f_one), f_half);
+}
+
+static inline void getColorPixel_vec(__m128 val,
+    __m128 &outR, __m128 &outG, __m128 &outB) {
+    __m128 R_x = _mm_add_ps(f_phase_r_vec, _mm_mul_ps(val, f_freq_r_vec));
+    __m128 G_x = _mm_add_ps(f_phase_g_vec, _mm_mul_ps(val, f_freq_g_vec));
+    __m128 B_x = _mm_add_ps(f_phase_b_vec, _mm_mul_ps(val, f_freq_b_vec));
+
+    outR = normCos_vec(R_x);
+    outG = normCos_vec(G_x);
+    outB = normCos_vec(B_x);
+}
+
+static inline __m128i pixelToInt_vec(__m128 val) {
+    val = _mm_mul_ps(val, f_255);
+    val = _mm_min_ps(_mm_max_ps(val, f_zero), f_255);
+    return _mm_cvtps_epi32(val);
+}
+
+static inline void setPixelsMasked_vec(uint8_t *pixels, int &pos,
+    int width, __m128 active, __m128 R, __m128 G, __m128 B) {
+    __m128 inactive = _mm_cmpeq_ps(active, f_zero);
+    R = _mm_and_ps(R, inactive);
+    G = _mm_and_ps(G, inactive);
+    B = _mm_and_ps(B, inactive);
+
+    VectorRenderer::setPixels_vec(pixels, pos, width, R, G, B);
+}
+
+static inline __m128 getSmoothIterVal_vec(__m128 iter, __m128 mag) {
+    __m128 sqrt_mag = _mm_sqrt_ps(mag);
+    __m128 lg1 = _mm_log_ps(sqrt_mag);
+    __m128 m1 = _mm_mul_ps(lg1, f_invLnBail_vec);
+    __m128 lg2 = _mm_log_ps(m1);
+    __m128 m2 = _mm_mul_ps(lg2, f_invLn2_vec);
+    return _mm_sub_ps(iter, m2);
+}
+
+static inline __m128 getLightVal_vec(__m128 zr, __m128 zi, __m128 dr, __m128 di) {
+    __m128 dr2 = _mm_mul_ps(dr, dr);
+    __m128 di2 = _mm_mul_ps(di, di);
+    __m128 dinv = _mm_div_ps(f_one, _mm_add_ps(dr2, di2));
+
+    __m128 ur = _mm_add_ps(_mm_mul_ps(zr, dr), _mm_mul_ps(zi, di));
+    __m128 ui = _mm_sub_ps(_mm_mul_ps(zi, dr), _mm_mul_ps(zr, di));
+    ur = _mm_mul_ps(ur, dinv);
+    ui = _mm_mul_ps(ui, dinv);
+
+    __m128 ur2 = _mm_mul_ps(ur, ur);
+    __m128 ui2 = _mm_mul_ps(ui, ui);
+    __m128 umag = _mm_div_ps(f_one, _mm_sqrt_ps(_mm_add_ps(ur2, ui2)));
+    ur = _mm_mul_ps(ur, umag);
+    ui = _mm_mul_ps(ui, umag);
+
+    __m128 num = _mm_add_ps(
+        _mm_add_ps(
+            _mm_mul_ps(ur, f_light_r_vec),
+            _mm_mul_ps(ui, f_light_i_vec)
+        ),
+        f_light_h_vec
+    );
+    __m128 den = _mm_add_ps(f_light_h_vec, f_one);
+
+    __m128 light = _mm_div_ps(num, den);
+    return _mm_max_ps(light, f_zero);
+}
+
 namespace VectorRenderer {
-    static inline __m128 _normCos_vec(__m128 x) {
-        __m128 t = _mm_sub_ps(x, f_pi_2);
-        __m128 c = _mm_cos_ps(t);
-        return _mm_mul_ps(_mm_add_ps(c, f_one), f_half);
-    }
+    inline void setPixels_vec(uint8_t *pixels, int &pos,
+        int width, __m128 R, __m128 G, __m128 B) {
+        __m128i R_i = pixelToInt_vec(R);
+        __m128i G_i = pixelToInt_vec(G);
+        __m128i B_i = pixelToInt_vec(B);
 
-    static inline void _getColorPixel_vec(__m128 val, __m128 &outR, __m128 &outG, __m128 &outB) {
-        __m128 R_x = _mm_mul_ps(val, f_freq_r_vec);
-        __m128 G_x = _mm_mul_ps(val, f_freq_g_vec);
-        __m128 B_x = _mm_mul_ps(val, f_freq_b_vec);
+        __m128i R_8 = _mm_shuffle_epi8(R_i, byteMask);
+        __m128i G_8 = _mm_shuffle_epi8(G_i, byteMask);
+        __m128i B_8 = _mm_shuffle_epi8(B_i, byteMask);
 
-        outR = _normCos_vec(R_x);
-        outG = _normCos_vec(G_x);
-        outB = _normCos_vec(B_x);
-    }
+        __m128i RG = _mm_unpacklo_epi8(R_8, G_8);
+        __m128i mix = _mm_unpacklo_epi64(RG, B_8);
+        __m128i rgb12 = _mm_shuffle_epi8(mix, rgbMask);
 
-    static inline __m128i _pixelToInt_vec(__m128 val) {
-        val = _mm_mul_ps(val, f_255);
-        val = _mm_min_ps(_mm_max_ps(val, f_zero), f_255);
-        return _mm_cvtps_epi32(val);
-    }
+        int byteCount = width * Image::STRIDE;
+        uint8_t *out = pixels + pos;
 
-    static inline void _setPixelsMasked_vec(uint8_t *pixels, int &pos, int width, __m128 active, __m128 R, __m128 G, __m128 B) {
-        __m128 inactive = _mm_cmpeq_ps(active, f_zero);
-        R = _mm_and_ps(R, inactive);
-        G = _mm_and_ps(G, inactive);
-        B = _mm_and_ps(B, inactive);
-
-        setPixels_vec(pixels, pos, width, R, G, B);
-    }
-
-    static inline __m128 _getSmoothIterVal_vec(__m128 iter, __m128 mag) {
-        __m128 sqrt_mag = _mm_sqrt_ps(mag);
-        __m128 lg1 = _mm_log_ps(sqrt_mag);
-        __m128 m1 = _mm_mul_ps(lg1, f_invLnBail_vec);
-        __m128 lg2 = _mm_log_ps(m1);
-        __m128 m2 = _mm_mul_ps(lg2, f_invLn2_vec);
-        __m128 smooth = _mm_sub_ps(iter, m2);
-        return _mm_mul_ps(smooth, f_invCount_vec);
-    }
-
-    static inline __m128 _getLightVal_vec(__m128 zr, __m128 zi, __m128 dr, __m128 di) {
-        __m128 dr2 = _mm_mul_ps(dr, dr);
-        __m128 di2 = _mm_mul_ps(di, di);
-        __m128 dinv = _mm_div_ps(f_one, _mm_add_ps(dr2, di2));
-
-        __m128 ur = _mm_add_ps(_mm_mul_ps(zr, dr), _mm_mul_ps(zi, di));
-        __m128 ui = _mm_sub_ps(_mm_mul_ps(zi, dr), _mm_mul_ps(zr, di));
-        ur = _mm_mul_ps(ur, dinv);
-        ui = _mm_mul_ps(ui, dinv);
-
-        __m128 ur2 = _mm_mul_ps(ur, ur);
-        __m128 ui2 = _mm_mul_ps(ui, ui);
-        __m128 umag = _mm_div_ps(f_one, _mm_sqrt_ps(_mm_add_ps(ur2, ui2)));
-        ur = _mm_mul_ps(ur, umag);
-        ui = _mm_mul_ps(ui, umag);
-
-        __m128 num = _mm_add_ps(
-            _mm_add_ps(
-                _mm_mul_ps(ur, f_light_r_vec),
-                _mm_mul_ps(ui, f_light_i_vec)
-            ),
-            f_light_h_vec
-        );
-        __m128 den = _mm_add_ps(f_light_h_vec, f_one);
-
-        __m128 light = _mm_div_ps(num, den);
-        return _mm_max_ps(light, f_zero);
-    }
-
-    inline void setPixels_vec(uint8_t *pixels, int &pos, int width, __m128 R, __m128 G, __m128 B) {
-        __m128i R_i = _pixelToInt_vec(R);
-        __m128i G_i = _pixelToInt_vec(G);
-        __m128i B_i = _pixelToInt_vec(B);
-
-        __m128i R_16 = _mm_packs_epi32(R_i, i_zero);
-        __m128i G_16 = _mm_packs_epi32(G_i, i_zero);
-        __m128i B_16 = _mm_packs_epi32(B_i, i_zero);
-
-        __m128i R_8 = _mm_packus_epi16(R_16, i_zero);
-        __m128i G_8 = _mm_packus_epi16(G_16, i_zero);
-        __m128i B_8 = _mm_packus_epi16(B_16, i_zero);
-
-        uint8_t R_arr[SIMD_WIDTH], G_arr[SIMD_WIDTH], B_arr[SIMD_WIDTH];
-        _mm_storeu_si32(R_arr, R_8);
-        _mm_storeu_si32(G_arr, G_8);
-        _mm_storeu_si32(B_arr, B_8);
-
-        for (int i = 0; i < width; i++) {
-            pixels[pos++] = R_arr[i];
-            pixels[pos++] = G_arr[i];
-            pixels[pos++] = B_arr[i];
-        }
-    }
-
-    void renderPixelSimd(uint8_t *pixels, int &pos, int width, int x, double ci) {
-        double cr_vals[SIMD_WIDTH] = { 0 };
-
-        for (int i = 0; i < SIMD_WIDTH; i++) {
-            if (i < width) cr_vals[i] = getCenterReal(x + i);
+        if (width == SIMD_WIDTH) {
+            _mm_store_si128(reinterpret_cast<__m128i *>(out), rgb12);
+        } else {
+            alignas(Image::ALIGNMENT) uint8_t rgb_bytes[16];
+            _mm_store_si128(reinterpret_cast<__m128i *>(rgb_bytes), rgb12);
+            memcpy(out, rgb_bytes, byteCount);
         }
 
-        __m256d cr_vec = _mm256_loadu_pd(cr_vals);
+        pos += byteCount;
+    }
+
+    void renderPixelSimd(uint8_t *pixels, int &pos,
+        int width, int x, double ci) {
+        __m256d cr_vec = getCenterReal(width, x);
         __m256d ci_vec = _mm256_set1_pd(ci);
 
         if (isInverse) {
@@ -149,7 +167,7 @@ namespace VectorRenderer {
         __m256d iter = d_zero;
         __m256d mag = d_zero;
 
-        __m256d active = _mm256_castsi256_pd(_mm256_set1_epi64x(-1));
+        __m256d active = _mm256_castsi256_pd(i_neg_one);
 
         for (int i = 0; i < ScalarGlobals::count; i++) {
             __m256d zr2 = _mm256_mul_pd(zr, zr);
@@ -175,7 +193,7 @@ namespace VectorRenderer {
             }
 
             __m256d zrzi = _mm256_mul_pd(zr, zi);
-            __m256d new_zi = _mm256_sub_pd(_mm256_add_pd(zrzi, zrzi), ci_vec);
+            __m256d new_zi = _mm256_add_pd(_mm256_add_pd(zrzi, zrzi), ci_vec);
             __m256d new_zr = _mm256_add_pd(_mm256_sub_pd(zr2, zi2), cr_vec);
 
             iter = _mm256_add_pd(iter, _mm256_and_pd(active, d_one));
@@ -194,8 +212,8 @@ namespace VectorRenderer {
                 __m128 f_iter = _mm256_cvtpd_ps(iter);
                 __m128 f_mag = _mm256_cvtpd_ps(mag);
 
-                __m128 vals = _getSmoothIterVal_vec(f_iter, f_mag);
-                _getColorPixel_vec(vals, r_vec, g_vec, b_vec);
+                __m128 vals = getSmoothIterVal_vec(f_iter, f_mag);
+                getColorPixel_vec(vals, r_vec, g_vec, b_vec);
             }
             break;
 
@@ -206,12 +224,12 @@ namespace VectorRenderer {
                 __m128 f_dr = _mm256_cvtpd_ps(dr);
                 __m128 f_di = _mm256_cvtpd_ps(di);
 
-                __m128 vals = _getLightVal_vec(f_zr, f_zi, f_dr, f_di);
+                __m128 vals = getLightVal_vec(f_zr, f_zi, f_dr, f_di);
                 r_vec = g_vec = b_vec = vals;
             }
             break;
         }
 
-        _setPixelsMasked_vec(pixels, pos, width, f_active, r_vec, g_vec, b_vec);
+        setPixelsMasked_vec(pixels, pos, width, f_active, r_vec, g_vec, b_vec);
     }
 }

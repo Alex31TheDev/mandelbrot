@@ -161,6 +161,7 @@
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -173,6 +174,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -186,6 +188,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -202,6 +205,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -215,6 +219,7 @@
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -227,6 +232,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -240,6 +246,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -256,6 +263,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -267,10 +275,13 @@
   <ItemGroup>
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ColorMethods.h" />
+    <ClInclude Include="src\args\ParserUtil.h" />
     <ClInclude Include="src\args\Usage.h" />
-    <ClInclude Include="src\render\CenterCoords.h" />
+    <ClInclude Include="src\render\RenderProgress.h" />
+    <ClInclude Include="src\scalar\ScalarCoords.h" />
     <ClInclude Include="src\render\RenderImage.h" />
     <ClInclude Include="src\scalar\ScalarGlobals.h" />
+    <ClInclude Include="src\vector\VectorCoords.h" />
     <ClInclude Include="src\vector\VectorGlobals.h" />
     <ClInclude Include="src\image\Image.h" />
     <ClInclude Include="src\scalar\ScalarRenderer.h" />
@@ -280,7 +291,9 @@
   <ItemGroup>
     <ClCompile Include="src\args\ArgsParser.cpp" />
     <ClCompile Include="src\args\ColorMethods.cpp" />
+    <ClCompile Include="src\args\ParserUtil.cpp" />
     <ClCompile Include="src\render\RenderImage.cpp" />
+    <ClCompile Include="src\render\RenderProgress.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
     <ClCompile Include="src\image\Image.cpp" />

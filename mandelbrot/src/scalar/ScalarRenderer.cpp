@@ -3,55 +3,59 @@
 #include <cstdint>
 #include <cmath>
 
-#include "../render/CenterCoords.h"
-
 #include "ScalarGlobals.h"
 using namespace ScalarGlobals;
 
+#include "ScalarCoords.h"
+
+static inline float normCos(float x) {
+    return (cosf(x) + 1.0f) * 0.5f;
+}
+
+static inline void getColorPixel(float val,
+    float &outR, float &outG, float &outB) {
+    float R_x = phase_r + val * freq_r;
+    float G_x = phase_g + val * freq_g;
+    float B_x = phase_b + val * freq_b;
+
+    outR = normCos(R_x);
+    outG = normCos(G_x);
+    outB = normCos(B_x);
+}
+
+static inline uint8_t pixelToInt(float val) {
+    return static_cast<uint8_t>(val * 255.0f);
+}
+
+static inline float getSmoothIterVal(int i, float mag) {
+    float sqrt_mag = sqrtf(mag);
+    float m = logf(logf(sqrt_mag) * invLnBail) * invLn2;
+    return static_cast<float>(i) - m;
+}
+
+static inline float getLightVal(double zr, double zi, double dr, double di) {
+    float dsum = 1.0f / static_cast<float>(dr * dr + di * di);
+    float ur = static_cast<float>(zr * dr + zi * di) * dsum;
+    float ui = static_cast<float>(zi * dr - zr * di) * dsum;
+
+    float umag = 1.0f / sqrtf(ur * ur + ui * ui);
+    ur *= umag;
+    ui *= umag;
+
+    float light = (ur * light_r + ui * light_i + light_h) / (light_h + 1.0f);
+    return fmaxf(light, 0.0f);
+}
+
 namespace ScalarRenderer {
-    static inline float _normCos(float x) {
-        return (cosf(x - (float)M_PI_2) + 1.0f) * 0.5f;
+    inline void setPixel(uint8_t *pixels, int &pos,
+        float R, float G, float B) {
+        pixels[pos++] = pixelToInt(R);
+        pixels[pos++] = pixelToInt(G);
+        pixels[pos++] = pixelToInt(B);
     }
 
-    static inline void _getColorPixel(float val, float &outR, float &outG, float &outB) {
-        float R_x = val * freq_r;
-        float G_x = val * freq_g;
-        float B_x = val * freq_b;
-
-        outR = _normCos(R_x);
-        outG = _normCos(G_x);
-        outB = _normCos(B_x);
-    }
-
-    static inline uint8_t _pixelToInt(float val) {
-        return (uint8_t)(val * 255.0f);
-    }
-
-    static inline float _getSmoothIterVal(int i, float mag) {
-        float smooth = (float)i - logf(logf(sqrtf(mag)) * invLnBail) * invLn2;
-        return smooth * invCount;
-    }
-
-    static inline float _getLightVal(double zr, double zi, double dr, double di) {
-        float dsum = 1.0f / (float)(dr * dr + di * di);
-        float ur = (float)(zr * dr + zi * di) * dsum;
-        float ui = (float)(zi * dr - zr * di) * dsum;
-
-        float umag = 1.0f / sqrtf(ur * ur + ui * ui);
-        ur *= umag;
-        ui *= umag;
-
-        float light = (ur * light_r + ui * light_i + light_h) / (light_h + 1.0f);
-        return fmaxf(light, 0.0f);
-    }
-
-    inline void setPixel(uint8_t *pixels, int &pos, float R, float G, float B) {
-        pixels[pos++] = _pixelToInt(R);
-        pixels[pos++] = _pixelToInt(G);
-        pixels[pos++] = _pixelToInt(B);
-    }
-
-    void renderPixelScalar(uint8_t *pixels, int &pos, int x, double ci) {
+    void renderPixelScalar(uint8_t *pixels, int &pos,
+        int x, double ci) {
         double cr = getCenterReal(x);
 
         if (isInverse) {
@@ -97,7 +101,7 @@ namespace ScalarRenderer {
                 break;
             }
 
-            zi = 2.0 * zr * zi - ci;
+            zi = 2.0 * zr * zi + ci;
             zr = zr2 - zi2 + cr;
         }
 
@@ -109,10 +113,10 @@ namespace ScalarRenderer {
         switch (colorMethod) {
             case 0:
             {
-                float val = _getSmoothIterVal(i, (float)mag);
+                float val = getSmoothIterVal(i, static_cast<float>(mag));
 
                 float R, G, B;
-                _getColorPixel(val, R, G, B);
+                getColorPixel(val, R, G, B);
 
                 setPixel(pixels, pos, R, G, B);
             }
@@ -120,7 +124,7 @@ namespace ScalarRenderer {
 
             case 1:
             {
-                float val = _getLightVal(zr, zi, dr, di);
+                float val = getLightVal(zr, zi, dr, di);
                 setPixel(pixels, pos, val, val, val);
             }
             break;
