@@ -9,21 +9,13 @@
 #include "ColorMethods.h"
 using namespace ParserUtil;
 
+#include "../scalar/ScalarTypes.h"
+
 #include "../scalar/ScalarGlobals.h"
+#include "../vector/VectorGlobals.h"
 using namespace ScalarGlobals;
 
-#ifdef __AVX2__
-#include "../vector/VectorGlobals.h"
-using namespace VectorGlobals;
-#endif
-
 static const char flagHelp[] = "flag must be \"true\" or \"false\"";
-
-static void setArgs_vec() {
-#ifdef __AVX2__
-    initVectors();
-#endif
-}
 
 namespace ArgsParser {
     bool parse(int argc, char **argv) {
@@ -34,22 +26,22 @@ namespace ArgsParser {
             return false;
         }
 
-        int img_w = strtol(argv[1], nullptr, 10);
-        int img_h = strtol(argv[2], nullptr, 10);
+        int img_w = PARSE_INT32(argv[1]);
+        int img_h = PARSE_INT32(argv[2]);
 
         if (!setImageGlobals(img_w, img_h)) {
             fprintf(stderr, "Invalid args.\nWidth and height must be > 0.\n");
             return false;
         }
 
-        point_r = strtod(argv[3], nullptr);
-        point_i = strtod(argv[4], nullptr);
+        point_r = PARSE_F(argv[3]);
+        point_i = PARSE_F(argv[4]);
 
-        float zoomScale = strtof(argv[5], nullptr);
+        float zoomScale = PARSE_H(argv[5]);
         int iterCount = 0;
 
         if (argc > 6 && strcmp(argv[6], "auto") != 0) {
-            iterCount = strtol(argv[6], nullptr, 10);
+            iterCount = PARSE_INT32(argv[6]);
         }
 
         if (!setZoomGlobals(iterCount, zoomScale)) {
@@ -95,16 +87,16 @@ namespace ArgsParser {
             }
         }
 
-        seed_r = argc > 11 ? strtod(argv[11], nullptr) : DEFAULT_SEED_R;
-        seed_i = argc > 12 ? strtod(argv[12], nullptr) : DEFAULT_SEED_I;
+        seed_r = argc > 11 ? PARSE_F(argv[11]) : DEFAULT_SEED_R;
+        seed_i = argc > 12 ? PARSE_F(argv[12]) : DEFAULT_SEED_I;
 
         switch (colorMethod) {
             case 0:
             {
-                float R = argc > 13 ? strtof(argv[13], nullptr) : DEFAULT_FREQ_R;
-                float G = argc > 14 ? strtof(argv[14], nullptr) : DEFAULT_FREQ_G;
-                float B = argc > 15 ? strtof(argv[15], nullptr) : DEFAULT_FREQ_B;
-                float mult = argc > 16 ? strtof(argv[16], nullptr) : DEFAULT_FREQ_MULT;
+                float R = argc > 13 ? PARSE_H(argv[13]) : DEFAULT_FREQ_R;
+                float G = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_FREQ_G;
+                float B = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_FREQ_B;
+                float mult = argc > 16 ? PARSE_H(argv[16]) : DEFAULT_FREQ_MULT;
 
                 if (!setColorGlobals(R, G, B, mult)) {
                     fprintf(stderr, "Invalid args.\nFrequency multiplier must be non-zero.\n");
@@ -115,8 +107,8 @@ namespace ArgsParser {
 
             case 1:
             {
-                float real = argc > 13 ? strtof(argv[13], nullptr) : DEFAULT_LIGHT_R;
-                float imag = argc > 14 ? strtof(argv[14], nullptr) : DEFAULT_LIGHT_I;
+                float real = argc > 13 ? PARSE_H(argv[13]) : DEFAULT_LIGHT_R;
+                float imag = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_LIGHT_I;
 
                 if (!setLightGlobals(real, imag)) {
                     fprintf(stderr, "Invalid args.\nLight vector must be non-zero.\n");
@@ -126,7 +118,7 @@ namespace ArgsParser {
             break;
         }
 
-        setArgs_vec();
+        VectorGlobals::initVectors();
         return true;
     }
 }

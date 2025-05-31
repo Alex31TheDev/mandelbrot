@@ -2,22 +2,18 @@
 
 #include <vector>
 #include <algorithm>
-#include <functional>
 #include <thread>
 
 #include "../image/Image.h"
 #include "RenderProgress.h"
 
-#ifdef __AVX2__
+#ifdef USE_VECTORS
+#include "../vector/VectorTypes.h"
 #include "../vector/VectorRenderer.h"
-#include "../vector/VectorGlobals.h"
-
-using namespace VectorRenderer;
-using namespace VectorGlobals;
 #else
 #include "../scalar/ScalarRenderer.h"
-using namespace ScalarRenderer;
 #endif
+
 #include "../scalar/ScalarGlobals.h"
 using namespace ScalarGlobals;
 
@@ -27,18 +23,18 @@ static void renderStrip(Image &image, int start_y, int end_y, RenderProgress *pr
     int pos = start_y * width * Image::STRIDE;
 
     for (int y = start_y; y < end_y; y++) {
-        double ci = getCenterImag(y);
+        auto ci = getCenterImag(y);
 
-#ifdef __AVX2__
-        for (int x = 0; x < width; x += SIMD_WIDTH) {
+#ifdef USE_VECTORS
+        for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
             int pixels_left = width - x;
-            int simd_width = (pixels_left < SIMD_WIDTH ? pixels_left : SIMD_WIDTH);
+            int simd_width = (pixels_left < SIMD_FULL_WIDTH ? pixels_left : SIMD_FULL_WIDTH);
 
-            renderPixelSimd(image.pixels(), pos, simd_width, x, ci);
+            VectorRenderer::renderPixelSimd(image.pixels(), pos, simd_width, x, ci);
         }
 #else
         for (int x = 0; x < width; x++) {
-            renderPixelScalar(image.pixels(), pos, x, ci);
+            ScalarRenderer::renderPixelScalar(image.pixels(), pos, x, ci);
         }
 #endif
 

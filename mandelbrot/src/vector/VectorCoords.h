@@ -1,22 +1,26 @@
 #pragma once
+#ifdef USE_VECTORS
 
+#include "VectorTypes.h"
 #include "VectorGlobals.h"
 
 #include <immintrin.h>
 
-static inline __m256d getCenterReal(int width, int x) {
+static inline simd_full_t getCenterReal(int width, int x) {
     using namespace VectorGlobals;
 
-    __m256d width_vec = _mm256_set1_pd(static_cast<double>(width));
-    __m256d x_vec = _mm256_set1_pd(static_cast<double>(x));
+    simd_full_t width_vec = SIMD_SET_F(width);
+    simd_full_t x_vec = SIMD_SET_F(x);
 
-    __m256d offset = _mm256_add_pd(x_vec, d_idx_vec);
-    __m256d center = _mm256_sub_pd(offset, d_halfWidth_vec);
-    __m256d normal = _mm256_mul_pd(center, d_invWidth_vec);
-    __m256d scaled = _mm256_mul_pd(normal, d_scale_vec);
+    simd_full_t offset = SIMD_ADD_F(x_vec, f_idx_vec);
+    simd_full_t center = SIMD_SUB_F(offset, f_halfWidth_vec);
+    simd_full_t normal = SIMD_MUL_F(center, f_invWidth_vec);
+    simd_full_t scaled = SIMD_MUL_F(normal, f_scale_vec);
 
-    __m256d vals = _mm256_add_pd(scaled, d_point_r_vec);
-    __m256d mask = _mm256_cmp_pd(d_idx_vec, width_vec, _CMP_LT_OQ);
+    simd_full_t vals = SIMD_ADD_F(scaled, f_point_r_vec);
 
-    return _mm256_blendv_pd(d_bailout_vec, vals, mask);
+    simd_full_mask_t mask = SIMD_CMP_LT_F(f_idx_vec, width_vec);
+    return SIMD_BLEND_F(f_bailout_vec, vals, mask);
 }
+
+#endif

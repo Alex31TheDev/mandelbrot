@@ -1,7 +1,12 @@
+#ifdef USE_VECTORS
+#define USE_VECTOR_STORE
+
+#include "../scalar/ScalarTypes.h"
+#include "VectorTypes.h"
 #include "VectorRenderer.h"
 
 #include <cstdint>
-#include <cstring>
+#include <array>
 
 #include <immintrin.h>
 #include <emmintrin.h>
@@ -17,219 +22,277 @@ using namespace VectorGlobals;
 
 #include "VectorCoords.h"
 
-static const __m128i byteMask = _mm_setr_epi8(
-    0, 4, 8, 12,
-    -1, -1, -1, -1,
-    -1, -1, -1, -1,
-    -1, -1, -1, -1
-);
+#ifdef USE_VECTOR_STORE
 
-static const __m128i rgbMask = _mm_setr_epi8(
-    0, 1, 8,
-    2, 3, 9,
-    4, 5, 10,
-    6, 7, 11,
-    -1, -1, -1, -1
-);
+constexpr int WIDTH_128_STRIDE = 4 * Image::STRIDE;
 
-static inline __m128 normCos_vec(__m128 x) {
-    __m128 a = _mm_cos_ps(x);
-    return _mm_mul_ps(_mm_add_ps(a, f_one), f_half);
+template <int N, int total>
+constexpr auto makeRgbMask() {
+    std::array<int8_t, total> mask{};
+
+    for (size_t i = 0; i < N; i++) {
+        mask[i * 3] = CAST_INT_S(i, 8);
+        mask[i * 3 + 1] = CAST_INT_S(i + 4, 8);
+        mask[i * 3 + 2] = CAST_INT_S(i + 8, 8);
+    }
+
+    for (size_t i = N * 3; i < total; i++) mask[i] = -1;
+    return mask;
 }
 
-static inline void getColorPixel_vec(__m128 val,
-    __m128 &outR, __m128 &outG, __m128 &outB) {
-    __m128 R_x = _mm_add_ps(f_phase_r_vec, _mm_mul_ps(val, f_freq_r_vec));
-    __m128 G_x = _mm_add_ps(f_phase_g_vec, _mm_mul_ps(val, f_freq_g_vec));
-    __m128 B_x = _mm_add_ps(f_phase_b_vec, _mm_mul_ps(val, f_freq_b_vec));
+static const __m128i rgbMask = _mm_loadu_si128(
+    reinterpret_cast<const __m128i *>(makeRgbMask<4, 16>().data())
+);
+
+static inline void store128bitLane_vec(uint8_t *out, __m128i data, int lane) {
+    _mm_storeu_si128(
+        reinterpret_cast<__m128i *>(out + lane * WIDTH_128_STRIDE),
+        data
+    );
+}
+
+static inline void writePixelData_vec(uint8_t *out, __m128i RGBA8) {
+    __m128i mix = _mm_shuffle_epi8(RGBA8, rgbMask);
+    store128bitLane_vec(out, mix, 0);
+}
+
+static inline void writePixelData_vec(uint8_t *out, __m256i RGBA8) {
+    __m128i lanes[2] = {
+        _mm256_castsi256_si128(RGBA8),
+        _mm256_extracti128_si256(RGBA8, 1)
+    };
+
+    for (int i = 0; i < 2; i++) {
+        __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
+        store128bitLane_vec(out, mix, i);
+    }
+}
+
+static inline void writePixelData_vec(uint8_t *out, __m512i RGBA8) {
+    __m128i lanes[4] = {
+        _mm512_extracti32x4_epi32(RGBA8, 0),
+        _mm512_extracti32x4_epi32(RGBA8, 1),
+        _mm512_extracti32x4_epi32(RGBA8, 2),
+        _mm512_extracti32x4_epi32(RGBA8, 3),
+    };
+
+    for (int i = 0; i < 4; i++) {
+        __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
+        store128bitLane_vec(out, mix, i);
+    }
+}
+
+#else
+#include "../scalar/ScalarRenderer.h"
+#endif
+
+static inline simd_half_t normCos_vec(simd_half_t x) {
+    simd_half_t a = SIMD_COS_H(x);
+    return SIMD_MUL_H(SIMD_ADD_H(a, h_one), h_half);
+}
+
+static inline void getColorPixel_vec(simd_half_t val,
+    simd_half_t &outR, simd_half_t &outG, simd_half_t &outB) {
+    simd_half_t R_x = SIMD_ADD_H(h_phase_r_vec, SIMD_MUL_H(val, h_freq_r_vec));
+    simd_half_t G_x = SIMD_ADD_H(h_phase_g_vec, SIMD_MUL_H(val, h_freq_g_vec));
+    simd_half_t B_x = SIMD_ADD_H(h_phase_b_vec, SIMD_MUL_H(val, h_freq_b_vec));
 
     outR = normCos_vec(R_x);
     outG = normCos_vec(G_x);
     outB = normCos_vec(B_x);
 }
 
-static inline __m128i pixelToInt_vec(__m128 val) {
-    val = _mm_mul_ps(val, f_255);
-    val = _mm_min_ps(_mm_max_ps(val, f_zero), f_255);
-    return _mm_cvtps_epi32(val);
-}
-
 static inline void setPixelsMasked_vec(uint8_t *pixels, int &pos,
-    int width, __m128 active, __m128 R, __m128 G, __m128 B) {
-    __m128 inactive = _mm_cmpeq_ps(active, f_zero);
-    R = _mm_and_ps(R, inactive);
-    G = _mm_and_ps(G, inactive);
-    B = _mm_and_ps(B, inactive);
+    int width, simd_half_t active, simd_half_t R, simd_half_t G, simd_half_t B) {
+    simd_half_mask_t inactive = SIMD_CMP_EQ_H(active, h_zero);
+
+    R = SIMD_AND_H(R, inactive);
+    G = SIMD_AND_H(G, inactive);
+    B = SIMD_AND_H(B, inactive);
 
     VectorRenderer::setPixels_vec(pixels, pos, width, R, G, B);
 }
 
-static inline __m128 getSmoothIterVal_vec(__m128 iter, __m128 mag) {
-    __m128 sqrt_mag = _mm_sqrt_ps(mag);
-    __m128 lg1 = _mm_log_ps(sqrt_mag);
-    __m128 m1 = _mm_mul_ps(lg1, f_invLnBail_vec);
-    __m128 lg2 = _mm_log_ps(m1);
-    __m128 m2 = _mm_mul_ps(lg2, f_invLn2_vec);
-    return _mm_sub_ps(iter, m2);
+static inline simd_half_t getSmoothIterVal_vec(simd_half_t iter, simd_half_t mag) {
+    simd_half_t sqrt_mag = SIMD_SQRT_H(mag);
+    simd_half_t lg1 = SIMD_LOG_H(sqrt_mag);
+    simd_half_t m1 = SIMD_MUL_H(lg1, h_invLnBail_vec);
+    simd_half_t lg2 = SIMD_LOG_H(m1);
+    simd_half_t m2 = SIMD_MUL_H(lg2, h_invLn2_vec);
+    return SIMD_SUB_H(iter, m2);
 }
 
-static inline __m128 getLightVal_vec(__m128 zr, __m128 zi, __m128 dr, __m128 di) {
-    __m128 dr2 = _mm_mul_ps(dr, dr);
-    __m128 di2 = _mm_mul_ps(di, di);
-    __m128 dinv = _mm_div_ps(f_one, _mm_add_ps(dr2, di2));
+static inline simd_half_t getLightVal_vec(simd_half_t zr, simd_half_t zi, simd_half_t dr, simd_half_t di) {
+    simd_half_t dr2 = SIMD_MUL_H(dr, dr);
+    simd_half_t di2 = SIMD_MUL_H(di, di);
+    simd_half_t dinv = SIMD_DIV_H(h_one, SIMD_ADD_H(dr2, di2));
 
-    __m128 ur = _mm_add_ps(_mm_mul_ps(zr, dr), _mm_mul_ps(zi, di));
-    __m128 ui = _mm_sub_ps(_mm_mul_ps(zi, dr), _mm_mul_ps(zr, di));
-    ur = _mm_mul_ps(ur, dinv);
-    ui = _mm_mul_ps(ui, dinv);
+    simd_half_t ur = SIMD_ADD_H(SIMD_MUL_H(zr, dr), SIMD_MUL_H(zi, di));
+    simd_half_t ui = SIMD_SUB_H(SIMD_MUL_H(zi, dr), SIMD_MUL_H(zr, di));
+    ur = SIMD_MUL_H(ur, dinv);
+    ui = SIMD_MUL_H(ui, dinv);
 
-    __m128 ur2 = _mm_mul_ps(ur, ur);
-    __m128 ui2 = _mm_mul_ps(ui, ui);
-    __m128 umag = _mm_div_ps(f_one, _mm_sqrt_ps(_mm_add_ps(ur2, ui2)));
-    ur = _mm_mul_ps(ur, umag);
-    ui = _mm_mul_ps(ui, umag);
+    simd_half_t ur2 = SIMD_MUL_H(ur, ur);
+    simd_half_t ui2 = SIMD_MUL_H(ui, ui);
+    simd_half_t umag = SIMD_DIV_H(h_one, SIMD_SQRT_H(SIMD_ADD_H(ur2, ui2)));
+    ur = SIMD_MUL_H(ur, umag);
+    ui = SIMD_MUL_H(ui, umag);
 
-    __m128 num = _mm_add_ps(
-        _mm_add_ps(
-            _mm_mul_ps(ur, f_light_r_vec),
-            _mm_mul_ps(ui, f_light_i_vec)
-        ),
-        f_light_h_vec
-    );
-    __m128 den = _mm_add_ps(f_light_h_vec, f_one);
+    simd_half_t num = SIMD_ADD_H(
+        SIMD_ADD_H(
+            SIMD_MUL_H(ur, h_light_r_vec),
+            SIMD_MUL_H(ui, h_light_i_vec)),
+        h_light_h_vec);
+    simd_half_t den = SIMD_ADD_H(h_light_h_vec, h_one);
 
-    __m128 light = _mm_div_ps(num, den);
-    return _mm_max_ps(light, f_zero);
+    simd_half_t light = SIMD_DIV_H(num, den);
+    return SIMD_MAX_H(light, h_zero);
 }
 
 namespace VectorRenderer {
+    inline simd_half_int_t pixelToInt_vec(simd_half_t val) {
+        val = SIMD_MUL_H(val, h_255);
+        val = SIMD_MIN_H(SIMD_MAX_H(val, h_zero), h_255);
+        return SIMD_HALF_TO_INT32(val);
+    }
+
     inline void setPixels_vec(uint8_t *pixels, int &pos,
-        int width, __m128 R, __m128 G, __m128 B) {
-        __m128i R_i = pixelToInt_vec(R);
-        __m128i G_i = pixelToInt_vec(G);
-        __m128i B_i = pixelToInt_vec(B);
-
-        __m128i R_8 = _mm_shuffle_epi8(R_i, byteMask);
-        __m128i G_8 = _mm_shuffle_epi8(G_i, byteMask);
-        __m128i B_8 = _mm_shuffle_epi8(B_i, byteMask);
-
-        __m128i RG = _mm_unpacklo_epi8(R_8, G_8);
-        __m128i mix = _mm_unpacklo_epi64(RG, B_8);
-        __m128i rgb12 = _mm_shuffle_epi8(mix, rgbMask);
-
+        int width, simd_half_t R, simd_half_t G, simd_half_t B) {
         int byteCount = width * Image::STRIDE;
         uint8_t *out = pixels + pos;
 
-        if (width == SIMD_WIDTH) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(out), rgb12);
-        } else {
-            alignas(Image::ALIGNMENT) uint8_t rgb_bytes[16];
-            _mm_store_si128(reinterpret_cast<__m128i *>(rgb_bytes), rgb12);
-            memcpy(out, rgb_bytes, byteCount);
+#ifdef USE_VECTOR_STORE
+        simd_half_int_t R_i = pixelToInt_vec(R);
+        simd_half_int_t G_i = pixelToInt_vec(G);
+        simd_half_int_t B_i = pixelToInt_vec(B);
+
+        simd_half_int_t RG16 = SIMD_PACK_USAT_INT32_H(R_i, G_i);
+        simd_half_int_t BZ16 = SIMD_PACK_USAT_INT32_H(B_i, hi_zero);
+        simd_half_int_t RGBA8 = SIMD_PACK_USAT_INT16_H(RG16, BZ16);
+
+        writePixelData_vec(out, RGBA8);
+#else
+        alignas(SIMD_HALF_ALIGNMENT) scalar_half_t R_arr[SIMD_HALF_WIDTH];
+        alignas(SIMD_HALF_ALIGNMENT) scalar_half_t G_arr[SIMD_HALF_WIDTH];
+        alignas(SIMD_HALF_ALIGNMENT) scalar_half_t B_arr[SIMD_HALF_WIDTH];
+
+        SIMD_STORE_H(R_arr, R);
+        SIMD_STORE_H(G_arr, G);
+        SIMD_STORE_H(B_arr, B);
+
+        for (size_t i = 0; i < width; i++) {
+            out[i * 3] = ScalarRenderer::pixelToInt(R_arr[i]);
+            out[i * 3 + 1] = ScalarRenderer::pixelToInt(G_arr[i]);
+            out[i * 3 + 2] = ScalarRenderer::pixelToInt(B_arr[i]);
         }
+#endif
 
         pos += byteCount;
     }
 
     void renderPixelSimd(uint8_t *pixels, int &pos,
-        int width, int x, double ci) {
-        __m256d cr_vec = getCenterReal(width, x);
-        __m256d ci_vec = _mm256_set1_pd(ci);
+        int width, int x, scalar_full_t ci) {
+        simd_full_t cr_vec = getCenterReal(width, x);
+        simd_full_t ci_vec = SIMD_SET_F(ci);
 
         if (isInverse) {
-            __m256d cr2 = _mm256_mul_pd(cr_vec, cr_vec);
-            __m256d ci2 = _mm256_mul_pd(ci_vec, ci_vec);
-            __m256d cmag = _mm256_add_pd(cr2, ci2);
+            simd_full_t cr2 = SIMD_MUL_F(cr_vec, cr_vec);
+            simd_full_t ci2 = SIMD_MUL_F(ci_vec, ci_vec);
+            simd_full_t cmag = SIMD_ADD_F(cr2, ci2);
 
-            __m256d mask = _mm256_cmp_pd(cmag, d_zero, _CMP_NEQ_OQ);
+            simd_full_mask_t mask = SIMD_CMP_NEQ_F(cmag, f_zero);
+            cmag = SIMD_BLEND_F(f_one, cmag, mask);
 
-            cmag = _mm256_blendv_pd(d_one, cmag, mask);
-            __m256d inv_cmag = _mm256_div_pd(d_one, cmag);
+            simd_full_t inv_cmag = SIMD_DIV_F(f_one, cmag);
 
-            cr_vec = _mm256_mul_pd(cr_vec, inv_cmag);
-            ci_vec = _mm256_mul_pd(ci_vec, _mm256_mul_pd(inv_cmag, d_neg_one));
+            cr_vec = SIMD_MUL_F(cr_vec, inv_cmag);
+            ci_vec = SIMD_MUL_F(ci_vec, SIMD_MUL_F(inv_cmag, f_neg_one));
         }
 
-        __m256d zr, zi;
-        __m256d dr = d_one, di = d_zero;
+        simd_full_t zr, zi;
+        simd_full_t dr = f_one, di = f_zero;
 
         if (isJuliaSet) {
             zr = cr_vec;
             zi = ci_vec;
 
-            cr_vec = d_seed_r_vec;
-            ci_vec = d_seed_i_vec;
+            cr_vec = f_seed_r_vec;
+            ci_vec = f_seed_i_vec;
         } else {
-            zr = d_seed_r_vec;
-            zi = d_seed_i_vec;
+            zr = f_seed_r_vec;
+            zi = f_seed_i_vec;
         }
 
-        __m256d iter = d_zero;
-        __m256d mag = d_zero;
+        simd_full_t iter = f_zero;
+        simd_full_t mag = f_zero;
 
-        __m256d active = _mm256_castsi256_pd(i_neg_one);
+        simd_full_mask_t active = SIMD_INIT_ONES_MASK_F;
 
         for (int i = 0; i < ScalarGlobals::count; i++) {
-            __m256d zr2 = _mm256_mul_pd(zr, zr);
-            __m256d zi2 = _mm256_mul_pd(zi, zi);
-            mag = _mm256_add_pd(zr2, zi2);
+            simd_full_t zr2 = SIMD_MUL_F(zr, zr);
+            simd_full_t zi2 = SIMD_MUL_F(zi, zi);
+            mag = SIMD_ADD_F(zr2, zi2);
 
-            active = _mm256_and_pd(active, _mm256_cmp_pd(mag, d_bailout_vec, _CMP_LT_OQ));
-            if (_mm256_movemask_pd(active) == 0) break;
+            simd_full_mask_t stillIterating = SIMD_CMP_LT_F(mag, f_bailout_vec);
+            active = SIMD_AND_MASK_F(active, stillIterating);
+
+            if (SIMD_MASK_F(active) == 0) break;
 
             switch (ScalarGlobals::colorMethod) {
                 case 1:
                 {
-                    __m256d t1 = _mm256_sub_pd(_mm256_mul_pd(zr, dr), _mm256_mul_pd(zi, di));
-                    __m256d t2 = _mm256_add_pd(_mm256_mul_pd(zr, di), _mm256_mul_pd(zi, dr));
+                    simd_full_t t1 = SIMD_SUB_F(SIMD_MUL_F(zr, dr), SIMD_MUL_F(zi, di));
+                    simd_full_t t2 = SIMD_ADD_F(SIMD_MUL_F(zr, di), SIMD_MUL_F(zi, dr));
 
-                    __m256d new_dr = _mm256_add_pd(_mm256_add_pd(t1, t1), d_one);
-                    __m256d new_di = _mm256_add_pd(t2, t2);
+                    simd_full_t new_dr = SIMD_ADD_F(SIMD_ADD_F(t1, t1), f_one);
+                    simd_full_t new_di = SIMD_ADD_F(t2, t2);
 
-                    dr = _mm256_blendv_pd(dr, new_dr, active);
-                    di = _mm256_blendv_pd(di, new_di, active);
+                    dr = SIMD_BLEND_F(dr, new_dr, active);
+                    di = SIMD_BLEND_F(di, new_di, active);
                 }
                 break;
             }
 
-            __m256d zrzi = _mm256_mul_pd(zr, zi);
-            __m256d new_zi = _mm256_add_pd(_mm256_add_pd(zrzi, zrzi), ci_vec);
-            __m256d new_zr = _mm256_add_pd(_mm256_sub_pd(zr2, zi2), cr_vec);
+            simd_full_t zrzi = SIMD_MUL_F(zr, zi);
+            simd_full_t new_zi = SIMD_ADD_F(SIMD_ADD_F(zrzi, zrzi), ci_vec);
+            simd_full_t new_zr = SIMD_ADD_F(SIMD_SUB_F(zr2, zi2), cr_vec);
 
-            iter = _mm256_add_pd(iter, _mm256_and_pd(active, d_one));
-            zr = _mm256_blendv_pd(zr, new_zr, active);
-            zi = _mm256_blendv_pd(zi, new_zi, active);
+            iter = SIMD_ADD_MASK_F(iter, active, f_one);
+            zr = SIMD_BLEND_F(zr, new_zr, active);
+            zi = SIMD_BLEND_F(zi, new_zi, active);
         }
 
-        __m128 f_active = _mm256_cvtpd_ps(active);
+        simd_half_t h_active = SIMD_FULL_MASK_TO_HALF(active);
 
-        __m128 r_vec, g_vec, b_vec;
-        r_vec = g_vec = b_vec = f_zero;
+        simd_half_t r_vec, g_vec, b_vec;
+        r_vec = g_vec = b_vec = h_zero;
 
         switch (ScalarGlobals::colorMethod) {
             case 0:
             {
-                __m128 f_iter = _mm256_cvtpd_ps(iter);
-                __m128 f_mag = _mm256_cvtpd_ps(mag);
+                simd_half_t h_iter = SIMD_FULL_TO_HALF(iter);
+                simd_half_t h_mag = SIMD_FULL_TO_HALF(mag);
 
-                __m128 vals = getSmoothIterVal_vec(f_iter, f_mag);
+                simd_half_t vals = getSmoothIterVal_vec(h_iter, h_mag);
                 getColorPixel_vec(vals, r_vec, g_vec, b_vec);
             }
             break;
 
             case 1:
             {
-                __m128 f_zr = _mm256_cvtpd_ps(zr);
-                __m128 f_zi = _mm256_cvtpd_ps(zi);
-                __m128 f_dr = _mm256_cvtpd_ps(dr);
-                __m128 f_di = _mm256_cvtpd_ps(di);
+                simd_half_t h_zr = SIMD_FULL_TO_HALF(zr);
+                simd_half_t h_zi = SIMD_FULL_TO_HALF(zi);
+                simd_half_t h_dr = SIMD_FULL_TO_HALF(dr);
+                simd_half_t h_di = SIMD_FULL_TO_HALF(di);
 
-                __m128 vals = getLightVal_vec(f_zr, f_zi, f_dr, f_di);
+                simd_half_t vals = getLightVal_vec(h_zr, h_zi, h_dr, h_di);
                 r_vec = g_vec = b_vec = vals;
             }
             break;
         }
 
-        setPixelsMasked_vec(pixels, pos, width, f_active, r_vec, g_vec, b_vec);
+        setPixelsMasked_vec(pixels, pos, width, h_active, r_vec, g_vec, b_vec);
     }
 }
+
+#endif

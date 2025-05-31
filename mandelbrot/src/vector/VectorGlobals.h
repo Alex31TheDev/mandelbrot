@@ -1,4 +1,7 @@
 #pragma once
+#ifdef USE_VECTORS
+
+#include "VectorTypes.h"
 
 #include <cmath>
 #include <immintrin.h>
@@ -7,33 +10,38 @@
 #include "../scalar/ScalarGlobals.h"
 
 namespace VectorGlobals {
-    constexpr int SIMD_WIDTH = 4;
+    const simd_half_int_t hi_zero = SIMD_SET_INT64_H(0);
 
-    const __m128i i_zero = _mm_setzero_si128();
-    const __m256i i_neg_one = _mm256_set1_epi64x(-1);
+    const simd_half_t h_zero = SIMD_SET_H(0.0);
+    const simd_half_t h_one = SIMD_SET_H(1.0);
+    const simd_half_t h_half = SIMD_SET_H(0.5);
+    const simd_half_t h_invLn2_vec = SIMD_SET_H(ScalarGlobals::invLn2);
+    const simd_half_t h_invLnBail_vec = SIMD_SET_H(ScalarGlobals::invLnBail);
+    const simd_half_t h_pi_2 = SIMD_SET_H(M_PI_2);
+    const simd_half_t h_255 = SIMD_SET_H(255.0);
 
-    const __m128 f_zero = _mm_set1_ps(0.0f);
-    const __m128 f_one = _mm_set1_ps(1.0f);
-    const __m128 f_half = _mm_set1_ps(0.5f);
-    const __m128 f_invLn2_vec = _mm_set1_ps(ScalarGlobals::invLn2);
-    const __m128 f_invLnBail_vec = _mm_set1_ps(ScalarGlobals::invLnBail);
-    const __m128 f_pi_2 = _mm_set1_ps(static_cast<float>(M_PI_2));
-    const __m128 f_255 = _mm_set1_ps(255.0f);
+    const simd_full_t f_zero = SIMD_SET_F(0.0);
+    const simd_full_t f_one = SIMD_SET_F(1.0);
+    const simd_full_t f_neg_one = SIMD_SET_F(-1.0);
+    const simd_full_t f_bailout_vec = SIMD_SET_F(ScalarGlobals::BAILOUT);
 
-    const __m256d d_zero = _mm256_set1_pd(0.0);
-    const __m256d d_one = _mm256_set1_pd(1.0);
-    const __m256d d_neg_one = _mm256_set1_pd(-1.0);
-    const __m256d d_bailout_vec = _mm256_set1_pd(ScalarGlobals::BAILOUT);
+    extern simd_full_t f_idx_vec;
+    extern simd_full_t f_halfWidth_vec, f_invWidth_vec;
+    extern simd_full_t f_scale_vec, f_point_r_vec;
 
-    extern __m256d d_idx_vec;
-    extern __m256d d_halfWidth_vec, d_invWidth_vec;
-    extern __m256d d_scale_vec, d_point_r_vec;
+    extern simd_full_t f_seed_r_vec, f_seed_i_vec;
 
-    extern __m256d d_seed_r_vec, d_seed_i_vec;
-
-    extern __m128 f_phase_r_vec, f_phase_g_vec, f_phase_b_vec;
-    extern __m128 f_freq_r_vec, f_freq_g_vec, f_freq_b_vec;
-    extern __m128 f_light_r_vec, f_light_i_vec, f_light_h_vec;
+    extern simd_half_t h_phase_r_vec, h_phase_g_vec, h_phase_b_vec;
+    extern simd_half_t h_freq_r_vec, h_freq_g_vec, h_freq_b_vec;
+    extern simd_half_t h_light_r_vec, h_light_i_vec, h_light_h_vec;
 
     void initVectors();
 }
+
+#else
+
+namespace VectorGlobals {
+    void initVectors() {}
+}
+
+#endif

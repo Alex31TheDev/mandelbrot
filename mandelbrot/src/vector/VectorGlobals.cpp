@@ -1,49 +1,61 @@
+#ifdef USE_VECTORS
+
+#include "../scalar/ScalarTypes.h"
+#include "VectorTypes.h"
 #include "VectorGlobals.h"
+
+#include <array>
 
 #include <immintrin.h>
 
 #include "../scalar/ScalarGlobals.h"
 using namespace ScalarGlobals;
 
-namespace VectorGlobals {
-    __m256d d_idx_vec;
-    __m256d d_halfWidth_vec, d_invWidth_vec;
+static constexpr auto makeIndexArray()
+{
+    std::array<scalar_full_t, SIMD_FULL_WIDTH> arr{};
+    for (int i = 0; i < SIMD_FULL_WIDTH; i++)
+        arr[i] = CAST_F(i);
+    return arr;
+}
 
-    __m256d d_scale_vec, d_point_r_vec;
-    __m256d d_seed_r_vec, d_seed_i_vec;
+namespace VectorGlobals
+{
+    simd_full_t f_idx_vec;
+    simd_full_t f_halfWidth_vec, f_invWidth_vec;
 
-    __m128 f_phase_r_vec, f_phase_g_vec, f_phase_b_vec;
-    __m128 f_freq_r_vec, f_freq_g_vec, f_freq_b_vec;
-    __m128 f_light_r_vec, f_light_i_vec, f_light_h_vec;
+    simd_full_t f_scale_vec, f_point_r_vec;
+    simd_full_t f_seed_r_vec, f_seed_i_vec;
 
-    void initVectors() {
-        double idx_arr[4] = { 0 };
+    simd_half_t h_phase_r_vec, h_phase_g_vec, h_phase_b_vec;
+    simd_half_t h_freq_r_vec, h_freq_g_vec, h_freq_b_vec;
+    simd_half_t h_light_r_vec, h_light_i_vec, h_light_h_vec;
 
-        for (int i = 0; i < SIMD_WIDTH; i++) {
-            idx_arr[i] = static_cast<double>(i);
-        }
+    void initVectors()
+    {
+        f_idx_vec = SIMD_LOAD_F(makeIndexArray().data());
 
-        d_idx_vec = _mm256_load_pd(idx_arr);
+        f_halfWidth_vec = SIMD_SET_F(halfWidth);
+        f_invWidth_vec = SIMD_SET_F(invWidth);
+        f_scale_vec = SIMD_SET_F(scale);
 
-        d_halfWidth_vec = _mm256_set1_pd(halfWidth);
-        d_invWidth_vec = _mm256_set1_pd(invWidth);
-        d_scale_vec = _mm256_set1_pd(scale);
+        f_point_r_vec = SIMD_SET_F(point_r);
 
-        d_point_r_vec = _mm256_set1_pd(point_r);
+        f_seed_r_vec = SIMD_SET_F(seed_r);
+        f_seed_i_vec = SIMD_SET_F(seed_i);
 
-        d_seed_r_vec = _mm256_set1_pd(seed_r);
-        d_seed_i_vec = _mm256_set1_pd(seed_i);
+        h_phase_r_vec = SIMD_SET_H(phase_r);
+        h_phase_g_vec = SIMD_SET_H(phase_g);
+        h_phase_b_vec = SIMD_SET_H(phase_b);
 
-        f_phase_r_vec = _mm_set1_ps(phase_r);
-        f_phase_g_vec = _mm_set1_ps(phase_g);
-        f_phase_b_vec = _mm_set1_ps(phase_b);
+        h_freq_r_vec = SIMD_SET_H(freq_r);
+        h_freq_g_vec = SIMD_SET_H(freq_g);
+        h_freq_b_vec = SIMD_SET_H(freq_b);
 
-        f_freq_r_vec = _mm_set1_ps(freq_r);
-        f_freq_g_vec = _mm_set1_ps(freq_g);
-        f_freq_b_vec = _mm_set1_ps(freq_b);
-
-        f_light_r_vec = _mm_set1_ps(light_r);
-        f_light_i_vec = _mm_set1_ps(light_i);
-        f_light_h_vec = _mm_set1_ps(light_h);
+        h_light_r_vec = SIMD_SET_H(light_r);
+        h_light_i_vec = SIMD_SET_H(light_i);
+        h_light_h_vec = SIMD_SET_H(light_h);
     }
 }
+
+#endif

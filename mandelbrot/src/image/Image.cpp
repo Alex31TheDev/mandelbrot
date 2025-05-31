@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 
 #include <string>
 #include <memory>
@@ -15,10 +16,6 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
-static size_t alignTo(size_t size, size_t alignment) {
-    return (size + alignment - 1) / alignment * alignment;
-}
 
 static std::string getAbsolutePath(const char *filename) {
 #ifdef _WIN32
@@ -40,7 +37,42 @@ static std::string getAbsolutePath(const char *filename) {
     return filename;
 }
 
-std::unique_ptr<Image> Image::create(int width, int height) {
+static size_t alignTo(size_t size, size_t alignment) {
+    return (size + alignment - 1) & ~(alignment - 1);
+}
+
+static uint8_t *bufferAlloc(size_t bufferSize) {
+    void *ptr = nullptr;
+
+    if constexpr (Image::ALIGNMENT > 8) {
+        size_t alignedSize = alignTo(bufferSize, Image::ALIGNMENT);
+
+#ifdef _WIN32
+        ptr = _aligned_malloc(alignedSize, Image::ALIGNMENT);
+#else
+        if (posix_memalign(&ptr, Image::ALIGNMENT, alignedSize) != 0) {
+            ptr = nullptr;
+        }
+#endif
+    } else {
+        ptr = malloc(bufferSize);
+    }
+
+    if (ptr != nullptr) memset(ptr, 0, bufferSize);
+    return static_cast<uint8_t *>(ptr);
+}
+
+#ifdef USE_VECTORS
+void Image::_AlignedDeleter::operator()(uint8_t *ptr) const {
+#ifdef _WIN32
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
+}
+#endif
+
+std::unique_ptr<Image> Image::create(int32_t width, int32_t height) {
     auto image = std::unique_ptr<Image>(new Image());
 
     if (!image->_allocate(width, height)) {
@@ -59,8 +91,8 @@ bool Image::saveToFile(const char *filename) const {
     const int result = stbi_write_png(
         filename,
         _width, _height,
-        STRIDE, _pixels.get(), _width * STRIDE
-    );
+        STRIDE, _pixels.get(),
+        _width * STRIDE);
 
     const std::string absPath = getAbsolutePath(filename);
 
@@ -73,45 +105,31 @@ bool Image::saveToFile(const char *filename) const {
     return true;
 }
 
-void Image::_setDimensions(int width, int height) {
+void Image::_setDimensions(int32_t width, int32_t height) {
     _width = width;
     _height = height;
 
     _aspect = static_cast<float>(width) / height;
 }
 
-bool Image::_allocate(int width, int height) {
+bool Image::_allocate(int32_t width, int32_t height) {
     if (width <= 0 || height <= 0) {
         fprintf(stderr, "Invalid image dimensions. (%dx%d)\n", width, height);
         return false;
     }
 
     size_t bufferSize = static_cast<size_t>(width) * height * STRIDE;
-    size_t alignedSize = alignTo(bufferSize, ALIGNMENT);
+    printf("Memoty required: %zu bytes\n", bufferSize);
 
-    void *ptr = nullptr;
+    uint8_t *ptr = bufferAlloc(bufferSize);
 
-#ifdef _WIN32
-    ptr = _aligned_malloc(alignedSize, ALIGNMENT);
-#else
-    ptr = std::aligned_alloc(ALIGNMENT, alignedSize);
-#endif
-
-    if (!ptr) {
+    if (ptr == nullptr) {
         fprintf(stderr, "Failed to allocate pixel buffer. (%zu bytes)\n", bufferSize);
         return false;
     }
 
-    _pixels.reset(reinterpret_cast<uint8_t *>(ptr));
+    _pixels.reset(ptr);
 
     _setDimensions(width, height);
     return true;
-}
-
-void Image::_AlignedDeleter::operator()(uint8_t *ptr) const {
-#ifdef _WIN32
-    _aligned_free(ptr);
-#else
-    std::free(ptr);
-#endif
 }

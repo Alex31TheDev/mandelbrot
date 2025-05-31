@@ -1,70 +1,71 @@
+#include "ScalarTypes.h"
 #include "ScalarGlobals.h"
 
 #include <cstdlib>
-#include <cmath>
+#include <cstdint>
 
 namespace ScalarGlobals {
-    int width, height, colorMethod;
-    int count;
+    int width, height;
+    int count, colorMethod;
 
     bool useThreads = false;
     bool isJuliaSet = false, isInverse = false;
 
-    double halfWidth, halfHeight, invWidth, invHeight;
-    double point_r = 0, point_i = 0, scale;
-    double seed_r = 0, seed_i = 0;
+    scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
+    scalar_full_t point_r = DEFAULT_POINT_R, point_i = DEFAULT_POINT_I, scale;
+    scalar_full_t seed_r = DEFAULT_SEED_R, seed_i = DEFAULT_SEED_I;
 
-    float zoom, aspect;
+    scalar_half_t zoom, aspect;
 
-    float freq_r, freq_g, freq_b, freqMult;
-    float phase_r, phase_g, phase_b, cosPhase = DEFAULT_COS_PHASE;
-    float light_r, light_i, light_h;
+    scalar_half_t phase_r, phase_g, phase_b, cosPhase = DEFAULT_COS_PHASE;
+    scalar_half_t freq_r, freq_g, freq_b, freqMult;
+    scalar_half_t light_r, light_i, light_h;
 
     bool setImageGlobals(int img_w, int img_h) {
         if (img_w <= 0 || img_h <= 0) return false;
         width = img_w;
         height = img_h;
 
-        aspect = static_cast<float>(width) / height;
+        aspect = CAST_H(width) / height;
 
-        halfWidth = static_cast<double>(width) / 2.0;
-        halfHeight = static_cast<double>(height) / 2.0;
+        halfWidth = CAST_F(width) / 2;
+        halfHeight = CAST_F(height) / 2;
 
-        invWidth = 1.0 / static_cast<double>(width);
-        invHeight = 1.0 / static_cast<double>(height);
+        invWidth = RECIP_F(width);
+        invHeight = RECIP_F(height);
 
         return true;
     }
 
-    bool setZoomGlobals(int iterCount, float zoomScale) {
+    bool setZoomGlobals(int iterCount, scalar_half_t zoomScale) {
         if (iterCount < MIN_ITERATIONS) {
             count = MIN_ITERATIONS;
         } else {
             count = iterCount;
         }
 
-        if (zoomScale < -3.25) return false;
+        if (zoomScale < SCALAR_SYM_H(-3.25)) return false;
         zoom = zoomScale;
 
-        double zoomPow = pow(10.0, zoom);
-        scale = 1.0 / zoomPow;
+        scalar_full_t zoomPow = POW_F(10, zoomScale);
+        scale = RECIP_F(zoomPow);
 
         if (iterCount == 0) {
             count = MIN_ITERATIONS;
 
-            float visualRange = static_cast<float>(zoomPow) * aspect;
-            count += static_cast<int>(powf(log10f(visualRange), 5.0f));
+            scalar_half_t visualRange = CAST_H(zoomPow) * aspect;
+            count += static_cast<int>(POW_H(LOG10_H(visualRange), 5));
         }
 
         return true;
     }
 
-    bool setColorGlobals(float R, float G, float B, float mult) {
+    bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B, scalar_half_t mult) {
         phase_r = cosPhase + DEFAULT_PHASE_R;
         phase_g = cosPhase + DEFAULT_PHASE_G;
         phase_b = cosPhase + DEFAULT_PHASE_R;
 
-        if (abs(mult) <= 0.0001f) return false;
+        if (abs(mult) <= SCALAR_SYM_H(0.0001)) return false;
 
         freq_r = R * mult;
         freq_g = G * mult;
@@ -74,8 +75,8 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setLightGlobals(float real, float imag) {
-        float mag = sqrtf(real * real + imag * imag);
+    bool setLightGlobals(scalar_half_t real, scalar_half_t imag) {
+        float mag = SQRT_H(real * real + imag * imag);
         if (mag <= 0) return false;
 
         light_r = real / mag;

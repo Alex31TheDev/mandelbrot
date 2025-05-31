@@ -2,7 +2,6 @@
 #include "scalar/ScalarGlobals.h"
 
 #include "image/Image.h"
-#include "scalar/ScalarGlobals.h"
 #include "render/RenderImage.h"
 
 const char filename[] = "mandelbrot.png";
