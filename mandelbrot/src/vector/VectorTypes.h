@@ -1,13 +1,11 @@
 #pragma once
 #ifdef USE_VECTORS
 
-#include <cstdint>
-#include "../scalar/ScalarTypes.h"
-
 #include <immintrin.h>
-#include <emmintrin.h>
 
 #include "../util/MacroUtil.h"
+
+#include "../scalar/ScalarTypes.h"
 
 #define SIMD_SYM_F(a) _CONCAT2(a, SIMD_FULL_ARCH_WIDTH)
 
@@ -261,6 +259,9 @@ static inline __m256 SIMD_FULL_TO_HALF(__m512d x) {
 #define SIMD_AND_F(a, b) SIMD_FUNC_DEC_F(and, a, b)
 #define SIMD_AND_H(a, b) SIMD_FUNC_DEC_H(and, a, b)
 #endif
+
+#define SIMD_ANDNOT_F(a, b) SIMD_FUNC_DEC_F(andnot, a, b)
+#define SIMD_ABS_F(x) SIMD_ANDNOT_F(SIMD_SET_F(-0.0), x)
 
 #if defined(__AVX512__)
 #define SIMD_BLEND_F(a, b, x) SIMD_FUNC_DEC_F(mask_blend, x, a, b)

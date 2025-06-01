@@ -1,34 +1,35 @@
 #pragma once
 
-#include "ScalarTypes.h"
-
-#include <cstdint>
 #include <cmath>
 
+#include "ScalarTypes.h"
+
 namespace ScalarGlobals {
-    constexpr int MIN_ITERATIONS = 1000;
-    constexpr scalar_full_t BAILOUT = CAST_F(256.0);
+    constexpr scalar_full_t N = 2;
 
-    constexpr scalar_full_t DEFAULT_POINT_R = CAST_F(0.0);
-    constexpr scalar_full_t DEFAULT_POINT_I = CAST_F(0.0);
-    constexpr scalar_full_t DEFAULT_SEED_R = CAST_F(0.0);
-    constexpr scalar_full_t DEFAULT_SEED_I = CAST_F(0.0);
+    constexpr int MIN_ITERATIONS = 500;
+    constexpr scalar_full_t BAILOUT = SC_SYM_F(256.0);
 
-    constexpr scalar_half_t DEFAULT_PHASE_R = CAST_H(0.0);
-    constexpr scalar_half_t DEFAULT_PHASE_G = CAST_H(0.0);
-    constexpr scalar_half_t DEFAULT_PHASE_B = CAST_H(0.0);
-    constexpr scalar_half_t DEFAULT_COS_PHASE = CAST_H(-M_PI_2);
+    constexpr scalar_full_t DEFAULT_POINT_R = SC_SYM_F(0.0);
+    constexpr scalar_full_t DEFAULT_POINT_I = SC_SYM_F(0.0);
+    constexpr scalar_full_t DEFAULT_SEED_R = SC_SYM_F(0.0);
+    constexpr scalar_full_t DEFAULT_SEED_I = SC_SYM_F(0.0);
 
-    constexpr scalar_half_t DEFAULT_FREQ_R = CAST_H(0.98);
-    constexpr scalar_half_t DEFAULT_FREQ_G = CAST_H(0.91);
-    constexpr scalar_half_t DEFAULT_FREQ_B = CAST_H(0.86);
-    constexpr scalar_half_t DEFAULT_FREQ_MULT = CAST_H(0.128);
+    constexpr scalar_half_t DEFAULT_PHASE_R = SC_SYM_H(0.0);
+    constexpr scalar_half_t DEFAULT_PHASE_G = SC_SYM_H(0.0);
+    constexpr scalar_half_t DEFAULT_PHASE_B = SC_SYM_H(0.0);
+    constexpr scalar_half_t DEFAULT_COS_PHASE = SC_SYM_H(-M_PI_2);
 
-    constexpr scalar_half_t DEFAULT_LIGHT_R = CAST_H(1.0);
-    constexpr scalar_half_t DEFAULT_LIGHT_I = CAST_H(1.0);
+    constexpr scalar_half_t DEFAULT_FREQ_R = SC_SYM_H(0.98);
+    constexpr scalar_half_t DEFAULT_FREQ_G = SC_SYM_H(0.91);
+    constexpr scalar_half_t DEFAULT_FREQ_B = SC_SYM_H(0.86);
+    constexpr scalar_half_t DEFAULT_FREQ_MULT = SC_SYM_H(0.128);
 
-    const scalar_half_t invLn2 = CAST_H(1.0 / M_LN2);
-    const scalar_half_t invLnBail = CAST_H(RECIP_F(LOG_F(BAILOUT)));
+    constexpr scalar_half_t DEFAULT_LIGHT_R = SC_SYM_H(1.0);
+    constexpr scalar_half_t DEFAULT_LIGHT_I = SC_SYM_H(1.0);
+
+    const scalar_half_t invLnPow = CAST_H(RECIP_H(LOG_H(N)));
+    const scalar_half_t invLnBail = RECIP_H(LOG_H(BAILOUT));
 
     extern int width, height;
     extern int count, colorMethod;
@@ -37,8 +38,9 @@ namespace ScalarGlobals {
     extern bool isJuliaSet, isInverse;
 
     extern scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
-    extern scalar_full_t point_r, point_i, scale;
+    extern scalar_full_t point_r, point_i;
     extern scalar_full_t seed_r, seed_i;
+    extern scalar_full_t realScale, imagScale;
 
     extern scalar_half_t zoom, aspect;
     extern scalar_half_t phase_r, phase_g, phase_b, cosPhase;

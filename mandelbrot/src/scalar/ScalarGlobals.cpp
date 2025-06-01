@@ -1,8 +1,8 @@
-#include "ScalarTypes.h"
 #include "ScalarGlobals.h"
 
 #include <cstdlib>
-#include <cstdint>
+
+#include "ScalarTypes.h"
 
 namespace ScalarGlobals {
     int width, height;
@@ -12,8 +12,9 @@ namespace ScalarGlobals {
     bool isJuliaSet = false, isInverse = false;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
-    scalar_full_t point_r = DEFAULT_POINT_R, point_i = DEFAULT_POINT_I, scale;
+    scalar_full_t point_r = DEFAULT_POINT_R, point_i = DEFAULT_POINT_I;
     scalar_full_t seed_r = DEFAULT_SEED_R, seed_i = DEFAULT_SEED_I;
+    scalar_full_t realScale, imagScale;
 
     scalar_half_t zoom, aspect;
 
@@ -44,16 +45,18 @@ namespace ScalarGlobals {
             count = iterCount;
         }
 
-        if (zoomScale < SCALAR_SYM_H(-3.25)) return false;
+        if (zoomScale < SC_SYM_H(-3.25)) return false;
         zoom = zoomScale;
 
         scalar_full_t zoomPow = POW_F(10, zoomScale);
-        scale = RECIP_F(zoomPow);
+
+        realScale = RECIP_F(zoomPow);
+        imagScale = realScale / aspect;
 
         if (iterCount == 0) {
             count = MIN_ITERATIONS;
 
-            scalar_half_t visualRange = CAST_H(zoomPow) * aspect;
+            scalar_half_t visualRange = CAST_H(zoomPow);
             count += static_cast<int>(POW_H(LOG10_H(visualRange), 5));
         }
 
@@ -65,7 +68,7 @@ namespace ScalarGlobals {
         phase_g = cosPhase + DEFAULT_PHASE_G;
         phase_b = cosPhase + DEFAULT_PHASE_R;
 
-        if (abs(mult) <= SCALAR_SYM_H(0.0001)) return false;
+        if (abs(mult) <= SC_SYM_H(0.0001)) return false;
 
         freq_r = R * mult;
         freq_g = G * mult;

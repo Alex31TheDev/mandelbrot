@@ -1,11 +1,12 @@
 #pragma once
 #ifdef USE_VECTORS
 
-#include "VectorTypes.h"
-
 #include <cmath>
+
 #include <immintrin.h>
 #include <emmintrin.h>
+
+#include "VectorTypes.h"
 
 #include "../scalar/ScalarGlobals.h"
 
@@ -15,7 +16,7 @@ namespace VectorGlobals {
     const simd_half_t h_zero = SIMD_SET_H(0.0);
     const simd_half_t h_one = SIMD_SET_H(1.0);
     const simd_half_t h_half = SIMD_SET_H(0.5);
-    const simd_half_t h_invLn2_vec = SIMD_SET_H(ScalarGlobals::invLn2);
+    const simd_half_t h_invLnPow_vec = SIMD_SET_H(ScalarGlobals::invLnPow);
     const simd_half_t h_invLnBail_vec = SIMD_SET_H(ScalarGlobals::invLnBail);
     const simd_half_t h_pi_2 = SIMD_SET_H(M_PI_2);
     const simd_half_t h_255 = SIMD_SET_H(255.0);
@@ -27,8 +28,7 @@ namespace VectorGlobals {
 
     extern simd_full_t f_idx_vec;
     extern simd_full_t f_halfWidth_vec, f_invWidth_vec;
-    extern simd_full_t f_scale_vec, f_point_r_vec;
-
+    extern simd_full_t f_realScale_vec, f_point_r_vec;
     extern simd_full_t f_seed_r_vec, f_seed_i_vec;
 
     extern simd_half_t h_phase_r_vec, h_phase_g_vec, h_phase_b_vec;

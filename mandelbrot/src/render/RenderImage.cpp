@@ -7,15 +7,15 @@
 #include "../image/Image.h"
 #include "RenderProgress.h"
 
+#include "../scalar/ScalarGlobals.h"
+using namespace ScalarGlobals;
+
 #ifdef USE_VECTORS
 #include "../vector/VectorTypes.h"
 #include "../vector/VectorRenderer.h"
 #else
 #include "../scalar/ScalarRenderer.h"
 #endif
-
-#include "../scalar/ScalarGlobals.h"
-using namespace ScalarGlobals;
 
 #include "../scalar/ScalarCoords.h"
 

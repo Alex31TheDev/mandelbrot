@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ScalarTypes.h"
-
 #include <cstdint>
 
+#include "ScalarTypes.h"
+
 namespace ScalarRenderer {
-    inline uint8_t pixelToInt(scalar_half_t val);
+    uint8_t pixelToInt(scalar_half_t val);
     inline void setPixel(uint8_t *pixels, int &pos,
         scalar_half_t R, scalar_half_t G, scalar_half_t B);
     void renderPixelScalar(uint8_t *pixels, int &pos,
