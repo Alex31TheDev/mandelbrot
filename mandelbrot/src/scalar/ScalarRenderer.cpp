@@ -40,32 +40,6 @@ static void initCoords(scalar_full_t &cr, scalar_full_t &ci,
     }
 }
 
-static int iterateFractal(scalar_full_t cr, scalar_full_t ci,
-    scalar_full_t &zr, scalar_full_t &zi,
-    scalar_full_t &dr, scalar_full_t &di,
-    scalar_full_t &mag) {
-    mag = 0;
-    int i = 0;
-
-    for (; i < count; i++) {
-        scalar_full_t zr2 = zr * zr;
-        scalar_full_t zi2 = zi * zi;
-        mag = zr2 + zi2;
-
-        if (mag > BAILOUT) break;
-
-        switch (colorMethod) {
-            case 1:
-                derivative(zr, zi, dr, di, mag, dr, di);
-                break;
-        }
-
-        formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
-    }
-
-    return i;
-}
-
 static scalar_half_t getIterVal(int i) {
 #ifdef NORM_ITER_COUNT
     return i * invCount;
@@ -114,38 +88,33 @@ static scalar_half_t getLightVal(scalar_full_t zr, scalar_full_t zi, scalar_full
 #endif
 }
 
-static void colorPixel(uint8_t *pixels, int &pos,
-    int i, scalar_full_t mag,
-    scalar_full_t zr, scalar_full_t zi,
-    scalar_full_t dr, scalar_full_t di) {
-    if (i == count) {
-        ScalarRenderer::setPixel(pixels, pos, 0, 0, 0);
-        return;
-    }
-
-    scalar_half_t val, R, G, B;
-
-    switch (colorMethod) {
-        case 0:
-            val = getIterVal(i);
-            getColorPixel(val, R, G, B);
-            break;
-
-        case 1:
-            val = getSmoothIterVal(i, CAST_H(mag));
-            getColorPixel(val, R, G, B);
-            break;
-
-        case 2:
-            val = getLightVal(zr, zi, dr, di);
-            R = G = B = val;
-            break;
-    }
-
-    ScalarRenderer::setPixel(pixels, pos, R, G, B);
-}
-
 namespace ScalarRenderer {
+    int iterateFractalScalar(scalar_full_t cr, scalar_full_t ci,
+        scalar_full_t &zr, scalar_full_t &zi,
+        scalar_full_t &dr, scalar_full_t &di,
+        scalar_full_t &mag) {
+        mag = 0;
+        int i = 0;
+
+        for (; i < count; i++) {
+            scalar_full_t zr2 = zr * zr;
+            scalar_full_t zi2 = zi * zi;
+            mag = zr2 + zi2;
+
+            if (mag > BAILOUT) break;
+
+            switch (colorMethod) {
+                case 1:
+                    derivative(zr, zi, dr, di, mag, dr, di);
+                    break;
+            }
+
+            formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
+        }
+
+        return i;
+    }
+
     uint8_t pixelToInt(scalar_half_t val) {
         val *= 255;
         val = MIN_H(MAX_H(val, 0), 255);
@@ -159,6 +128,37 @@ namespace ScalarRenderer {
         pixels[pos++] = pixelToInt(B);
     }
 
+    void colorPixelScalar(uint8_t *pixels, int &pos,
+        int i, scalar_full_t mag,
+        scalar_full_t zr, scalar_full_t zi,
+        scalar_full_t dr, scalar_full_t di) {
+        if (i == count) {
+            ScalarRenderer::setPixel(pixels, pos, 0, 0, 0);
+            return;
+        }
+
+        scalar_half_t val, R, G, B;
+
+        switch (colorMethod) {
+            case 0:
+                val = getIterVal(i);
+                getColorPixel(val, R, G, B);
+                break;
+
+            case 1:
+                val = getSmoothIterVal(i, CAST_H(mag));
+                getColorPixel(val, R, G, B);
+                break;
+
+            case 2:
+                val = getLightVal(zr, zi, dr, di);
+                R = G = B = val;
+                break;
+        }
+
+        ScalarRenderer::setPixel(pixels, pos, R, G, B);
+    }
+
     void renderPixelScalar(uint8_t *pixels, int &pos,
         int x, scalar_full_t ci) {
         scalar_full_t cr = getCenterReal(x);
@@ -169,8 +169,8 @@ namespace ScalarRenderer {
         initCoords(cr, ci, zr, zi);
 
         scalar_full_t mag = 0;
-        int i = iterateFractal(cr, ci, zr, zi, dr, di, mag);
+        int i = iterateFractalScalar(cr, ci, zr, zi, dr, di, mag);
 
-        colorPixel(pixels, pos, i, mag, zr, zi, dr, di);
+        colorPixelScalar(pixels, pos, i, mag, zr, zi, dr, di);
     }
 }

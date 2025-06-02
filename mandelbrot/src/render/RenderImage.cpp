@@ -10,31 +10,43 @@
 #include "../scalar/ScalarGlobals.h"
 using namespace ScalarGlobals;
 
-#ifdef USE_VECTORS
+#if defined(USE_SCALAR)
+#include "../scalar/ScalarRenderer.h"
+#elif defined(USE_VECTORS)
 #include "../vector/VectorTypes.h"
 #include "../vector/VectorRenderer.h"
-#else
-#include "../scalar/ScalarRenderer.h"
+#elif defined(USE_MPFR)
+#include "../mpfr/MpfrRenderer.h"
 #endif
 
+#if defined(USE_SCALAR) or defined(USE_VECTORS)
 #include "../scalar/ScalarCoords.h"
+constexpr auto imagCenterCoord = getCenterImag;
+#elif defined(USE_MPFR)
+#include "../mpfr/MpfrCoords.h"
+constexpr auto imagCenterCoord = getCenterImag_mp;
+#endif
 
 static void renderStrip(Image &image, int start_y, int end_y, RenderProgress *progress = nullptr) {
     int pos = start_y * width * Image::STRIDE;
 
     for (int y = start_y; y < end_y; y++) {
-        auto ci = getCenterImag(y);
+        auto ci = imagCenterCoord(y);
 
-#ifdef USE_VECTORS
+#if defined(USE_SCALAR)
+        for (int x = 0; x < width; x++) {
+            ScalarRenderer::renderPixelScalar(image.pixels(), pos, x, ci);
+        }
+#elif defined(USE_VECTORS)
         for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
             int pixels_left = width - x;
             int simd_width = (pixels_left < SIMD_FULL_WIDTH ? pixels_left : SIMD_FULL_WIDTH);
 
             VectorRenderer::renderPixelSimd(image.pixels(), pos, simd_width, x, ci);
         }
-#else
+#elif defined(USE_MPFR)
         for (int x = 0; x < width; x++) {
-            ScalarRenderer::renderPixelScalar(image.pixels(), pos, x, ci);
+            MpfrRenderer::renderPixelMpfr(image.pixels(), pos, x, ci);
         }
 #endif
 

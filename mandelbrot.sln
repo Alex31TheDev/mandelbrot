@@ -23,6 +23,8 @@ Global
 		Debug - FloatScalar|x86 = Debug - FloatScalar|x86
 		Debug - FloatSSE2|x64 = Debug - FloatSSE2|x64
 		Debug - FloatSSE2|x86 = Debug - FloatSSE2|x86
+		Debug - MPFR|x64 = Debug - MPFR|x64
+		Debug - MPFR|x86 = Debug - MPFR|x86
 		Release - DoubleAVX2|x64 = Release - DoubleAVX2|x64
 		Release - DoubleAVX2|x86 = Release - DoubleAVX2|x86
 		Release - DoubleAVX512|x64 = Release - DoubleAVX512|x64
@@ -39,6 +41,8 @@ Global
 		Release - FloatScalar|x86 = Release - FloatScalar|x86
 		Release - FloatSSE2|x64 = Release - FloatSSE2|x64
 		Release - FloatSSE2|x86 = Release - FloatSSE2|x86
+		Release - MPFR|x64 = Release - MPFR|x64
+		Release - MPFR|x86 = Release - MPFR|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - DoubleAVX2|x64.ActiveCfg = Debug - DoubleAVX2|x64
@@ -73,6 +77,10 @@ Global
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - FloatSSE2|x64.Build.0 = Debug - FloatSSE2|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - FloatSSE2|x86.ActiveCfg = Debug - FloatSSE2|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - FloatSSE2|x86.Build.0 = Debug - FloatSSE2|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x64.ActiveCfg = Debug - MPFR|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x64.Build.0 = Debug - MPFR|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x86.ActiveCfg = Debug - MPFR|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x86.Build.0 = Debug - MPFR|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - DoubleAVX2|x64.ActiveCfg = Release - DoubleAVX2|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - DoubleAVX2|x64.Build.0 = Release - DoubleAVX2|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - DoubleAVX2|x86.ActiveCfg = Release - DoubleAVX2|x64
@@ -105,6 +113,10 @@ Global
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - FloatSSE2|x64.Build.0 = Release - FloatSSE2|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - FloatSSE2|x86.ActiveCfg = Release - FloatSSE2|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - FloatSSE2|x86.Build.0 = Release - FloatSSE2|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x64.ActiveCfg = Release - MPFR|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x64.Build.0 = Release - MPFR|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x86.ActiveCfg = Release - MPFR|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x86.Build.0 = Release - MPFR|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

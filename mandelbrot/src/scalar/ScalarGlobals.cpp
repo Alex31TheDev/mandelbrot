@@ -51,7 +51,7 @@ namespace ScalarGlobals {
         if (zoomScale < SC_SYM_H(-3.25)) return false;
         zoom = zoomScale;
 
-        scalar_full_t zoomPow = POW_F(10, zoomScale);
+        scalar_full_t zoomPow = POW_F(10, zoom);
 
         realScale = RECIP_F(zoomPow);
         imagScale = realScale / aspect;

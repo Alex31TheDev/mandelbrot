@@ -363,5 +363,9 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# vcpkg
+vcpkg-manifest-install.log
+vcpkg_installed/
+
 # Render output
 mandelbrot.png

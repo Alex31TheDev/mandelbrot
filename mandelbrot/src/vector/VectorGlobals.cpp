@@ -1,21 +1,23 @@
 #ifdef USE_VECTORS
-
 #include "VectorGlobals.h"
 
 #include <array>
 
 #include <immintrin.h>
 
-#include "../scalar/ScalarTypes.h"
 #include "VectorTypes.h"
+#include "../scalar/ScalarTypes.h"
 
 #include "../scalar/ScalarGlobals.h"
 using namespace ScalarGlobals;
 
 static constexpr auto makeIndexArray() {
     std::array<scalar_full_t, SIMD_FULL_WIDTH> arr{};
-    for (int i = 0; i < SIMD_FULL_WIDTH; i++)
+
+    for (int i = 0; i < SIMD_FULL_WIDTH; i++) {
         arr[i] = CAST_F(i);
+    }
+
     return arr;
 }
 

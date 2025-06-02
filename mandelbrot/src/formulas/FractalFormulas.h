@@ -3,10 +3,10 @@
 #include "../scalar/ScalarGlobals.h"
 #include "FormulaTypes.h"
 
-#ifdef USE_VECTORS
-#include <immintrin.h>
-#else
+#if defined(USE_SCALAR)
 #include <cmath>
+#elif defined(USE_VECTORS)
+#include <immintrin.h>
 #endif
 
 static inline void formula(number_t cr, number_t ci,

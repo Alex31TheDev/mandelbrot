@@ -1,26 +1,26 @@
 #ifdef USE_VECTORS
-#define USE_VECTOR_STORE
-
 #include "VectorRenderer.h"
 
 #include <cstdint>
 
 #include <immintrin.h>
 
-#include "../scalar/ScalarTypes.h"
 #include "VectorTypes.h"
+#include "../scalar/ScalarTypes.h"
 
-#include "../scalar/ScalarGlobals.h"
 #include "VectorGlobals.h"
+#include "../scalar/ScalarGlobals.h"
 
-using namespace ScalarGlobals;
 using namespace VectorGlobals;
+using namespace ScalarGlobals;
 
 #include "../image/Image.h"
 #include "VectorCoords.h"
 
 #define FORMULA_VECTOR
 #include "../formulas/FractalFormulas.h"
+
+#define USE_VECTOR_STORE
 
 static inline void complexInverse_vec(simd_full_t &cr_vec, simd_full_t &ci_vec) {
     simd_full_t cr2 = SIMD_MUL_F(cr_vec, cr_vec);
@@ -52,48 +52,6 @@ static void initCoords_vec(simd_full_t &cr_vec, simd_full_t &ci_vec,
         zr = f_seed_r_vec;
         zi = f_seed_i_vec;
     }
-}
-
-static simd_full_t iterateFractal_vec(simd_full_t cr, simd_full_t ci,
-    simd_full_t &zr, simd_full_t &zi,
-    simd_full_t &dr, simd_full_t &di,
-    simd_full_t &mag, simd_full_mask_t &active) {
-    simd_full_t iter = f_zero;
-    mag = f_zero;
-
-    active = SIMD_INIT_ONES_MASK_F;
-
-    for (int i = 0; i < count; i++) {
-        simd_full_t zr2 = SIMD_MUL_F(zr, zr);
-        simd_full_t zi2 = SIMD_MUL_F(zi, zi);
-        mag = SIMD_ADD_F(zr2, zi2);
-
-        simd_full_mask_t stillIterating = SIMD_CMP_LT_F(mag, f_bailout_vec);
-        active = SIMD_AND_MASK_F(active, stillIterating);
-
-        if (SIMD_MASK_F(active) == 0) break;
-
-        switch (colorMethod) {
-            case 1:
-            {
-                simd_full_t new_dr, new_di;
-                derivative(zr, zi, dr, di, mag, new_dr, new_di);
-
-                dr = SIMD_BLEND_F(dr, new_dr, active);
-                di = SIMD_BLEND_F(di, new_di, active);
-            }
-            break;
-        }
-
-        simd_full_t new_zr, new_zi;
-        formula(cr, ci, zr, zi, zr2, zi2, mag, new_zr, new_zi);
-
-        iter = SIMD_ADD_MASK_F(iter, active, f_one);
-        zr = SIMD_BLEND_F(zr, new_zr, active);
-        zi = SIMD_BLEND_F(zi, new_zi, active);
-    }
-
-    return iter;
 }
 
 #ifdef USE_VECTOR_STORE
@@ -241,52 +199,49 @@ static simd_half_t getLightVal_vec(simd_half_t zr, simd_half_t zi, simd_half_t d
 #endif
 }
 
-static void colorPixels_vec(uint8_t *pixels, int &pos, int width,
-    simd_full_t iter, simd_full_t mag, simd_full_mask_t active,
-    simd_full_t zr, simd_full_t zi,
-    simd_full_t dr, simd_full_t di) {
-    simd_half_t h_active = SIMD_FULL_MASK_TO_HALF(active);
+namespace VectorRenderer {
+    static simd_full_t iterateFractalSimd(simd_full_t cr, simd_full_t ci,
+        simd_full_t &zr, simd_full_t &zi,
+        simd_full_t &dr, simd_full_t &di,
+        simd_full_t &mag, simd_full_mask_t &active) {
+        simd_full_t iter = f_zero;
+        mag = f_zero;
 
-    simd_half_t vals, r_vec, g_vec, b_vec;
-    r_vec = g_vec = b_vec = h_zero;
+        active = SIMD_INIT_ONES_MASK_F;
 
-    switch (colorMethod) {
-        case 0:
-        {
-            simd_half_t h_iter = SIMD_FULL_TO_HALF(iter);
+        for (int i = 0; i < count; i++) {
+            simd_full_t zr2 = SIMD_MUL_F(zr, zr);
+            simd_full_t zi2 = SIMD_MUL_F(zi, zi);
+            mag = SIMD_ADD_F(zr2, zi2);
 
-            vals = getIterVal_vec(h_iter);
-            getColorPixel_vec(vals, r_vec, g_vec, b_vec);
+            simd_full_mask_t stillIterating = SIMD_CMP_LT_F(mag, f_bailout_vec);
+            active = SIMD_AND_MASK_F(active, stillIterating);
+
+            if (SIMD_MASK_F(active) == 0) break;
+
+            switch (colorMethod) {
+                case 1:
+                {
+                    simd_full_t new_dr, new_di;
+                    derivative(zr, zi, dr, di, mag, new_dr, new_di);
+
+                    dr = SIMD_BLEND_F(dr, new_dr, active);
+                    di = SIMD_BLEND_F(di, new_di, active);
+                }
+                break;
+            }
+
+            simd_full_t new_zr, new_zi;
+            formula(cr, ci, zr, zi, zr2, zi2, mag, new_zr, new_zi);
+
+            iter = SIMD_ADD_MASK_F(iter, active, f_one);
+            zr = SIMD_BLEND_F(zr, new_zr, active);
+            zi = SIMD_BLEND_F(zi, new_zi, active);
         }
-        break;
 
-        case 1:
-        {
-            simd_half_t h_iter = SIMD_FULL_TO_HALF(iter);
-            simd_half_t h_mag = SIMD_FULL_TO_HALF(mag);
-
-            vals = getSmoothIterVal_vec(h_iter, h_mag);
-            getColorPixel_vec(vals, r_vec, g_vec, b_vec);
-        }
-        break;
-
-        case 2:
-        {
-            simd_half_t h_zr = SIMD_FULL_TO_HALF(zr);
-            simd_half_t h_zi = SIMD_FULL_TO_HALF(zi);
-            simd_half_t h_dr = SIMD_FULL_TO_HALF(dr);
-            simd_half_t h_di = SIMD_FULL_TO_HALF(di);
-
-            vals = getLightVal_vec(h_zr, h_zi, h_dr, h_di);
-            r_vec = g_vec = b_vec = vals;
-        }
-        break;
+        return iter;
     }
 
-    setPixelsMasked_vec(pixels, pos, width, h_active, r_vec, g_vec, b_vec);
-}
-
-namespace VectorRenderer {
     simd_half_int_t pixelToInt_vec(simd_half_t val) {
         val = SIMD_MUL_H(val, h_255);
         val = SIMD_MIN_H(SIMD_MAX_H(val, h_zero), h_255);
@@ -327,9 +282,54 @@ namespace VectorRenderer {
         pos += byteCount;
     }
 
+    void colorPixelsSimd(uint8_t *pixels, int &pos, int width,
+        simd_full_t iter, simd_full_t mag, simd_full_mask_t active,
+        simd_full_t zr, simd_full_t zi,
+        simd_full_t dr, simd_full_t di) {
+        simd_half_t h_active = SIMD_FULL_MASK_TO_HALF(active);
+
+        simd_half_t vals, r_vec, g_vec, b_vec;
+        r_vec = g_vec = b_vec = h_zero;
+
+        switch (colorMethod) {
+            case 0:
+            {
+                simd_half_t h_iter = SIMD_FULL_TO_HALF(iter);
+
+                vals = getIterVal_vec(h_iter);
+                getColorPixel_vec(vals, r_vec, g_vec, b_vec);
+            }
+            break;
+
+            case 1:
+            {
+                simd_half_t h_iter = SIMD_FULL_TO_HALF(iter);
+                simd_half_t h_mag = SIMD_FULL_TO_HALF(mag);
+
+                vals = getSmoothIterVal_vec(h_iter, h_mag);
+                getColorPixel_vec(vals, r_vec, g_vec, b_vec);
+            }
+            break;
+
+            case 2:
+            {
+                simd_half_t h_zr = SIMD_FULL_TO_HALF(zr);
+                simd_half_t h_zi = SIMD_FULL_TO_HALF(zi);
+                simd_half_t h_dr = SIMD_FULL_TO_HALF(dr);
+                simd_half_t h_di = SIMD_FULL_TO_HALF(di);
+
+                vals = getLightVal_vec(h_zr, h_zi, h_dr, h_di);
+                r_vec = g_vec = b_vec = vals;
+            }
+            break;
+        }
+
+        setPixelsMasked_vec(pixels, pos, width, h_active, r_vec, g_vec, b_vec);
+    }
+
     void renderPixelSimd(uint8_t *pixels, int &pos,
         int width, int x, scalar_full_t ci) {
-        simd_full_t cr_vec = getCenterReal(width, x);
+        simd_full_t cr_vec = getCenterReal_vec(width, x);
         simd_full_t ci_vec = SIMD_SET_F(ci);
 
         simd_full_t zr, zi;
@@ -340,9 +340,9 @@ namespace VectorRenderer {
         simd_full_t mag;
         simd_full_mask_t active;
 
-        simd_full_t iter = iterateFractal_vec(cr_vec, ci_vec, zr, zi, dr, di, mag, active);
+        simd_full_t iter = iterateFractalSimd(cr_vec, ci_vec, zr, zi, dr, di, mag, active);
 
-        colorPixels_vec(pixels, pos, width, iter, mag, active, zr, zi, dr, di);
+        colorPixelsSimd(pixels, pos, width, iter, mag, active, zr, zi, dr, di);
     }
 }
 

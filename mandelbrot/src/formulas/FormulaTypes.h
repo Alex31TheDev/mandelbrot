@@ -28,7 +28,7 @@ typedef scalar_full_t number_t;
 typedef simd_full_t number_t;
 
 #define NUM_CONST SIMD_SET_F
-#define NUM_VAR SIMD_SET_F
+#define NUM_VAR NUM_CONST
 
 #define NUM_ADD SIMD_ADD_F
 #define NUM_SUB SIMD_SUB_F
@@ -43,5 +43,27 @@ typedef simd_full_t number_t;
 #define NUM_SIN SIMD_SIN_F
 #define NUM_COS SIMD_COS_F
 #define NUM_ATAN2 SIMD_ATAN2_F
+
+#elif defined(FORMULA_MPFR)
+#include "../mpfr/mpreal.h"
+
+typedef mpfr::mpreal number_t;
+
+#define NUM_CONST(x) mpfr::mpreal(x)
+#define NUM_VAR NUM_CONST
+
+#define NUM_ADD(a, b) ((a) + (b))
+#define NUM_SUB(a, b) ((a) - (b))
+#define NUM_MUL(a, b) ((a) * (b))
+#define NUM_DIV(a, b) ((a) / (b))
+
+#define NUM_ABS(x) abs(x)
+
+#define NUM_SQRT(x) sqrt(x)
+#define NUM_POW(a, b) pow(a, b)
+
+#define NUM_SIN(x) sin(x)
+#define NUM_COS(x) cos(x)
+#define NUM_ATAN2(a, b) atan2(a, b)
 
 #endif
