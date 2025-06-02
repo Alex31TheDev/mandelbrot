@@ -12,14 +12,17 @@ namespace ScalarGlobals {
     bool isJuliaSet = false, isInverse = false;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
-    scalar_full_t point_r = DEFAULT_POINT_R, point_i = DEFAULT_POINT_I;
-    scalar_full_t seed_r = DEFAULT_SEED_R, seed_i = DEFAULT_SEED_I;
     scalar_full_t realScale, imagScale;
 
-    scalar_half_t zoom, aspect;
+    scalar_full_t point_r = DEFAULT_POINT_R, point_i = DEFAULT_POINT_I;
+    scalar_full_t seed_r = DEFAULT_SEED_R, seed_i = DEFAULT_SEED_I;
+    scalar_full_t N;
 
-    scalar_half_t phase_r, phase_g, phase_b, cosPhase = DEFAULT_COS_PHASE;
+    scalar_half_t zoom, aspect;
+    scalar_half_t invCount, invLnPow;
+
     scalar_half_t freq_r, freq_g, freq_b, freqMult;
+    scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     scalar_half_t light_r, light_i, light_h;
 
     bool setImageGlobals(int img_w, int img_h) {
@@ -54,16 +57,25 @@ namespace ScalarGlobals {
         imagScale = realScale / aspect;
 
         if (iterCount == 0) {
-            count = MIN_ITERATIONS;
-
             scalar_half_t visualRange = CAST_H(zoomPow);
             count += static_cast<int>(POW_H(LOG10_H(visualRange), 5));
         }
+
+        invCount = RECIP_H(count);
+        return true;
+    }
+
+    bool setFractalExponent(scalar_full_t pw) {
+        if (pw <= 1) return false;
+
+        N = pw;
+        invLnPow = RECIP_H(LOG_H(pw));
 
         return true;
     }
 
     bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B, scalar_half_t mult) {
+        cosPhase = DEFAULT_COS_PHASE;
         phase_r = cosPhase + DEFAULT_PHASE_R;
         phase_g = cosPhase + DEFAULT_PHASE_G;
         phase_b = cosPhase + DEFAULT_PHASE_R;

@@ -5,8 +5,9 @@
 
 namespace ColorMethods {
     const ColorMethod colorMethods[] = {
-        { "smooth_iterations", 0 },
-        { "light", 1 },
+        { "iterations", 0 },
+        { "smooth_iterations", 1 },
+        { "light", 2 },
         { nullptr, -1 }
     };
 

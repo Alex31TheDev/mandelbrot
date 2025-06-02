@@ -64,7 +64,7 @@ namespace ArgsParser {
             if (method == -1) return false;
             colorMethod = method;
         } else {
-            colorMethod = ColorMethods::colorMethods[0].id;
+            colorMethod = ColorMethods::colorMethods[1].id;
         }
 
         if (argc > 9) {
@@ -90,13 +90,21 @@ namespace ArgsParser {
         seed_r = argc > 11 ? PARSE_F(argv[11]) : DEFAULT_SEED_R;
         seed_i = argc > 12 ? PARSE_F(argv[12]) : DEFAULT_SEED_I;
 
+        scalar_full_t pw = N = argc > 13 ? PARSE_F(argv[13]) : DEFAULT_FRACTAL_EXP;
+
+        if (!setFractalExponent(N)) {
+            fprintf(stderr, "Invalid args.\nFractal exponent must be > 1.\n");
+            return false;
+        }
+
         switch (colorMethod) {
             case 0:
+            case 1:
             {
-                float R = argc > 13 ? PARSE_H(argv[13]) : DEFAULT_FREQ_R;
-                float G = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_FREQ_G;
-                float B = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_FREQ_B;
-                float mult = argc > 16 ? PARSE_H(argv[16]) : DEFAULT_FREQ_MULT;
+                float R = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_FREQ_R;
+                float G = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_FREQ_G;
+                float B = argc > 16 ? PARSE_H(argv[16]) : DEFAULT_FREQ_B;
+                float mult = argc > 17 ? PARSE_H(argv[17]) : DEFAULT_FREQ_MULT;
 
                 if (!setColorGlobals(R, G, B, mult)) {
                     fprintf(stderr, "Invalid args.\nFrequency multiplier must be non-zero.\n");
@@ -105,10 +113,10 @@ namespace ArgsParser {
             }
             break;
 
-            case 1:
+            case 2:
             {
-                float real = argc > 13 ? PARSE_H(argv[13]) : DEFAULT_LIGHT_R;
-                float imag = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_LIGHT_I;
+                float real = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_LIGHT_R;
+                float imag = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_LIGHT_I;
 
                 if (!setLightGlobals(real, imag)) {
                     fprintf(stderr, "Invalid args.\nLight vector must be non-zero.\n");

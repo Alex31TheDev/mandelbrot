@@ -178,9 +178,23 @@ static inline __m256 SIMD_FULL_TO_HALF(__m512d x) {
 #define SIMD_DIV_F(a, b) SIMD_FUNC_DEC_F(div, a, b)
 #define SIMD_DIV_H(a, b) SIMD_FUNC_DEC_H(div, a, b)
 
+#define SIMD_SQRT_F(x) SIMD_FUNC_DEC_F(sqrt, x)
 #define SIMD_SQRT_H(x) SIMD_FUNC_DEC_H(sqrt, x)
+
+#define SIMD_POW_F(a, b) SIMD_FUNC_DEC_F(pow, a, b)
+#define SIMD_POW_H(a, b) SIMD_FUNC_DEC_H(pow, a, b)
+
+#define SIMD_LOG_F(x) SIMD_FUNC_DEC_F(log, x)
 #define SIMD_LOG_H(x) SIMD_FUNC_DEC_H(log, x)
+
+#define SIMD_SIN_F(x) SIMD_FUNC_DEC_F(sin, x)
+#define SIMD_SIN_H(x) SIMD_FUNC_DEC_H(sin, x)
+
+#define SIMD_COS_F(x) SIMD_FUNC_DEC_F(cos, x)
 #define SIMD_COS_H(x) SIMD_FUNC_DEC_H(cos, x)
+
+#define SIMD_ATAN2_F(a, b) SIMD_FUNC_DEC_F(atan2, a, b)
+#define SIMD_ATAN2_H(a, b) SIMD_FUNC_DEC_H(atan2, a, b)
 
 #if defined(__SSE2__)
 

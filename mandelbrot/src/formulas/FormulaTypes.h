@@ -20,7 +20,6 @@ typedef scalar_full_t number_t;
 
 #define NUM_SIN SIN_F
 #define NUM_COS COS_F
-
 #define NUM_ATAN2 ATAN2_F
 
 #elif defined(FORMULA_VECTOR)
@@ -37,5 +36,12 @@ typedef simd_full_t number_t;
 #define NUM_DIV SIMD_DIV_F
 
 #define NUM_ABS SIMD_ABS_F
+
+#define NUM_SQRT SIMD_SQRT_F
+#define NUM_POW SIMD_POW_F
+
+#define NUM_SIN SIMD_SIN_F
+#define NUM_COS SIMD_COS_F
+#define NUM_ATAN2 SIMD_ATAN2_F
 
 #endif

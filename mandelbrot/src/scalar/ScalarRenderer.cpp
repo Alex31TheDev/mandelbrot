@@ -66,10 +66,18 @@ static int iterateFractal(scalar_full_t cr, scalar_full_t ci,
     return i;
 }
 
+static scalar_half_t getIterVal(int i) {
+#ifdef NORM_ITER_COUNT
+    return i * invCount;
+#else
+    return CAST_H(i);
+#endif
+}
+
 static scalar_half_t getSmoothIterVal(int i, scalar_half_t mag) {
     scalar_half_t sqrt_mag = SQRT_H(mag);
     scalar_half_t m = LOG_H(LOG_H(sqrt_mag) * invLnBail) * invLnPow;
-    return CAST_H(i) - m;
+    return i - m;
 }
 
 static scalar_half_t normCos(scalar_half_t x) {
@@ -78,9 +86,9 @@ static scalar_half_t normCos(scalar_half_t x) {
 
 static void getColorPixel(scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB) {
-    scalar_half_t R_x = phase_r + val * freq_r;
-    scalar_half_t G_x = phase_g + val * freq_g;
-    scalar_half_t B_x = phase_b + val * freq_b;
+    scalar_half_t R_x = val * freq_r + phase_r;
+    scalar_half_t G_x = val * freq_g + phase_g;
+    scalar_half_t B_x = val * freq_b + phase_b;
 
     outR = normCos(R_x);
     outG = normCos(G_x);
@@ -96,11 +104,17 @@ static scalar_half_t getLightVal(scalar_full_t zr, scalar_full_t zi, scalar_full
     ur *= umag;
     ui *= umag;
 
-    scalar_half_t light = (ur * light_r - ui * light_i + light_h) / (light_h + 1);
+    scalar_half_t light = ur * light_r - ui * light_i + light_h;
+    light /= (light_h + 1);
+
+#ifdef NORM_ITER_COUNT
+    return MAX_H(light, 0) * invCount;
+#else
     return MAX_H(light, 0);
+#endif
 }
 
-static  void colorPixel(uint8_t *pixels, int &pos,
+static void colorPixel(uint8_t *pixels, int &pos,
     int i, scalar_full_t mag,
     scalar_full_t zr, scalar_full_t zi,
     scalar_full_t dr, scalar_full_t di) {
@@ -109,25 +123,26 @@ static  void colorPixel(uint8_t *pixels, int &pos,
         return;
     }
 
+    scalar_half_t val, R, G, B;
+
     switch (colorMethod) {
         case 0:
-        {
-            scalar_half_t val = getSmoothIterVal(i, CAST_H(mag));
-
-            scalar_half_t R, G, B;
+            val = getIterVal(i);
             getColorPixel(val, R, G, B);
-
-            ScalarRenderer::setPixel(pixels, pos, R, G, B);
-        }
-        break;
+            break;
 
         case 1:
-        {
-            scalar_half_t val = getLightVal(zr, zi, dr, di);
-            ScalarRenderer::setPixel(pixels, pos, val, val, val);
-        }
-        break;
+            val = getSmoothIterVal(i, CAST_H(mag));
+            getColorPixel(val, R, G, B);
+            break;
+
+        case 2:
+            val = getLightVal(zr, zi, dr, di);
+            R = G = B = val;
+            break;
     }
+
+    ScalarRenderer::setPixel(pixels, pos, R, G, B);
 }
 
 namespace ScalarRenderer {

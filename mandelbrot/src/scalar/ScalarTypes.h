@@ -40,16 +40,16 @@ typedef float scalar_half_t;
 #define ABS_F(x) FUNC1_F(fabs, x)
 #define ABS_H(x) FUNC1_H(fabs, x)
 
-#define LOG_F(x) FUNC1_F(log, x)
-#define LOG_H(x) FUNC1_H(log, x)
-
-#define LOG10_H(x) FUNC1_H(log10, x)
+#define SQRT_F(x) FUNC1_F(sqrt, x)
+#define SQRT_H(x) FUNC1_H(sqrt, x)
 
 #define POW_F(a, b) FUNC2_F(pow, a, b)
 #define POW_H(a, b) FUNC2_H(pow, a, b)
 
-#define SQRT_F(x) FUNC1_F(sqrt, x)
-#define SQRT_H(x) FUNC1_H(sqrt, x)
+#define LOG_F(x) FUNC1_F(log, x)
+#define LOG_H(x) FUNC1_H(log, x)
+
+#define LOG10_H(x) FUNC1_H(log10, x)
 
 #define SIN_F(x) FUNC1_F(sin, x)
 #define SIN_H(x) FUNC1_H(sin, x)
