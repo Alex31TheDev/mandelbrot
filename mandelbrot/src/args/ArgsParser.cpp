@@ -13,7 +13,7 @@ using namespace ParserUtil;
 
 #include "../scalar/ScalarGlobals.h"
 #include "../vector/VectorGlobals.h"
-#include "../mpfr/MpfrGlobals.h"
+//#include "../mpfr/MpfrGlobals.h"
 using namespace ScalarGlobals;
 
 static const char flagHelp[] = "flag must be \"true\" or \"false\"";
@@ -128,7 +128,10 @@ namespace ArgsParser {
         }
 
         VectorGlobals::initVectors();
-        MpfrGlobals::initGlobals();
+        //MpfrGlobals::initGlobals();
+
+        //MpfrGlobals::point_r_mp = mpfr::mpreal(argv[3]);
+        //MpfrGlobals::point_i_mp = mpfr::mpreal(argv[4]);
 
         return true;
     }

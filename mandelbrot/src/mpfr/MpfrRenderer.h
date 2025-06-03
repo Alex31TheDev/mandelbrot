@@ -8,18 +8,18 @@
 namespace MpfrRenderer {
     using namespace mpfr;
 
-    int iterateFractalMpfr(mpreal cr, mpreal ci,
+    int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,
         mpreal &mag);
 
     void colorPixelMpfr(uint8_t *pixels, int &pos,
-        int i, mpreal mag,
-        mpreal zr, mpreal zi,
-        mpreal dr, mpreal di);
+        int i, const mpreal &mag,
+        const mpreal &zr, const mpreal &zi,
+        const mpreal &dr, const mpreal &di);
 
     void renderPixelMpfr(uint8_t *pixels, int &pos,
-        int x, mpfr::mpreal ci);
+        int x, mpreal ci);
 }
 
 #endif

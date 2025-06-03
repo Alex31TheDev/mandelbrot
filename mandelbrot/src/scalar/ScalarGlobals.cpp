@@ -25,7 +25,7 @@ namespace ScalarGlobals {
     scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     scalar_half_t light_r, light_i, light_h;
 
-    bool setImageGlobals(int img_w, int img_h) {
+    const bool setImageGlobals(const int img_w, const int img_h) {
         if (img_w <= 0 || img_h <= 0) return false;
         width = img_w;
         height = img_h;
@@ -41,7 +41,7 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setZoomGlobals(int iterCount, scalar_half_t zoomScale) {
+    const bool setZoomGlobals(const int iterCount, const scalar_half_t zoomScale) {
         if (iterCount < MIN_ITERATIONS) {
             count = MIN_ITERATIONS;
         } else {
@@ -51,13 +51,13 @@ namespace ScalarGlobals {
         if (zoomScale < SC_SYM_H(-3.25)) return false;
         zoom = zoomScale;
 
-        scalar_full_t zoomPow = POW_F(10, zoom);
+        const scalar_full_t zoomPow = POW_F(10, zoom);
 
         realScale = RECIP_F(zoomPow);
         imagScale = realScale / aspect;
 
         if (iterCount == 0) {
-            scalar_half_t visualRange = CAST_H(zoomPow);
+            const scalar_half_t visualRange = CAST_H(zoomPow);
             count += static_cast<int>(POW_H(LOG10_H(visualRange), 5));
         }
 
@@ -65,7 +65,7 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setFractalExponent(scalar_full_t pw) {
+    const bool setFractalExponent(const scalar_full_t pw) {
         if (pw <= 1) return false;
 
         N = pw;
@@ -74,7 +74,8 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B, scalar_half_t mult) {
+    const bool setColorGlobals(const scalar_half_t R, const scalar_half_t G, const scalar_half_t B,
+        const scalar_half_t mult) {
         cosPhase = DEFAULT_COS_PHASE;
         phase_r = cosPhase + DEFAULT_PHASE_R;
         phase_g = cosPhase + DEFAULT_PHASE_G;
@@ -90,8 +91,8 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setLightGlobals(scalar_half_t real, scalar_half_t imag) {
-        float mag = SQRT_H(real * real + imag * imag);
+    const bool setLightGlobals(const scalar_half_t real, const scalar_half_t imag) {
+        const scalar_half_t mag = SQRT_H(real * real + imag * imag);
         if (mag <= 0) return false;
 
         light_r = real / mag;

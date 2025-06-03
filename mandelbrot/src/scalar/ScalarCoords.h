@@ -1,5 +1,5 @@
 #pragma once
 #include "ScalarTypes.h"
 
-scalar_full_t getCenterReal(int x);
-scalar_full_t getCenterImag(int y);
+const scalar_full_t getCenterReal(const int x);
+const scalar_full_t getCenterImag(const int y);

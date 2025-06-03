@@ -31,7 +31,7 @@ static void renderStrip(Image &image, int start_y, int end_y, RenderProgress *pr
     int pos = start_y * width * Image::STRIDE;
 
     for (int y = start_y; y < end_y; y++) {
-        auto ci = imagCenterCoord(y);
+        const auto ci = imagCenterCoord(y);
 
 #if defined(USE_SCALAR)
         for (int x = 0; x < width; x++) {

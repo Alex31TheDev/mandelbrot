@@ -3,7 +3,7 @@
 
 #include "mpreal.h"
 
-mpfr::mpreal getCenterReal_mp(int x);
-mpfr::mpreal getCenterImag_mp(int y);
+const mpfr::mpreal getCenterReal_mp(const int x);
+const mpfr::mpreal getCenterImag_mp(const int y);
 
 #endif

@@ -47,7 +47,7 @@ static void initCoords_mp(mpreal &cr, mpreal &ci,
 }
 
 namespace MpfrRenderer {
-    int iterateFractalMpfr(mpreal cr, mpreal ci,
+    int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,
         mpreal &mag) {
@@ -55,14 +55,14 @@ namespace MpfrRenderer {
         int i = 0;
 
         for (; i < count; i++) {
-            mpreal zr2 = zr * zr;
-            mpreal zi2 = zi * zi;
+            const mpreal zr2 = zr * zr;
+            const mpreal zi2 = zi * zi;
             mag = zr2 + zi2;
 
             if (mag > BAILOUT) break;
 
             switch (colorMethod) {
-                case 1:
+                case 2:
                     derivative(zr, zi, dr, di, mag, dr, di);
                     break;
             }
@@ -74,16 +74,16 @@ namespace MpfrRenderer {
     }
 
     void colorPixelMpfr(uint8_t *pixels, int &pos,
-        int i, mpreal mag,
-        mpreal zr, mpreal zi,
-        mpreal dr, mpreal di) {
+        int i, const mpreal &mag,
+        const mpreal &zr, const mpreal &zi,
+        const mpreal &dr, const mpreal &di) {
         scalar_half_t mag_sc = CAST_H(mag);
 
-        scalar_half_t zr_sc = CAST_H(zr);
-        scalar_half_t zi_sc = CAST_H(zi);
+        const scalar_half_t zr_sc = CAST_H(zr);
+        const scalar_half_t zi_sc = CAST_H(zi);
 
-        scalar_half_t dr_sc = CAST_H(dr);
-        scalar_half_t di_sc = CAST_H(di);
+        const scalar_half_t dr_sc = CAST_H(dr);
+        const scalar_half_t di_sc = CAST_H(di);
 
         colorPixelScalar(pixels, pos, i, mag_sc, zr_sc, zi_sc, dr_sc, di_sc);
     }

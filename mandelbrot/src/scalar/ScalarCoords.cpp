@@ -5,10 +5,10 @@
 #include "ScalarGlobals.h"
 using namespace ScalarGlobals;
 
-scalar_full_t getCenterReal(int x) {
+const scalar_full_t getCenterReal(const int x) {
     return (x - halfWidth) * invWidth * realScale + point_r;
 }
 
-scalar_full_t getCenterImag(int y) {
+const scalar_full_t getCenterImag(const int y) {
     return (y - halfHeight) * invHeight * imagScale - point_i;
 }

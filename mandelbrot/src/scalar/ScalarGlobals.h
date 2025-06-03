@@ -49,9 +49,10 @@ namespace ScalarGlobals {
     extern scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     extern scalar_half_t light_r, light_i, light_h;
 
-    bool setImageGlobals(int img_w, int img_h);
-    bool setZoomGlobals(int iterCount, scalar_half_t zoomScale);
-    bool setFractalExponent(scalar_full_t pw);
-    bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B, scalar_half_t mult);
-    bool setLightGlobals(scalar_half_t real, scalar_half_t imag);
+    const bool setImageGlobals(const int img_w, const int img_h);
+    const bool setZoomGlobals(const int iterCount, const scalar_half_t zoomScale);
+    const bool setFractalExponent(const scalar_full_t pw);
+    const bool setColorGlobals(const scalar_half_t R, const scalar_half_t G, const scalar_half_t B,
+        const scalar_half_t mult);
+    const bool setLightGlobals(const scalar_half_t real, const scalar_half_t imag);
 }

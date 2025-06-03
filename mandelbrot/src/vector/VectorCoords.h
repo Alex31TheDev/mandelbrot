@@ -3,6 +3,6 @@
 
 #include "VectorTypes.h"
 
-simd_full_t getCenterReal_vec(int width, int x);
+const simd_full_t getCenterReal_vec(const int width, const int x);
 
 #endif

@@ -33,6 +33,12 @@ namespace MpfrGlobals {
 
         realScale_mp = 1 / zoomPow;
         imagScale_mp = realScale_mp / aspect_mp;
+
+        //point_r_mp = point_r;
+        //point_i_mp = point_i;
+        //
+        //seed_r_mp = seed_r;
+        //seed_i_mp = seed_i;
     }
 }
 
