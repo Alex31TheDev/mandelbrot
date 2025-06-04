@@ -10,7 +10,6 @@
 
 #include "VectorGlobals.h"
 #include "../scalar/ScalarGlobals.h"
-
 using namespace VectorGlobals;
 using namespace ScalarGlobals;
 
@@ -20,9 +19,11 @@ using namespace ScalarGlobals;
 #define FORMULA_VECTOR
 #include "../formulas/FractalFormulas.h"
 
+#include "../util/InlineUtil.h"
+
 #define USE_VECTOR_STORE
 
-static inline void complexInverse_vec(simd_full_t &cr_vec, simd_full_t &ci_vec) {
+static FORCE_INLINE void complexInverse_vec(simd_full_t &cr_vec, simd_full_t &ci_vec) {
     const simd_full_t cr2 = SIMD_MUL_F(cr_vec, cr_vec);
     const simd_full_t ci2 = SIMD_MUL_F(ci_vec, ci_vec);
     simd_full_t cmag = SIMD_ADD_F(cr2, ci2);
@@ -36,7 +37,7 @@ static inline void complexInverse_vec(simd_full_t &cr_vec, simd_full_t &ci_vec) 
     ci_vec = SIMD_MUL_F(ci_vec, SIMD_MUL_F(inv_cmag, f_neg_one));
 }
 
-static void initCoords_vec(simd_full_t &cr_vec, simd_full_t &ci_vec,
+static FORCE_INLINE void initCoords_vec(simd_full_t &cr_vec, simd_full_t &ci_vec,
     simd_full_t &zr, simd_full_t &zi) {
     if (isInverse) {
         complexInverse_vec(cr_vec, ci_vec);
@@ -81,19 +82,19 @@ static const __m128i rgbMask = _mm_loadu_si128(
     reinterpret_cast<const __m128i *>(makeRgbMask<4, 16>().data())
 );
 
-static inline void store128bitLane_vec(uint8_t *out, const __m128i &data, const int lane) {
+static FORCE_INLINE void store128bitLane_vec(uint8_t *out, const __m128i &data, const int lane) {
     _mm_storeu_si128(
         reinterpret_cast<__m128i *>(out + lane * WIDTH_128_STRIDE),
         data
     );
 }
 
-static inline void writePixelData_vec(uint8_t *out, const __m128i &RGBA8) {
+static FORCE_INLINE void writePixelData_vec(uint8_t *out, const __m128i &RGBA8) {
     const __m128i mix = _mm_shuffle_epi8(RGBA8, rgbMask);
     store128bitLane_vec(out, mix, 0);
 }
 
-static inline void writePixelData_vec(uint8_t *out, const __m256i &RGBA8) {
+static FORCE_INLINE void writePixelData_vec(uint8_t *out, const __m256i &RGBA8) {
     const __m128i lanes[2] = {
         _mm256_castsi256_si128(RGBA8),
         _mm256_extracti128_si256(RGBA8, 1)
@@ -105,7 +106,7 @@ static inline void writePixelData_vec(uint8_t *out, const __m256i &RGBA8) {
     }
 }
 
-static inline void writePixelData_vec(uint8_t *out, const __m512i &RGBA8) {
+static FORCE_INLINE void writePixelData_vec(uint8_t *out, const __m512i &RGBA8) {
     const __m128i lanes[4] = {
         _mm512_extracti32x4_epi32(RGBA8, 0),
         _mm512_extracti32x4_epi32(RGBA8, 1),
@@ -123,12 +124,12 @@ static inline void writePixelData_vec(uint8_t *out, const __m512i &RGBA8) {
 #include "../scalar/ScalarRenderer.h"
 #endif
 
-static const simd_half_t normCos_vec(const simd_half_t &x) {
+static FORCE_INLINE const simd_half_t normCos_vec(const simd_half_t &x) {
     const simd_half_t a = SIMD_COS_H(x);
     return SIMD_MUL_H(SIMD_ADD_H(a, h_one), h_half);
 }
 
-static void getColorPixel_vec(const simd_half_t &val,
+static FORCE_INLINE void getColorPixel_vec(const simd_half_t &val,
     simd_half_t &outR, simd_half_t &outG, simd_half_t &outB) {
     const simd_half_t R_x = SIMD_ADD_H(SIMD_MUL_H(val, h_freq_r_vec), h_phase_r_vec);
     const simd_half_t G_x = SIMD_ADD_H(SIMD_MUL_H(val, h_freq_g_vec), h_phase_g_vec);
@@ -139,7 +140,7 @@ static void getColorPixel_vec(const simd_half_t &val,
     outB = normCos_vec(B_x);
 }
 
-static inline void setPixelsMasked_vec(uint8_t *pixels, int &pos,
+static FORCE_INLINE void setPixelsMasked_vec(uint8_t *pixels, int &pos,
     const int width, const simd_half_t &active,
     const simd_half_t &R, const simd_half_t &G, const simd_half_t &B) {
     const simd_half_mask_t inactive = SIMD_CMP_EQ_H(active, h_zero);
@@ -151,7 +152,7 @@ static inline void setPixelsMasked_vec(uint8_t *pixels, int &pos,
     VectorRenderer::setPixels_vec(pixels, pos, width, R_m, G_m, B_m);
 }
 
-static const simd_half_t getIterVal_vec(const simd_half_t &iter) {
+static FORCE_INLINE const simd_half_t getIterVal_vec(const simd_half_t &iter) {
 #ifdef NORM_ITER_COUNT
     return SIMD_MUL_H(iter, h_invCount_vec);
 #else
@@ -159,7 +160,7 @@ static const simd_half_t getIterVal_vec(const simd_half_t &iter) {
 #endif
 }
 
-static const simd_half_t getSmoothIterVal_vec(const simd_half_t &iter, const simd_half_t &mag) {
+static FORCE_INLINE const simd_half_t getSmoothIterVal_vec(const simd_half_t &iter, const simd_half_t &mag) {
     const simd_half_t sqrt_mag = SIMD_SQRT_H(mag);
     const simd_half_t lg1 = SIMD_LOG_H(sqrt_mag);
     const simd_half_t m1 = SIMD_MUL_H(lg1, h_invLnBail_vec);
@@ -168,7 +169,7 @@ static const simd_half_t getSmoothIterVal_vec(const simd_half_t &iter, const sim
     return SIMD_SUB_H(iter, m2);
 }
 
-static const simd_half_t getLightVal_vec(const simd_half_t &zr, const simd_half_t &zi,
+static FORCE_INLINE const simd_half_t getLightVal_vec(const simd_half_t &zr, const simd_half_t &zi,
     const simd_half_t &dr, const simd_half_t &di) {
     const simd_half_t dr2 = SIMD_MUL_H(dr, dr);
     const simd_half_t di2 = SIMD_MUL_H(di, di);
@@ -202,7 +203,7 @@ static const simd_half_t getLightVal_vec(const simd_half_t &zr, const simd_half_
 }
 
 namespace VectorRenderer {
-    const simd_full_t iterateFractalSimd(const simd_full_t &cr, const simd_full_t &ci,
+    FORCE_INLINE const simd_full_t iterateFractalSimd(const simd_full_t &cr, const simd_full_t &ci,
         simd_full_t &zr, simd_full_t &zi,
         simd_full_t &dr, simd_full_t &di,
         simd_full_t &mag, simd_full_mask_t &active) {
@@ -244,13 +245,13 @@ namespace VectorRenderer {
         return iter;
     }
 
-    const simd_half_int_t pixelToInt_vec(const simd_half_t &val) {
+    FORCE_INLINE const simd_half_int_t pixelToInt_vec(const simd_half_t &val) {
         simd_half_t conv_val = SIMD_MUL_H(val, h_255);
         conv_val = SIMD_MIN_H(SIMD_MAX_H(conv_val, h_zero), h_255);
         return SIMD_HALF_TO_INT32(conv_val);
     }
 
-    inline void setPixels_vec(uint8_t *pixels, int &pos,
+    FORCE_INLINE void setPixels_vec(uint8_t *pixels, int &pos,
         const int width, const simd_half_t &R, const simd_half_t &G, const simd_half_t &B) {
         const int byteCount = width * Image::STRIDE;
         uint8_t *out = pixels + pos;
@@ -284,7 +285,7 @@ namespace VectorRenderer {
         pos += byteCount;
     }
 
-    void colorPixelsSimd(uint8_t *pixels, int &pos, const int width,
+    FORCE_INLINE void colorPixelsSimd(uint8_t *pixels, int &pos, const int width,
         const simd_full_t &iter, const simd_full_t &mag, const simd_full_mask_t &active,
         const simd_full_t &zr, const simd_full_t &zi,
         const simd_full_t &dr, const simd_full_t &di) {

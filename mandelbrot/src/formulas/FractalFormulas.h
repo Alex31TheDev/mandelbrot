@@ -1,15 +1,18 @@
 #pragma once
 
-#include "../scalar/ScalarGlobals.h"
-#include "FormulaTypes.h"
-
 #if defined(USE_SCALAR)
 #include <cmath>
 #elif defined(USE_VECTORS)
 #include <immintrin.h>
 #endif
 
-static inline void formula(const number_t &cr, const number_t &ci,
+#include "FormulaTypes.h"
+
+#include "../scalar/ScalarGlobals.h"
+
+#include "../util/InlineUtil.h"
+
+static FORCE_INLINE void formula(const number_t &cr, const number_t &ci,
     const number_t &zr, const number_t &zi,
     const number_t &zr2, const number_t &zi2, const number_t &mag,
     number_t &new_zr, number_t &new_zi) {
@@ -50,7 +53,7 @@ static inline void formula(const number_t &cr, const number_t &ci,
     }
 }
 
-static inline void derivative(const number_t &zr, const number_t &zi,
+static FORCE_INLINE void derivative(const number_t &zr, const number_t &zi,
     const number_t &dr, const number_t &di,
     const number_t &mag,
     number_t &new_dr, number_t &new_di) {

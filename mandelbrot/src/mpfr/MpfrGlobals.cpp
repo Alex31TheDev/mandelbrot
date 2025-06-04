@@ -16,11 +16,12 @@ namespace MpfrGlobals {
     mpreal point_r_mp = 0, point_i_mp = 0;
     mpreal seed_r_mp = 0, seed_i_mp = 0;
 
-    void initMpfr() {
-        mpreal::set_default_prec(digits2bits(digits));
+    void initMpfr(int prec) {
+        if (prec <= 0) prec = digits;
+        mpreal::set_default_prec(digits2bits(prec));
     }
 
-    void initGlobals() {
+    void initGlobals(const char *pr_str, const char *pi_str) {
         aspect_mp = static_cast<mpreal>(width) / height;
 
         halfWidth_mp = static_cast<mpreal>(width) / 2;
@@ -34,11 +35,11 @@ namespace MpfrGlobals {
         realScale_mp = 1 / zoomPow;
         imagScale_mp = realScale_mp / aspect_mp;
 
-        //point_r_mp = point_r;
-        //point_i_mp = point_i;
-        //
-        //seed_r_mp = seed_r;
-        //seed_i_mp = seed_i;
+        point_r_mp = mpreal(pr_str);
+        point_i_mp = mpreal(pi_str);
+
+        seed_r_mp = seed_r;
+        seed_i_mp = seed_i;
     }
 }
 

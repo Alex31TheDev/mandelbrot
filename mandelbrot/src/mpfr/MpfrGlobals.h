@@ -9,7 +9,7 @@ namespace MpfrGlobals {
     using namespace mpfr;
     using namespace ScalarGlobals;
 
-    constexpr int digits = 20;
+    constexpr int digits = 50;
 
     const mpreal bailout_mp = BAILOUT;
 
@@ -21,15 +21,15 @@ namespace MpfrGlobals {
     extern mpreal point_r_mp, point_i_mp;
     extern mpreal seed_r_mp, seed_i_mp;
 
-    void initMpfr();
-    void initGlobals();
+    void initMpfr(int prec = 0);
+    void initGlobals(const char *pr_str, const char *pi_str);
 }
 
 #else
 
 namespace MpfrGlobals {
-    void initMpfr() {}
-    void initGlobals() {}
+    static void initMpfr(int = 0) {}
+    static void initGlobals(const char *, const char *) {}
 }
 
 #endif

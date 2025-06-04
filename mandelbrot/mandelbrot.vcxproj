@@ -1236,6 +1236,7 @@
     <ClInclude Include="src\mpfr\MpfrGlobals.h" />
     <ClInclude Include="src\mpfr\MpfrRenderer.h" />
     <ClInclude Include="src\mpfr\mpreal.h" />
+    <ClInclude Include="src\util\InlineUtil.h" />
     <ClInclude Include="src\util\MacroUtil.h" />
     <ClInclude Include="src\render\RenderProgress.h" />
     <ClInclude Include="src\scalar\ScalarCoords.h" />
@@ -1254,14 +1255,11 @@
     <ClCompile Include="src\args\ArgsParser.cpp" />
     <ClCompile Include="src\args\ColorMethods.cpp" />
     <ClCompile Include="src\args\ParserUtil.cpp" />
-    <ClCompile Include="src\mpfr\MpfrCoords.cpp" />
     <ClCompile Include="src\mpfr\MpfrGlobals.cpp" />
     <ClCompile Include="src\mpfr\MpfrRenderer.cpp" />
     <ClCompile Include="src\render\RenderImage.cpp" />
     <ClCompile Include="src\render\RenderProgress.cpp" />
-    <ClCompile Include="src\scalar\ScalarCoords.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
-    <ClCompile Include="src\vector\VectorCoords.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
     <ClCompile Include="src\image\Image.cpp" />
     <ClCompile Include="src\Main.cpp" />

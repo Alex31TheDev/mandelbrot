@@ -8,12 +8,13 @@
 #include "ParserUtil.h"
 #include "ColorMethods.h"
 using namespace ParserUtil;
+using namespace ColorMethods;
 
 #include "../scalar/ScalarTypes.h"
 
 #include "../scalar/ScalarGlobals.h"
 #include "../vector/VectorGlobals.h"
-//#include "../mpfr/MpfrGlobals.h"
+#include "../mpfr/MpfrGlobals.h"
 using namespace ScalarGlobals;
 
 static const char flagHelp[] = "flag must be \"true\" or \"false\"";
@@ -61,11 +62,11 @@ namespace ArgsParser {
         }
 
         if (argc > 8) {
-            int method = ColorMethods::parseColorMethod(argv[8]);
+            int method = parseColorMethod(argv[8]);
             if (method == -1) return false;
             colorMethod = method;
         } else {
-            colorMethod = ColorMethods::colorMethods[1].id;
+            colorMethod = DEFAULT_COLOR_METHOD.id;
         }
 
         if (argc > 9) {
@@ -91,9 +92,9 @@ namespace ArgsParser {
         seed_r = argc > 11 ? PARSE_F(argv[11]) : DEFAULT_SEED_R;
         seed_i = argc > 12 ? PARSE_F(argv[12]) : DEFAULT_SEED_I;
 
-        scalar_full_t pw = N = argc > 13 ? PARSE_F(argv[13]) : DEFAULT_FRACTAL_EXP;
+        scalar_full_t pw = argc > 13 ? PARSE_F(argv[13]) : DEFAULT_FRACTAL_EXP;
 
-        if (!setFractalExponent(N)) {
+        if (!setFractalExponent(pw)) {
             fprintf(stderr, "Invalid args.\nFractal exponent must be > 1.\n");
             return false;
         }
@@ -128,10 +129,7 @@ namespace ArgsParser {
         }
 
         VectorGlobals::initVectors();
-        //MpfrGlobals::initGlobals();
-
-        //MpfrGlobals::point_r_mp = mpfr::mpreal(argv[3]);
-        //MpfrGlobals::point_i_mp = mpfr::mpreal(argv[4]);
+        MpfrGlobals::initGlobals(argv[3], argv[4]);
 
         return true;
     }

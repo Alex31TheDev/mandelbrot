@@ -25,7 +25,7 @@ namespace ScalarGlobals {
     scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     scalar_half_t light_r, light_i, light_h;
 
-    const bool setImageGlobals(const int img_w, const int img_h) {
+    bool setImageGlobals(const int img_w, const int img_h) {
         if (img_w <= 0 || img_h <= 0) return false;
         width = img_w;
         height = img_h;
@@ -41,7 +41,7 @@ namespace ScalarGlobals {
         return true;
     }
 
-    const bool setZoomGlobals(const int iterCount, const scalar_half_t zoomScale) {
+    bool setZoomGlobals(const int iterCount, const scalar_half_t zoomScale) {
         if (iterCount < MIN_ITERATIONS) {
             count = MIN_ITERATIONS;
         } else {
@@ -65,7 +65,7 @@ namespace ScalarGlobals {
         return true;
     }
 
-    const bool setFractalExponent(const scalar_full_t pw) {
+    bool setFractalExponent(const scalar_full_t pw) {
         if (pw <= 1) return false;
 
         N = pw;
@@ -74,7 +74,7 @@ namespace ScalarGlobals {
         return true;
     }
 
-    const bool setColorGlobals(const scalar_half_t R, const scalar_half_t G, const scalar_half_t B,
+    bool setColorGlobals(const scalar_half_t R, const scalar_half_t G, const scalar_half_t B,
         const scalar_half_t mult) {
         cosPhase = DEFAULT_COS_PHASE;
         phase_r = cosPhase + DEFAULT_PHASE_R;
@@ -91,7 +91,7 @@ namespace ScalarGlobals {
         return true;
     }
 
-    const bool setLightGlobals(const scalar_half_t real, const scalar_half_t imag) {
+    bool setLightGlobals(const scalar_half_t real, const scalar_half_t imag) {
         const scalar_half_t mag = SQRT_H(real * real + imag * imag);
         if (mag <= 0) return false;
 

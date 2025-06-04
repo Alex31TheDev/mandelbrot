@@ -19,7 +19,7 @@ using namespace ScalarGlobals;
 #include "../mpfr/MpfrRenderer.h"
 #endif
 
-#if defined(USE_SCALAR) or defined(USE_VECTORS)
+#if defined(USE_SCALAR) || defined(USE_VECTORS)
 #include "../scalar/ScalarCoords.h"
 constexpr auto imagCenterCoord = getCenterImag;
 #elif defined(USE_MPFR)

@@ -11,6 +11,8 @@ namespace ColorMethods {
         { nullptr, -1 }
     };
 
+    const ColorMethod DEFAULT_COLOR_METHOD = colorMethods[1];
+
     int parseColorMethod(const char *str) {
         for (const ColorMethod *method = colorMethods; method->name != nullptr; method++) {
             if (strcmp(str, method->name) == 0) return method->id;

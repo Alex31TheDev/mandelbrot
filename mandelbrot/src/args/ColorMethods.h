@@ -7,5 +7,7 @@ namespace ColorMethods {
     };
 
     extern const ColorMethod colorMethods[];
+    extern const ColorMethod DEFAULT_COLOR_METHOD;
+
     int parseColorMethod(const char *str);
 }

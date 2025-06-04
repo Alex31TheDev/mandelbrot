@@ -13,7 +13,9 @@ using namespace ScalarGlobals;
 #define FORMULA_SCALAR
 #include "../formulas/FractalFormulas.h"
 
-static inline void complexInverse(scalar_full_t &cr, scalar_full_t &ci) {
+#include "../util/InlineUtil.h"
+
+static FORCE_INLINE void complexInverse(scalar_full_t &cr, scalar_full_t &ci) {
     const scalar_full_t cmag = cr * cr + ci * ci;
 
     if (cmag != 0) {
@@ -22,7 +24,7 @@ static inline void complexInverse(scalar_full_t &cr, scalar_full_t &ci) {
     }
 }
 
-static void initCoords(scalar_full_t &cr, scalar_full_t &ci,
+static FORCE_INLINE void initCoords(scalar_full_t &cr, scalar_full_t &ci,
     scalar_full_t &zr, scalar_full_t &zi) {
     if (isInverse) {
         complexInverse(cr, ci);
@@ -40,7 +42,7 @@ static void initCoords(scalar_full_t &cr, scalar_full_t &ci,
     }
 }
 
-static const scalar_half_t getIterVal(const int i) {
+static FORCE_INLINE scalar_half_t getIterVal(const int i) {
 #ifdef NORM_ITER_COUNT
     return i * invCount;
 #else
@@ -48,17 +50,17 @@ static const scalar_half_t getIterVal(const int i) {
 #endif
 }
 
-static const scalar_half_t getSmoothIterVal(const int i, const scalar_half_t mag) {
+static FORCE_INLINE scalar_half_t getSmoothIterVal(const int i, const scalar_half_t mag) {
     const scalar_half_t sqrt_mag = SQRT_H(mag);
     const scalar_half_t m = LOG_H(LOG_H(sqrt_mag) * invLnBail) * invLnPow;
     return i - m;
 }
 
-static const scalar_half_t normCos(const scalar_half_t x) {
+static FORCE_INLINE scalar_half_t normCos(const scalar_half_t x) {
     return (COS_H(x) + 1) * SC_SYM_H(0.5);
 }
 
-static void getColorPixel(const scalar_half_t val,
+static FORCE_INLINE void getColorPixel(const scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB) {
     const scalar_half_t R_x = val * freq_r + phase_r;
     const scalar_half_t G_x = val * freq_g + phase_g;
@@ -69,7 +71,7 @@ static void getColorPixel(const scalar_half_t val,
     outB = normCos(B_x);
 }
 
-static const scalar_half_t getLightVal(const scalar_full_t zr, const scalar_full_t zi,
+static FORCE_INLINE scalar_half_t getLightVal(const scalar_full_t zr, const scalar_full_t zi,
     const scalar_full_t dr, const scalar_full_t di) {
     const scalar_half_t dsum = RECIP_H(dr * dr + di * di);
     scalar_half_t ur = CAST_H(zr * dr + zi * di) * dsum;
@@ -90,7 +92,7 @@ static const scalar_half_t getLightVal(const scalar_full_t zr, const scalar_full
 }
 
 namespace ScalarRenderer {
-    const int iterateFractalScalar(const scalar_full_t cr, const scalar_full_t ci,
+    FORCE_INLINE int iterateFractalScalar(const scalar_full_t cr, const scalar_full_t ci,
         scalar_full_t &zr, scalar_full_t &zi,
         scalar_full_t &dr, scalar_full_t &di,
         scalar_full_t &mag) {
@@ -116,20 +118,20 @@ namespace ScalarRenderer {
         return i;
     }
 
-    const uint8_t pixelToInt(const scalar_half_t val) {
+    FORCE_INLINE uint8_t pixelToInt(const scalar_half_t val) {
         scalar_half_t conv_val = val * 255;
-        conv_val = MIN_H(MAX_H(val, 0), 255);
+        conv_val = MIN_H(MAX_H(conv_val, 0), 255);
         return CAST_INT_U(conv_val, 8);
     }
 
-    inline void setPixel(uint8_t *pixels, int &pos,
+    FORCE_INLINE void setPixel(uint8_t *pixels, int &pos,
         const scalar_half_t R, const scalar_half_t G, const scalar_half_t B) {
         pixels[pos++] = pixelToInt(R);
         pixels[pos++] = pixelToInt(G);
         pixels[pos++] = pixelToInt(B);
     }
 
-    void colorPixelScalar(uint8_t *pixels, int &pos,
+    FORCE_INLINE void colorPixelScalar(uint8_t *pixels, int &pos,
         const int i, const scalar_full_t mag,
         const scalar_full_t zr, const scalar_full_t zi,
         const scalar_full_t dr, const scalar_full_t di) {

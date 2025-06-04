@@ -3,9 +3,10 @@
 
 #include <immintrin.h>
 
-#include "../util/MacroUtil.h"
-
 #include "../scalar/ScalarTypes.h"
+
+#include "../util/MacroUtil.h"
+#include "../util/InlineUtil.h"
 
 #define SIMD_SYM_F(a) _CONCAT2(a, SIMD_FULL_ARCH_WIDTH)
 
@@ -131,7 +132,7 @@ static constexpr int SIMD_HALF_WIDTH = SIMD_HALF_ARCH_WIDTH / (8 * sizeof(scalar
 #ifdef USE_DOUBLES
 
 #if defined(__AVX512__)
-static inline __m256 SIMD_FULL_TO_HALF(__m512d x) {
+static FORCE_INLINE __m256 SIMD_FULL_TO_HALF(__m512d x) {
     __m256d f_low = _mm512_castpd512_pd256(x);
     __m256d f_high = _mm512_extractf64x4_pd(x, 1);
 
