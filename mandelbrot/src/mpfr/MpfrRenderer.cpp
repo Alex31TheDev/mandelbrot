@@ -22,7 +22,7 @@ using namespace ScalarRenderer;
 #include "../util/InlineUtil.h"
 
 static FORCE_INLINE void complexInverse_mp(mpreal &cr, mpreal &ci) {
-    mpreal cmag = cr * cr + ci * ci;
+    const mpreal cmag = cr * cr + ci * ci;
 
     if (cmag != 0) {
         cr = cr / cmag;
@@ -49,7 +49,7 @@ static FORCE_INLINE void initCoords_mp(mpreal &cr, mpreal &ci,
 }
 
 namespace MpfrRenderer {
-    FORCE_INLINE const int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
+    FORCE_INLINE int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,
         mpreal &mag) {
@@ -76,10 +76,10 @@ namespace MpfrRenderer {
     }
 
     FORCE_INLINE void colorPixelMpfr(uint8_t *pixels, int &pos,
-        const int i, const mpreal &mag,
+        int i, const mpreal &mag,
         const mpreal &zr, const mpreal &zi,
         const mpreal &dr, const mpreal &di) {
-        scalar_half_t mag_sc = CAST_H(mag);
+        const scalar_half_t mag_sc = CAST_H(mag);
 
         const scalar_half_t zr_sc = CAST_H(zr);
         const scalar_half_t zi_sc = CAST_H(zi);
@@ -91,7 +91,7 @@ namespace MpfrRenderer {
     }
 
     void renderPixelMpfr(uint8_t *pixels, int &pos,
-        const int x, mpreal ci) {
+        int x, mpreal ci) {
         mpreal cr = getCenterReal_mp(x);
 
         mpreal zr, zi;

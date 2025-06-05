@@ -4,6 +4,7 @@
 #include "../scalar/ScalarTypes.h"
 
 typedef scalar_full_t number_t;
+typedef number_t number_param_t;
 
 #define NUM_CONST SC_SYM_F
 #define NUM_VAR CAST_F
@@ -26,6 +27,7 @@ typedef scalar_full_t number_t;
 #include "../vector/VectorTypes.h"
 
 typedef simd_full_t number_t;
+typedef const number_t &number_param_t;
 
 #define NUM_CONST SIMD_SET_F
 #define NUM_VAR NUM_CONST
@@ -48,6 +50,7 @@ typedef simd_full_t number_t;
 #include "../mpfr/mpreal.h"
 
 typedef mpfr::mpreal number_t;
+typedef const number_t &number_param_t;
 
 #define NUM_CONST(x) mpfr::mpreal(x)
 #define NUM_VAR NUM_CONST

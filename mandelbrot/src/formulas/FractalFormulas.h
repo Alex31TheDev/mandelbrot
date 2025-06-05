@@ -6,9 +6,9 @@
 
 #include "../util/InlineUtil.h"
 
-static FORCE_INLINE void formula(const number_t &cr, const number_t &ci,
-    const number_t &zr, const number_t &zi,
-    const number_t &zr2, const number_t &zi2, const number_t &mag,
+static FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
+    number_param_t zr, number_param_t zi,
+    number_param_t zr2, number_param_t zi2, number_param_t mag,
     number_t &new_zr, number_t &new_zi) {
     using namespace ScalarGlobals;
 

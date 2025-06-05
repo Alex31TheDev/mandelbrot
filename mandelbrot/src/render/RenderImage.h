@@ -2,5 +2,5 @@
 
 #include "../image/Image.h"
 
-void renderImage(Image &image);
-void renderImageParallel(Image &image);
+void renderImage(Image *image);
+void renderImageParallel(Image *image);

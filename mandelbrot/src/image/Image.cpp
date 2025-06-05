@@ -88,13 +88,13 @@ bool Image::saveToFile(const char *filename) const {
         return false;
     }
 
-    const int result = stbi_write_png(
+    int result = stbi_write_png(
         filename,
         _width, _height,
         STRIDE, _pixels.get(),
         _width * STRIDE);
 
-    const std::string absPath = getAbsolutePath(filename);
+    std::string absPath = getAbsolutePath(filename);
 
     if (!result) {
         fprintf(stderr, "Failed to write PNG file: %s\n", absPath.c_str());

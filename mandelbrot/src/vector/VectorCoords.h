@@ -7,7 +7,7 @@
 
 #include "../util/InlineUtil.h"
 
-FORCE_INLINE const simd_full_t getCenterReal_vec(const int width, const int x) {
+FORCE_INLINE simd_full_t getCenterReal_vec(int width, int x) {
     using namespace VectorGlobals;
 
     const simd_full_t width_vec = SIMD_SET_F(width);

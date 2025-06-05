@@ -7,9 +7,6 @@
 #include "../image/Image.h"
 #include "RenderProgress.h"
 
-#include "../scalar/ScalarGlobals.h"
-using namespace ScalarGlobals;
-
 #if defined(USE_SCALAR)
 #include "../scalar/ScalarRenderer.h"
 #elif defined(USE_VECTORS)
@@ -27,26 +24,28 @@ constexpr auto imagCenterCoord = getCenterImag;
 constexpr auto imagCenterCoord = getCenterImag_mp;
 #endif
 
-static void renderStrip(Image &image, int start_y, int end_y, RenderProgress *progress = nullptr) {
-    int pos = start_y * width * Image::STRIDE;
+static void renderStrip(Image *image,
+    int start_y, int end_y,
+    RenderProgress *progress = nullptr) {
+    int pos = start_y * image->width() * Image::STRIDE;
 
     for (int y = start_y; y < end_y; y++) {
         const auto ci = imagCenterCoord(y);
 
 #if defined(USE_SCALAR)
-        for (int x = 0; x < width; x++) {
-            ScalarRenderer::renderPixelScalar(image.pixels(), pos, x, ci);
+        for (int x = 0; x < image->width(); x++) {
+            ScalarRenderer::renderPixelScalar(image->pixels(), pos, x, ci);
         }
 #elif defined(USE_VECTORS)
-        for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
-            int pixels_left = width - x;
+        for (int x = 0; x < image->width(); x += SIMD_FULL_WIDTH) {
+            int pixels_left = image->width() - x;
             int simd_width = (pixels_left < SIMD_FULL_WIDTH ? pixels_left : SIMD_FULL_WIDTH);
 
-            VectorRenderer::renderPixelSimd(image.pixels(), pos, simd_width, x, ci);
+            VectorRenderer::renderPixelSimd(image->pixels(), pos, simd_width, x, ci);
         }
 #elif defined(USE_MPFR)
-        for (int x = 0; x < width; x++) {
-            MpfrRenderer::renderPixelMpfr(image.pixels(), pos, x, ci);
+        for (int x = 0; x < image->width(); x++) {
+            MpfrRenderer::renderPixelMpfr(image->pixels(), pos, x, ci);
         }
 #endif
 
@@ -54,13 +53,13 @@ static void renderStrip(Image &image, int start_y, int end_y, RenderProgress *pr
     }
 }
 
-void renderImage(Image &image) {
-    RenderProgress progress(height);
-    renderStrip(image, 0, height, &progress);
+void renderImage(Image *image) {
+    RenderProgress progress(image->height());
+    renderStrip(image, 0, image->height(), &progress);
     progress.complete();
 }
 
-void renderImageParallel(Image &image) {
+void renderImageParallel(Image *image) {
     int threadCount = std::thread::hardware_concurrency();
 
     if (threadCount == 0) {
@@ -68,13 +67,13 @@ void renderImageParallel(Image &image) {
         return;
     }
 
-    RenderProgress progress(height);
+    RenderProgress progress(image->height());
 
-    threadCount = std::min(threadCount, height);
+    threadCount = std::min(threadCount, image->height());
     std::vector<std::thread> threads;
 
-    int rowsPerThread = height / threadCount;
-    int extraRows = height % threadCount;
+    int rowsPerThread = image->height() / threadCount;
+    int extraRows = image->height() % threadCount;
 
     int start_y = 0;
 
@@ -82,7 +81,7 @@ void renderImageParallel(Image &image) {
         int chunkRows = rowsPerThread + (i < extraRows ? 1 : 0);
         int end_y = start_y + chunkRows;
 
-        threads.emplace_back([&image, start_y, end_y, &progress]() {
+        threads.emplace_back([image, start_y, end_y, &progress]() {
             renderStrip(image, start_y, end_y, &progress); });
 
         start_y = end_y;

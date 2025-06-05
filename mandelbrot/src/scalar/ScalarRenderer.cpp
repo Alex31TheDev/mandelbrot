@@ -41,7 +41,7 @@ static FORCE_INLINE void initCoords(scalar_full_t &cr, scalar_full_t &ci,
     }
 }
 
-static FORCE_INLINE scalar_half_t getIterVal(const int i) {
+static FORCE_INLINE scalar_half_t getIterVal(int i) {
 #ifdef NORM_ITER_COUNT
     return i * invCount;
 #else
@@ -49,17 +49,17 @@ static FORCE_INLINE scalar_half_t getIterVal(const int i) {
 #endif
 }
 
-static FORCE_INLINE scalar_half_t getSmoothIterVal(const int i, const scalar_half_t mag) {
+static FORCE_INLINE scalar_half_t getSmoothIterVal(int i, scalar_half_t mag) {
     const scalar_half_t sqrt_mag = SQRT_H(mag);
     const scalar_half_t m = LOG_H(LOG_H(sqrt_mag) * invLnBail) * invLnPow;
     return i - m;
 }
 
-static FORCE_INLINE scalar_half_t normCos(const scalar_half_t x) {
+static FORCE_INLINE scalar_half_t normCos(scalar_half_t x) {
     return (COS_H(x) + 1) * SC_SYM_H(0.5);
 }
 
-static FORCE_INLINE void getColorPixel(const scalar_half_t val,
+static FORCE_INLINE void getColorPixel(scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB) {
     const scalar_half_t R_x = val * freq_r + phase_r;
     const scalar_half_t G_x = val * freq_g + phase_g;
@@ -70,8 +70,8 @@ static FORCE_INLINE void getColorPixel(const scalar_half_t val,
     outB = normCos(B_x);
 }
 
-static FORCE_INLINE scalar_half_t getLightVal(const scalar_full_t zr, const scalar_full_t zi,
-    const scalar_full_t dr, const scalar_full_t di) {
+static FORCE_INLINE scalar_half_t getLightVal(scalar_full_t zr, scalar_full_t zi,
+    scalar_full_t dr, scalar_full_t di) {
     const scalar_half_t dsum = RECIP_H(dr * dr + di * di);
     scalar_half_t ur = CAST_H(zr * dr + zi * di) * dsum;
     scalar_half_t ui = CAST_H(zi * dr - zr * di) * dsum;
@@ -91,7 +91,7 @@ static FORCE_INLINE scalar_half_t getLightVal(const scalar_full_t zr, const scal
 }
 
 namespace ScalarRenderer {
-    FORCE_INLINE int iterateFractalScalar(const scalar_full_t cr, const scalar_full_t ci,
+    FORCE_INLINE int iterateFractalScalar(scalar_full_t cr, scalar_full_t ci,
         scalar_full_t &zr, scalar_full_t &zi,
         scalar_full_t &dr, scalar_full_t &di,
         scalar_full_t &mag) {
@@ -117,23 +117,23 @@ namespace ScalarRenderer {
         return i;
     }
 
-    FORCE_INLINE uint8_t pixelToInt(const scalar_half_t val) {
-        scalar_half_t conv_val = val * 255;
-        conv_val = MIN_H(MAX_H(conv_val, 0), 255);
-        return CAST_INT_U(conv_val, 8);
+    FORCE_INLINE uint8_t pixelToInt(scalar_half_t val) {
+        scalar_half_t newVal = val * 255;
+        newVal = MIN_H(MAX_H(newVal, 0), 255);
+        return CAST_INT_U(newVal, 8);
     }
 
     FORCE_INLINE void setPixel(uint8_t *pixels, int &pos,
-        const scalar_half_t R, const scalar_half_t G, const scalar_half_t B) {
+        scalar_half_t R, scalar_half_t G, scalar_half_t B) {
         pixels[pos++] = pixelToInt(R);
         pixels[pos++] = pixelToInt(G);
         pixels[pos++] = pixelToInt(B);
     }
 
     FORCE_INLINE void colorPixelScalar(uint8_t *pixels, int &pos,
-        const int i, const scalar_full_t mag,
-        const scalar_full_t zr, const scalar_full_t zi,
-        const scalar_full_t dr, const scalar_full_t di) {
+        int i, scalar_full_t mag,
+        scalar_full_t zr, scalar_full_t zi,
+        scalar_full_t dr, scalar_full_t di) {
         if (i == count) {
             ScalarRenderer::setPixel(pixels, pos, 0, 0, 0);
             return;
@@ -162,7 +162,7 @@ namespace ScalarRenderer {
     }
 
     void renderPixelScalar(uint8_t *pixels, int &pos,
-        const int x, scalar_full_t ci) {
+        int x, scalar_full_t ci) {
         scalar_full_t cr = getCenterReal(x);
 
         scalar_full_t zr, zi;

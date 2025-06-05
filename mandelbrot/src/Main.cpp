@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
     if (image == nullptr) return 1;
 
     if (useThreads) {
-        renderImageParallel(*image);
+        renderImageParallel(image.get());
     } else {
-        renderImage(*image);
+        renderImage(image.get());
     }
 
     if (!image->saveToFile(filename)) return 1;
