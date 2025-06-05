@@ -1,11 +1,5 @@
 #pragma once
 
-#if defined(USE_SCALAR)
-#include <cmath>
-#elif defined(USE_VECTORS)
-#include <immintrin.h>
-#endif
-
 #include "FormulaTypes.h"
 
 #include "../scalar/ScalarGlobals.h"

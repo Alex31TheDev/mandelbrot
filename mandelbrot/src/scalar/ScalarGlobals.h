@@ -1,8 +1,7 @@
 #pragma once
 
-#include <cmath>
-
 #include "ScalarTypes.h"
+#include "../util/MathConstants.h"
 
 namespace ScalarGlobals {
     constexpr int MIN_ITERATIONS = 500;
@@ -56,3 +55,5 @@ namespace ScalarGlobals {
         const scalar_half_t mult);
     bool setLightGlobals(const scalar_half_t real, const scalar_half_t imag);
 }
+
+#undef _USE_MATH_DEFINES

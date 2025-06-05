@@ -1,12 +1,8 @@
 #pragma once
 #ifdef USE_VECTORS
 
-#include <cmath>
-
-#include <immintrin.h>
-#include <emmintrin.h>
-
 #include "VectorTypes.h"
+#include "../util/MathConstants.h"
 
 #include "../scalar/ScalarGlobals.h"
 

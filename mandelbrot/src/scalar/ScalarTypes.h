@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <cmath>
 
 #include "../util/MacroUtil.h"
 

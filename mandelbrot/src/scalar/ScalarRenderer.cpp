@@ -1,7 +1,6 @@
 #include "ScalarRenderer.h"
 
 #include <cstdint>
-#include <cmath>
 
 #include "ScalarTypes.h"
 

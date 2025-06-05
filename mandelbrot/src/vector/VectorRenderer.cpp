@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-#include <immintrin.h>
-
 #include "VectorTypes.h"
 #include "../scalar/ScalarTypes.h"
 
