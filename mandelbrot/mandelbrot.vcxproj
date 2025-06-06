@@ -1228,7 +1228,10 @@
   <ItemGroup>
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ColorMethods.h" />
-    <ClInclude Include="src\args\ParserUtil.h" />
+    <ClInclude Include="src\render\RenderGlobals.h" />
+    <ClInclude Include="src\util\BufferUtil.h" />
+    <ClInclude Include="src\util\BufferUtil_impl.h" />
+    <ClInclude Include="src\util\ParserUtil.h" />
     <ClInclude Include="src\args\Usage.h" />
     <ClInclude Include="src\formulas\FormulaTypes.h" />
     <ClInclude Include="src\formulas\FractalFormulas.h" />
@@ -1255,12 +1258,15 @@
   <ItemGroup>
     <ClCompile Include="src\args\ArgsParser.cpp" />
     <ClCompile Include="src\args\ColorMethods.cpp" />
-    <ClCompile Include="src\args\ParserUtil.cpp" />
+    <ClCompile Include="src\render\RenderGlobals.cpp" />
+    <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\mpfr\MpfrGlobals.cpp" />
     <ClCompile Include="src\mpfr\MpfrRenderer.cpp" />
     <ClCompile Include="src\render\RenderImage.cpp" />
     <ClCompile Include="src\render\RenderProgress.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
+    <ClCompile Include="src\util\PathUtil.cpp" />
+    <ClCompile Include="src\util\PathUtil.h" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
     <ClCompile Include="src\image\Image.cpp" />
     <ClCompile Include="src\Main.cpp" />

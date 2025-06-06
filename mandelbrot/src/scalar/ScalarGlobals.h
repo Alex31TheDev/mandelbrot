@@ -28,10 +28,8 @@ namespace ScalarGlobals {
 
     const scalar_half_t invLnBail = RECIP_H(LOG_H(BAILOUT));
 
-    extern int width, height;
     extern int count, colorMethod;
 
-    extern bool useThreads;
     extern bool isJuliaSet, isInverse;
 
     extern scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
@@ -48,12 +46,10 @@ namespace ScalarGlobals {
     extern scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     extern scalar_half_t light_r, light_i, light_h;
 
-    bool setImageGlobals(int img_w, int img_h);
+    void initImageValues();
     bool setZoomGlobals(int iterCount, scalar_half_t zoomScale);
     bool setFractalExponent(scalar_full_t pw);
     bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B,
         scalar_half_t mult);
     bool setLightGlobals(scalar_half_t real, scalar_half_t imag);
 }
-
-#undef _USE_MATH_DEFINES

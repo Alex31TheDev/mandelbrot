@@ -21,7 +21,7 @@ namespace MpfrGlobals {
         mpreal::set_default_prec(digits2bits(prec));
     }
 
-    void initGlobals(const char *pr_str, const char *pi_str) {
+    void initMpfrValues(const char *pr_str, const char *pi_str) {
         aspect_mp = static_cast<mpreal>(width) / height;
 
         halfWidth_mp = static_cast<mpreal>(width) / 2;

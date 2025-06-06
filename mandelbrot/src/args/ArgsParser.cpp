@@ -1,20 +1,21 @@
 #include "ArgsParser.h"
 
-#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 
 #include "Usage.h"
-#include "ParserUtil.h"
 #include "ColorMethods.h"
-using namespace ParserUtil;
+#include "../util/ParserUtil.h"
 using namespace ColorMethods;
+using namespace ParserUtil;
 
 #include "../scalar/ScalarTypes.h"
 
+#include "../render/RenderGlobals.h"
 #include "../scalar/ScalarGlobals.h"
 #include "../vector/VectorGlobals.h"
 #include "../mpfr/MpfrGlobals.h"
+using namespace RenderGlobals;
 using namespace ScalarGlobals;
 
 static const char flagHelp[] = "flag must be \"true\" or \"false\"";
@@ -24,14 +25,16 @@ namespace ArgsParser {
         int argsCount = argc - 1;
 
         if (argsCount < MIN_ARGS || argsCount > MAX_ARGS) {
-            printUsage();
+            printUsage(argv[0]);
             return false;
         }
 
         int img_w = PARSE_INT32(argv[1]);
         int img_h = PARSE_INT32(argv[2]);
 
-        if (!setImageGlobals(img_w, img_h)) {
+        if (setImageGlobals(img_w, img_h)) {
+            initImageValues();
+        } else {
             fprintf(stderr, "Invalid args.\nWidth and height must be > 0.\n");
             return false;
         }
@@ -129,7 +132,7 @@ namespace ArgsParser {
         }
 
         VectorGlobals::initVectors();
-        MpfrGlobals::initGlobals(argv[3], argv[4]);
+        MpfrGlobals::initMpfrValues(argv[3], argv[4]);
 
         return true;
     }

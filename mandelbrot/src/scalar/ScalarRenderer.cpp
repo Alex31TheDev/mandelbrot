@@ -14,7 +14,9 @@ using namespace ScalarGlobals;
 
 #include "../util/InlineUtil.h"
 
-static FORCE_INLINE void complexInverse(scalar_full_t &cr, scalar_full_t &ci) {
+static FORCE_INLINE void complexInverse(
+    scalar_full_t &cr, scalar_full_t &ci
+) {
     const scalar_full_t cmag = cr * cr + ci * ci;
 
     if (cmag != 0) {
@@ -23,8 +25,10 @@ static FORCE_INLINE void complexInverse(scalar_full_t &cr, scalar_full_t &ci) {
     }
 }
 
-static FORCE_INLINE void initCoords(scalar_full_t &cr, scalar_full_t &ci,
-    scalar_full_t &zr, scalar_full_t &zi) {
+static FORCE_INLINE void initCoords(
+    scalar_full_t &cr, scalar_full_t &ci,
+    scalar_full_t &zr, scalar_full_t &zi
+) {
     if (isInverse) {
         complexInverse(cr, ci);
     }
@@ -70,8 +74,10 @@ static FORCE_INLINE void getColorPixel(scalar_half_t val,
     outB = normCos(B_x);
 }
 
-static FORCE_INLINE scalar_half_t getLightVal(scalar_full_t zr, scalar_full_t zi,
-    scalar_full_t dr, scalar_full_t di) {
+static FORCE_INLINE scalar_half_t getLightVal(
+    scalar_full_t zr, scalar_full_t zi,
+    scalar_full_t dr, scalar_full_t di
+) {
     const scalar_half_t dsum = RECIP_H(dr * dr + di * di);
     scalar_half_t ur = CAST_H(zr * dr + zi * di) * dsum;
     scalar_half_t ui = CAST_H(zi * dr - zr * di) * dsum;
