@@ -5,7 +5,13 @@
 #define MIN_ARGS 5
 #define MAX_ARGS 17
 
-static const char streamArgName[] = "stream_io";
+static const char *helpOptions[] = {
+    "-h",
+    "--help",
+    "help"
+};
+
+static const char replOption[] = "replio";
 
 static const char usage[] =
 "width height point_r point_i zoom "
@@ -14,6 +20,10 @@ static const char usage[] =
 "[isJuliaSet = false] [isInverse = false] "
 "[seed_r = 0] [seed_i = 0] [N = 2] "
 "[freq_r/light_r] [freq_g/light_i] [freq_b] [freqMult]";
+
+static int argsCount(int argc) {
+    return argc - 1;
+}
 
 static void printUsage(const char *progPath = nullptr, bool error = false) {
     FILE *out = error ? stderr : stdout;

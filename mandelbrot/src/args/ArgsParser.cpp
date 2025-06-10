@@ -21,11 +21,28 @@ using namespace ScalarGlobals;
 static const char flagHelp[] = "flag must be \"true\" or \"false\"";
 
 namespace ArgsParser {
-    bool parse(int argc, char **argv) {
-        int argsCount = argc - 1;
-
-        if (argsCount < MIN_ARGS || argsCount > MAX_ARGS) {
+    bool checkHelp(int argc, char **argv) {
+        if (argsCount(argc) < 1) {
             printUsage(argv[0]);
+            return true;
+        } else if (argsCount(argc) != 1) {
+            return false;
+        }
+
+        for (const char *opt : helpOptions) {
+            if (strcmp(argv[1], opt) == 0) {
+                printUsage(argv[0]);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool parse(int argc, char **argv) {
+        if (argsCount(argc) < MIN_ARGS ||
+            argsCount(argc) > MAX_ARGS) {
+            printUsage(argv[0], true);
             return false;
         }
 
@@ -67,6 +84,7 @@ namespace ArgsParser {
         if (argc > 8) {
             int method = parseColorMethod(argv[8]);
             if (method == -1) return false;
+
             colorMethod = method;
         } else {
             colorMethod = DEFAULT_COLOR_METHOD.id;

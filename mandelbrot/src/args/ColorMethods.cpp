@@ -8,23 +8,24 @@ namespace ColorMethods {
         { "iterations", 0 },
         { "smooth_iterations", 1 },
         { "light", 2 },
-        { nullptr, -1 }
     };
 
     const ColorMethod DEFAULT_COLOR_METHOD = colorMethods[1];
 
     int parseColorMethod(const char *str) {
-        for (const ColorMethod *method = colorMethods; method->name != nullptr; method++) {
-            if (strcmp(str, method->name) == 0) return method->id;
+        for (const ColorMethod &method : colorMethods) {
+            if (strcmp(str, method.name) == 0) return method.id;
         }
 
         fprintf(stderr, "Invalid colorMethod '%s'. Valid options: ", str);
 
-        for (const ColorMethod *method = colorMethods; method->name != nullptr; method++) {
-            bool hasNext = (method + 1)->name != nullptr;
-            fprintf(stderr, "%s%s", method->name, hasNext ? ", " : "\n");
+        bool first = true;
+        for (const ColorMethod &method : colorMethods) {
+            fprintf(stderr, "%s%s", first ? "" : ", ", method.name);
+            first = false;
         }
 
+        fprintf(stderr, "\n");
         return -1;
     }
 }
