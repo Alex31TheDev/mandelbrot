@@ -104,21 +104,21 @@ namespace ScalarRenderer {
         mag = 0;
         int i = 0;
 
-        for (; i < count; i++) {
-            const scalar_full_t zr2 = zr * zr;
-            const scalar_full_t zi2 = zi * zi;
-            mag = zr2 + zi2;
-
-            if (mag > BAILOUT) break;
-
-            switch (colorMethod) {
-                case 2:
-                    derivative(zr, zi, dr, di, mag, dr, di);
-                    break;
-            }
-
-            formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
-        }
+        //for (; i < count; i++) {
+        //    const scalar_full_t zr2 = zr * zr;
+        //    const scalar_full_t zi2 = zi * zi;
+        //    mag = zr2 + zi2;
+        //
+        //    if (mag > BAILOUT) break;
+        //
+        //    switch (colorMethod) {
+        //        case 2:
+        //            derivative(zr, zi, dr, di, mag, dr, di);
+        //            break;
+        //    }
+        //
+        //    formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
+        //}
 
         return i;
     }

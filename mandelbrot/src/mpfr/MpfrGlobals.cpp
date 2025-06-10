@@ -1,8 +1,7 @@
 #ifdef USE_MPFR
 #include "MpfrGlobals.h"
 
-#include "mpreal.h"
-using namespace mpfr;
+#include "MpfrTypes.h"
 
 #include "../scalar/ScalarGlobals.h"
 #include "../render/RenderGlobals.h"
@@ -10,38 +9,41 @@ using namespace ScalarGlobals;
 using namespace RenderGlobals;
 
 namespace MpfrGlobals {
-    mpreal aspect_mp;
-    mpreal halfWidth_mp, halfHeight_mp;
-    mpreal invWidth_mp, invHeight_mp;
-    mpreal realScale_mp, imagScale_mp;
+    mpfr_t bailout_mp, aspect_mp;
+    mpfr_t halfWidth_mp, halfHeight_mp;
+    mpfr_t invWidth_mp, invHeight_mp;
+    mpfr_t realScale_mp, imagScale_mp;
 
-    mpreal point_r_mp = 0, point_i_mp = 0;
-    mpreal seed_r_mp = 0, seed_i_mp = 0;
-
-    void initMpfr(int prec) {
-        if (prec <= 0) prec = digits;
-        mpreal::set_default_prec(digits2bits(prec));
-    }
+    mpfr_t point_r_mp, point_i_mp;
+    mpfr_t seed_r_mp, seed_i_mp;
 
     void initMpfrValues(const char *pr_str, const char *pi_str) {
-        aspect_mp = static_cast<mpreal>(width) / height;
+        init_mpfr_pool();
 
-        halfWidth_mp = static_cast<mpreal>(width) / 2;
-        halfHeight_mp = static_cast<mpreal>(height) / 2;
+        init_set(bailout_mp, BAILOUT);
+        create_copy(aspect_mp, div(init_set_res(width), init_set_res(height)));
 
-        invWidth_mp = 1 / static_cast<mpreal>(width);
-        invHeight_mp = 1 / static_cast<mpreal>(height);
+        create_copy(halfWidth_mp, div(init_set_res(width), init_set_res(2)));
+        create_copy(halfHeight_mp, div(init_set_res(height), init_set_res(2)));
 
-        mpreal zoomPow = powr(10, zoom);
+        mpfr_init2(invWidth_mp, PRECISION);
+        mpfr_init2(invHeight_mp, PRECISION);
+        mpfr_ui_div(invWidth_mp, 1, *init_set_res(width), ROUNDING);
+        mpfr_ui_div(invHeight_mp, 1, *init_set_res(height), ROUNDING);
 
-        realScale_mp = 1 / zoomPow;
-        imagScale_mp = realScale_mp / aspect_mp;
+        mpfr_t zoomPow;
+        create_copy(zoomPow, pow(init_set_res(10), init_set_res(zoom)));
 
-        point_r_mp = mpreal(pr_str);
-        point_i_mp = mpreal(pi_str);
+        create_copy(realScale_mp, div(init_set_res(1), &zoomPow));
+        create_copy(imagScale_mp, div(&realScale_mp, &aspect_mp));
 
-        seed_r_mp = seed_r;
-        seed_i_mp = seed_i;
+        mpfr_clear(zoomPow);
+
+        mpfr_strtofr(point_r_mp, pr_str, nullptr, 10, ROUNDING);
+        mpfr_strtofr(point_i_mp, pi_str, nullptr, 10, ROUNDING);
+
+        init_set(seed_r_mp, seed_r);
+        init_set(seed_i_mp, seed_i);
     }
 }
 

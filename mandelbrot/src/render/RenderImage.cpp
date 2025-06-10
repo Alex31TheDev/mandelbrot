@@ -32,8 +32,11 @@ static void renderStrip(Image *image,
     RenderProgress *progress = nullptr) {
     int pos = start_y * width * Image::STRIDE;
 
+    mpfr_t ci;
+    mpfr_init2(ci, PRECISION);
+
     for (int y = start_y; y < end_y; y++) {
-        const auto ci = imagCenterCoord(y);
+        imagCenterCoord(ci, y);
 
 #if defined(USE_SCALAR)
         for (int x = 0; x < width; x++) {
@@ -48,12 +51,14 @@ static void renderStrip(Image *image,
         }
 #elif defined(USE_MPFR)
         for (int x = 0; x < width; x++) {
-            MpfrRenderer::renderPixelMpfr(image->pixels(), pos, x, ci);
+            MpfrRenderer::renderPixelMpfr(image->pixels(), pos, x, &ci);
         }
 #endif
 
         if (progress) progress->update();
     }
+
+    mpfr_clear(ci);
 }
 
 void renderImageSequential(Image *image) {

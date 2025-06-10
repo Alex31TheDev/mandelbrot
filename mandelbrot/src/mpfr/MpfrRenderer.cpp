@@ -3,8 +3,7 @@
 
 #include <cstdint>
 
-#include "mpreal.h"
-#include "../scalar/ScalarTypes.h"
+#include "MpfrTypes.h"
 
 #include "MpfrGlobals.h"
 #include "../scalar/ScalarGlobals.h"
@@ -21,47 +20,54 @@ using namespace ScalarRenderer;
 
 #include "../util/InlineUtil.h"
 
-static FORCE_INLINE void complexInverse_mp(mpreal &cr, mpreal &ci) {
-    const mpreal cmag = cr * cr + ci * ci;
+static FORCE_INLINE void complexInverse_mp(mpfr_t &cr, mpfr_t &ci) {
+    mpfr_t cmag;
+    create_copy(cmag, add(mul(&cr, &cr), mul(&ci, &ci)));
 
     if (cmag != 0) {
-        cr = cr / cmag;
-        ci = -ci / cmag;
+        mpfr_set(cr, *div(&cr, &cmag), ROUNDING);
+        mpfr_set(ci, *div(neg(&ci), &cmag), ROUNDING);
     }
+
+    mpfr_clear(cmag);
 }
 
 namespace MpfrRenderer {
-    FORCE_INLINE void initCoords_mp(mpreal &cr, mpreal &ci,
-        mpreal &zr, mpreal &zi) {
+    FORCE_INLINE void initCoords_mp(mpfr_t &cr, mpfr_t &ci,
+        mpfr_t &zr, mpfr_t &zi) {
         if (isInverse) {
             complexInverse_mp(cr, ci);
         }
 
         if (isJuliaSet) {
-            zr = cr;
-            zi = ci;
+            mpfr_set(zr, cr, ROUNDING);
+            mpfr_set(zi, ci, ROUNDING);
 
-            cr = seed_r_mp;
-            ci = seed_i_mp;
+            mpfr_set(cr, seed_r_mp, ROUNDING);
+            mpfr_set(ci, seed_i_mp, ROUNDING);
         } else {
-            zr = seed_r_mp;
-            zi = seed_i_mp;
+            mpfr_set(zr, seed_r_mp, ROUNDING);
+            mpfr_set(zi, seed_i_mp, ROUNDING);
         }
     }
 
-    FORCE_INLINE int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
-        mpreal &zr, mpreal &zi,
-        mpreal &dr, mpreal &di,
-        mpreal &mag) {
-        mag = 0;
+    FORCE_INLINE int iterateFractalMpfr(const mpfr_t &cr, const mpfr_t &ci,
+        mpfr_t &zr, mpfr_t &zi,
+        mpfr_t &dr, mpfr_t &di,
+        mpfr_t &mag) {
+        mpfr_set_d(mag, 0, ROUNDING);
         int i = 0;
 
-        for (; i < count; i++) {
-            const mpreal zr2 = zr * zr;
-            const mpreal zi2 = zi * zi;
-            mag = zr2 + zi2;
+        mpfr_t zr2, zi2;
+        mpfr_init2(zr2, PRECISION);
+        mpfr_init2(zi2, PRECISION);
 
-            if (mag > BAILOUT) break;
+        for (; i < count; i++) {
+            mpfr_mul(zr2, zr, zr, ROUNDING);
+            mpfr_mul(zi2, zi, zi, ROUNDING);
+            mpfr_add(mag, zr2, zi2, ROUNDING);
+
+            if (mpfr_cmp(mag, bailout_mp) > 0) break;
 
             switch (colorMethod) {
                 case 2:
@@ -72,37 +78,50 @@ namespace MpfrRenderer {
             formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
         }
 
+        mpfr_clears(zr2, zi2, nullptr);
         return i;
     }
 
     FORCE_INLINE void colorPixelMpfr(uint8_t *pixels, int &pos,
-        int i, const mpreal &mag,
-        const mpreal &zr, const mpreal &zi,
-        const mpreal &dr, const mpreal &di) {
-        const scalar_half_t mag_sc = CAST_H(mag);
+        int i, const mpfr_t &mag,
+        const mpfr_t &zr, const mpfr_t &zi,
+        const mpfr_t &dr, const mpfr_t &di) {
+        const float mag_sc = mpfr_get_flt(mag, ROUNDING);
 
-        const scalar_half_t zr_sc = CAST_H(zr);
-        const scalar_half_t zi_sc = CAST_H(zi);
+        const float zr_sc = mpfr_get_flt(zr, ROUNDING);
+        const float zi_sc = mpfr_get_flt(zi, ROUNDING);
 
-        const scalar_half_t dr_sc = CAST_H(dr);
-        const scalar_half_t di_sc = CAST_H(di);
+        const float dr_sc = mpfr_get_flt(dr, ROUNDING);
+        const float di_sc = mpfr_get_flt(di, ROUNDING);
 
         colorPixelScalar(pixels, pos, i, mag_sc, zr_sc, zi_sc, dr_sc, di_sc);
     }
 
     void renderPixelMpfr(uint8_t *pixels, int &pos,
-        int x, mpreal ci) {
-        mpreal cr = getCenterReal_mp(x);
+        int x, mpfr_t *ci) {
+        mpfr_t cr;
+        mpfr_init2(cr, PRECISION);
 
-        mpreal zr, zi;
-        mpreal dr = 1, di = 0;
+        getCenterReal_mp(cr, x);
 
-        initCoords_mp(cr, ci, zr, zi);
+        mpfr_t zr, zi;
+        mpfr_init2(zr, PRECISION);
+        mpfr_init2(zi, PRECISION);
 
-        mpreal mag = 0;
-        int i = iterateFractalMpfr(cr, ci, zr, zi, dr, di, mag);
+        mpfr_t dr, di;
+        init_set(dr, 1);
+        init_set(di, 0);
+
+        initCoords_mp(cr, *ci, zr, zi);
+
+        mpfr_t mag;
+        mpfr_init2(mag, PRECISION);
+
+        int i = iterateFractalMpfr(cr, *ci, zr, zi, dr, di, mag);
 
         colorPixelMpfr(pixels, pos, i, mag, zr, zi, dr, di);
+
+        mpfr_clears(cr, mag, zr, zi, dr, di, nullptr);
     }
 }
 

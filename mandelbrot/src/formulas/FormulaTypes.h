@@ -47,18 +47,18 @@ typedef const number_t &number_param_t;
 #define NUM_ATAN2 SIMD_ATAN2_F
 
 #elif defined(FORMULA_MPFR)
-#include "../mpfr/mpreal.h"
+#include "../mpfr/MpfrTypes.h"
 
-typedef mpfr::mpreal number_t;
-typedef const number_t &number_param_t;
+typedef mpfr_t number_t;
+typedef const mpfr_t &number_param_t;
 
 #define NUM_CONST(x) mpfr::mpreal(x)
 #define NUM_VAR NUM_CONST
 
-#define NUM_ADD(a, b) ((a) + (b))
-#define NUM_SUB(a, b) ((a) - (b))
-#define NUM_MUL(a, b) ((a) * (b))
-#define NUM_DIV(a, b) ((a) / (b))
+#define NUM_ADD add
+#define NUM_SUB sub
+#define NUM_MUL mul
+#define NUM_DIV div
 
 #define NUM_ABS(x) abs(x)
 

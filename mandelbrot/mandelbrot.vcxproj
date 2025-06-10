@@ -783,6 +783,7 @@
   <ItemGroup>
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ColorMethods.h" />
+    <ClInclude Include="src\mpfr\MpfrTypes.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
@@ -793,7 +794,6 @@
     <ClInclude Include="src\mpfr\MpfrCoords.h" />
     <ClInclude Include="src\mpfr\MpfrGlobals.h" />
     <ClInclude Include="src\mpfr\MpfrRenderer.h" />
-    <ClInclude Include="src\mpfr\mpreal.h" />
     <ClInclude Include="src\util\InlineUtil.h" />
     <ClInclude Include="src\util\MacroUtil.h" />
     <ClInclude Include="src\render\RenderProgress.h" />
@@ -813,6 +813,7 @@
   <ItemGroup>
     <ClCompile Include="src\args\ArgsParser.cpp" />
     <ClCompile Include="src\args\ColorMethods.cpp" />
+    <ClCompile Include="src\mpfr\MpfrTypes.cpp" />
     <ClCompile Include="src\render\RenderGlobals.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\mpfr\MpfrGlobals.cpp" />

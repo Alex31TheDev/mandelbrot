@@ -1,20 +1,20 @@
 #pragma once
 #ifdef USE_MPFR
 
-#include "mpreal.h"
+#include "MpfrTypes.h"
 
 #include "MpfrGlobals.h"
 
 #include "../util/InlineUtil.h"
 
-FORCE_INLINE mpfr::mpreal getCenterReal_mp(int x) {
+FORCE_INLINE void getCenterReal_mp(mpfr_t &out, int x) {
     using namespace MpfrGlobals;
-    return (x - halfWidth_mp) * invWidth_mp * realScale_mp + point_r_mp;
+    create_copy(out, add(mul(mul(sub(init_set_res(x), &halfWidth_mp), &invWidth_mp), &realScale_mp), &point_r_mp));
 }
 
-FORCE_INLINE mpfr::mpreal getCenterImag_mp(int y) {
+FORCE_INLINE void getCenterImag_mp(mpfr_t &out, int y) {
     using namespace MpfrGlobals;
-    return (y - halfHeight_mp) * invHeight_mp * imagScale_mp - point_i_mp;
+    create_copy(out, add(mul(mul(sub(init_set_res(y), &halfHeight_mp), &invWidth_mp), &imagScale_mp), &point_i_mp));
 }
 
 #endif
