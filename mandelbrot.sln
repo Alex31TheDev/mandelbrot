@@ -79,8 +79,8 @@ Global
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - FloatSSE2|x86.Build.0 = Debug - FloatSSE2|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x64.ActiveCfg = Debug - MPFR|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x64.Build.0 = Debug - MPFR|x64
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x86.ActiveCfg = Debug - MPFR|Win32
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x86.Build.0 = Debug - MPFR|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x86.ActiveCfg = Debug - MPFR|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Debug - MPFR|x86.Build.0 = Debug - MPFR|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - DoubleAVX2|x64.ActiveCfg = Release - DoubleAVX2|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - DoubleAVX2|x64.Build.0 = Release - DoubleAVX2|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - DoubleAVX2|x86.ActiveCfg = Release - DoubleAVX2|x64
@@ -115,8 +115,8 @@ Global
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - FloatSSE2|x86.Build.0 = Release - FloatSSE2|Win32
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x64.ActiveCfg = Release - MPFR|x64
 		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x64.Build.0 = Release - MPFR|x64
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x86.ActiveCfg = Release - MPFR|Win32
-		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x86.Build.0 = Release - MPFR|Win32
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x86.ActiveCfg = Release - MPFR|x64
+		{FE50A776-C15B-420B-8761-498C1F291E7B}.Release - MPFR|x86.Build.0 = Release - MPFR|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

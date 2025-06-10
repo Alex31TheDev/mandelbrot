@@ -14,30 +14,14 @@ using namespace ScalarGlobals;
 
 #include "../util/InlineUtil.h"
 
-static FORCE_INLINE void complexInverse(scalar_full_t &cr, scalar_full_t &ci) {
+static FORCE_INLINE void complexInverse(
+    scalar_full_t &cr, scalar_full_t &ci
+) {
     const scalar_full_t cmag = cr * cr + ci * ci;
 
     if (cmag != 0) {
         cr = cr / cmag;
         ci = -ci / cmag;
-    }
-}
-
-static FORCE_INLINE void initCoords(scalar_full_t &cr, scalar_full_t &ci,
-    scalar_full_t &zr, scalar_full_t &zi) {
-    if (isInverse) {
-        complexInverse(cr, ci);
-    }
-
-    if (isJuliaSet) {
-        zr = cr;
-        zi = ci;
-
-        cr = seed_r;
-        ci = seed_i;
-    } else {
-        zr = seed_r;
-        zi = seed_i;
     }
 }
 
@@ -70,8 +54,10 @@ static FORCE_INLINE void getColorPixel(scalar_half_t val,
     outB = normCos(B_x);
 }
 
-static FORCE_INLINE scalar_half_t getLightVal(scalar_full_t zr, scalar_full_t zi,
-    scalar_full_t dr, scalar_full_t di) {
+static FORCE_INLINE scalar_half_t getLightVal(
+    scalar_full_t zr, scalar_full_t zi,
+    scalar_full_t dr, scalar_full_t di
+) {
     const scalar_half_t dsum = RECIP_H(dr * dr + di * di);
     scalar_half_t ur = CAST_H(zr * dr + zi * di) * dsum;
     scalar_half_t ui = CAST_H(zi * dr - zr * di) * dsum;
@@ -91,6 +77,26 @@ static FORCE_INLINE scalar_half_t getLightVal(scalar_full_t zr, scalar_full_t zi
 }
 
 namespace ScalarRenderer {
+    FORCE_INLINE void initCoords(
+        scalar_full_t &cr, scalar_full_t &ci,
+        scalar_full_t &zr, scalar_full_t &zi
+    ) {
+        if (isInverse) {
+            complexInverse(cr, ci);
+        }
+
+        if (isJuliaSet) {
+            zr = cr;
+            zi = ci;
+
+            cr = seed_r;
+            ci = seed_i;
+        } else {
+            zr = seed_r;
+            zi = seed_i;
+        }
+    }
+
     FORCE_INLINE int iterateFractalScalar(scalar_full_t cr, scalar_full_t ci,
         scalar_full_t &zr, scalar_full_t &zi,
         scalar_full_t &dr, scalar_full_t &di,

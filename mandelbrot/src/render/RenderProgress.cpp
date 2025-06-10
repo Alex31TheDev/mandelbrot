@@ -1,6 +1,10 @@
 #include "RenderProgress.h"
 
 #include <cstdio>
+#include <cstdint>
+#include <cinttypes>
+
+#include <type_traits>
 #include <atomic>
 #include <mutex>
 #include <chrono>
@@ -32,10 +36,26 @@ void RenderProgress::update(int processed) {
     }
 }
 
+template <typename T>
+void RenderProgress::_printElapsed(T elapsed) {
+    std::lock_guard<std::mutex> lock(_printfMutex);
+
+    if constexpr (std::is_same_v<T, int32_t>) {
+        printf(" (completed in: %" PRId32 " ms)\n", elapsed);
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+        printf(" (completed in: %" PRId64 " ms)\n", elapsed);
+    }
+
+    fflush(stdout);
+}
+
+template void RenderProgress::_printElapsed<int32_t>(int32_t elapsed);
+template void RenderProgress::_printElapsed<int64_t>(int64_t elapsed);
+
 void RenderProgress::complete() {
     auto endTime = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - _startTime).count();
 
     _printProgress(100);
-    printf(" (completed in: %lld ms)\n", elapsed);
+    _printElapsed(elapsed);
 }

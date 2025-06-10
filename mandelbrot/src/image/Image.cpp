@@ -1,6 +1,5 @@
 #include "Image.h"
 
-#include <cstdlib>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
@@ -8,101 +7,84 @@
 #include <string>
 #include <memory>
 
-#ifdef _WIN32
-#include <malloc.h>
-#else
-#include <limits.h>
-#endif
+#include <iostream>
+#include <fstream>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-static std::string getAbsolutePath(const char *filename) {
-#ifdef _WIN32
-    char absPath[_MAX_PATH] = { 0 };
+#include "../util/BufferUtil.h"
+#include "../util/PathUtil.h"
 
-    if (_fullpath(absPath, filename, _MAX_PATH) != nullptr) {
-        return absPath;
-    }
-#else
-    char *resolved = realpath(filename, nullptr);
-
-    if (resolved != nullptr) {
-        std::string result(resolved);
-        free(resolved);
-
-        return result;
-    }
-#endif
-    return filename;
+size_t Image::calcBufferSize(int32_t width, int32_t height) {
+    return static_cast<size_t>(width) * height * STRIDE;
 }
 
-static size_t alignTo(size_t size, size_t alignment) {
-    return (size + alignment - 1) & ~(alignment - 1);
+static void stbi_write_callback(void *context, void *data, int size) {
+    std::ostream *fout = static_cast<std::ostream *>(context);
+
+    fout->write(static_cast<const char *>(data), size);
+    fout->flush();
 }
-
-static uint8_t *bufferAlloc(size_t bufferSize) {
-    void *ptr = nullptr;
-
-    if constexpr (Image::ALIGNMENT > 8) {
-        size_t alignedSize = alignTo(bufferSize, Image::ALIGNMENT);
-
-#ifdef _WIN32
-        ptr = _aligned_malloc(alignedSize, Image::ALIGNMENT);
-#else
-        if (posix_memalign(&ptr, Image::ALIGNMENT, alignedSize) != 0) {
-            ptr = nullptr;
-        }
-#endif
-    } else {
-        ptr = malloc(bufferSize);
-    }
-
-    if (ptr != nullptr) memset(ptr, 0, bufferSize);
-    return static_cast<uint8_t *>(ptr);
-}
-
-#ifdef USE_VECTORS
-void Image::_AlignedDeleter::operator()(uint8_t *ptr) const {
-#ifdef _WIN32
-    _aligned_free(ptr);
-#else
-    free(ptr);
-#endif
-}
-#endif
 
 std::unique_ptr<Image> Image::create(int32_t width, int32_t height) {
     auto image = std::unique_ptr<Image>(new Image());
 
-    if (!image->_allocate(width, height)) {
+    if (image->_allocate(width, height)) {
+        return image;
+    } else {
         return nullptr;
     }
-
-    return image;
 }
 
-bool Image::saveToFile(const char *filename) const {
+void Image::clear() {
+    if (_pixels) memset(pixels(), 0, _bufferSize);
+}
+
+bool Image::writeToStream(std::ostream &fout) const {
+    if (!_pixels) {
+        fprintf(stderr, "Cannot write image. No pixel data allocated.\n");
+        return false;
+    }
+
+    int result = stbi_write_png_to_func(
+        stbi_write_callback,
+        &fout,
+        _width, _height,
+        STRIDE, _pixels.get(),
+        _width * STRIDE
+    );
+
+    if (result) {
+        return true;
+    } else {
+        fprintf(stderr, "Failed to write PNG data to stream\n");
+        return false;
+    }
+}
+
+bool Image::saveToFile(const std::string &filename, bool appendDate) const {
     if (!_pixels) {
         fprintf(stderr, "Cannot save image. No pixel data allocated.\n");
         return false;
     }
 
-    int result = stbi_write_png(
-        filename,
-        _width, _height,
-        STRIDE, _pixels.get(),
-        _width * STRIDE);
+    std::string absPath = PathUtil::getAbsolutePath(
+        appendDate ? PathUtil::appendIsoDate(filename) : filename
+    );
 
-    std::string absPath = getAbsolutePath(filename);
+    std::ofstream fout(absPath, std::ios::binary);
 
-    if (!result) {
+    bool result = writeToStream(fout);
+
+    if (result) {
+        printf("Successfully saved: %s (%dx%d)\n", absPath.c_str(), _width, _height);
+    } else {
         fprintf(stderr, "Failed to write PNG file: %s\n", absPath.c_str());
-        return false;
     }
 
-    printf("Successfully wrote: %s (%dx%d)\n", absPath.c_str(), _width, _height);
-    return true;
+    fout.close();
+    return result;
 }
 
 void Image::_setDimensions(int32_t width, int32_t height) {
@@ -118,13 +100,13 @@ bool Image::_allocate(int32_t width, int32_t height) {
         return false;
     }
 
-    size_t bufferSize = static_cast<size_t>(width) * height * STRIDE;
-    printf("Memoty required: %zu bytes\n", bufferSize);
+    size_t originalSize = calcBufferSize(width, height);
+    printf("Memoty required: %zu bytes\n", originalSize);
 
-    uint8_t *ptr = bufferAlloc(bufferSize);
+    uint8_t *ptr = BufferUtil::bufferAlloc<ALIGNMENT>(originalSize, &_bufferSize);
 
-    if (ptr == nullptr) {
-        fprintf(stderr, "Failed to allocate pixel buffer. (%zu bytes)\n", bufferSize);
+    if (!ptr) {
+        fprintf(stderr, "Failed to allocate pixel buffer. (%zu bytes)\n", _bufferSize);
         return false;
     }
 

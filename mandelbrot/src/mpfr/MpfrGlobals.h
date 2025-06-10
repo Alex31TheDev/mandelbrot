@@ -22,14 +22,14 @@ namespace MpfrGlobals {
     extern mpreal seed_r_mp, seed_i_mp;
 
     void initMpfr(int prec = 0);
-    void initGlobals(const char *pr_str, const char *pi_str);
+    void initMpfrValues(const char *pr_str, const char *pi_str);
 }
 
 #else
 
 namespace MpfrGlobals {
-    static void initMpfr(int = 0) {}
-    static void initGlobals(const char *, const char *) {}
+    [[maybe_unused]] static void initMpfr(int = 0) {}
+    [[maybe_unused]] static void initMpfrValues(const char *, const char *) {}
 }
 
 #endif

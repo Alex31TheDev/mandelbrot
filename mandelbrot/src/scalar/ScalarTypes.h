@@ -6,14 +6,14 @@
 
 #include "../util/MacroUtil.h"
 
-#ifdef USE_DOUBLES
-typedef double scalar_full_t;
-#define SC_SYM_F(a) _EVAL(a)
-#define SC_SYMS_F(a) _CONCAT2(a, d)
-#else
+#if defined(USE_FLOATS)
 typedef float scalar_full_t;
 #define SC_SYM_F(a) _CONCAT2(a, f)
 #define SC_SYMS_F SC_SYM_F
+#elif defined(USE_DOUBLES)
+typedef double scalar_full_t;
+#define SC_SYM_F(a) _EVAL(a)
+#define SC_SYMS_F(a) _CONCAT2(a, d)
 #endif
 
 typedef float scalar_half_t;

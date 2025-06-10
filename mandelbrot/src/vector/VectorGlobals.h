@@ -41,7 +41,7 @@ namespace VectorGlobals {
 #else
 
 namespace VectorGlobals {
-    static void initVectors() {}
+    [[maybe_unused]] static void initVectors() {}
 }
 
 #endif

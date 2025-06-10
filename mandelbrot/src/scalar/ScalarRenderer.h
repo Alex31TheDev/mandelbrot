@@ -7,6 +7,8 @@
 #include "../util/InlineUtil.h"
 
 namespace ScalarRenderer {
+    FORCE_INLINE void initCoords(scalar_full_t &cr, scalar_full_t &ci,
+        scalar_full_t &zr, scalar_full_t &zi);
     FORCE_INLINE int iterateFractalScalar(scalar_full_t cr, scalar_full_t ci,
         scalar_full_t &zr, scalar_full_t &zi,
         scalar_full_t &dr, scalar_full_t &di,

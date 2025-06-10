@@ -4,11 +4,12 @@
 
 #include "ScalarTypes.h"
 
+#include "../render/RenderGlobals.h"
+using namespace RenderGlobals;
+
 namespace ScalarGlobals {
-    int width, height;
     int count, colorMethod;
 
-    bool useThreads = false;
     bool isJuliaSet = false, isInverse = false;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
@@ -25,11 +26,7 @@ namespace ScalarGlobals {
     scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     scalar_half_t light_r, light_i, light_h;
 
-    bool setImageGlobals(int img_w, int img_h) {
-        if (img_w <= 0 || img_h <= 0) return false;
-        width = img_w;
-        height = img_h;
-
+    void initImageValues() {
         aspect = CAST_H(width) / height;
 
         halfWidth = CAST_F(width) / 2;
@@ -37,8 +34,6 @@ namespace ScalarGlobals {
 
         invWidth = RECIP_F(width);
         invHeight = RECIP_F(height);
-
-        return true;
     }
 
     bool setZoomGlobals(int iterCount, scalar_half_t zoomScale) {
@@ -81,7 +76,7 @@ namespace ScalarGlobals {
         phase_g = cosPhase + DEFAULT_PHASE_G;
         phase_b = cosPhase + DEFAULT_PHASE_R;
 
-        if (abs(mult) <= SC_SYM_H(0.0001)) return false;
+        if (ABS_H(mult) <= SC_SYM_H(0.0001)) return false;
 
         freq_r = R * mult;
         freq_g = G * mult;

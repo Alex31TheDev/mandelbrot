@@ -10,6 +10,8 @@
 namespace MpfrRenderer {
     using namespace mpfr;
 
+    FORCE_INLINE void initCoords_mp(mpreal &cr, mpreal &ci,
+        mpreal &zr, mpreal &zi);
     FORCE_INLINE int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,

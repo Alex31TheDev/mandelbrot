@@ -30,25 +30,25 @@ static FORCE_INLINE void complexInverse_mp(mpreal &cr, mpreal &ci) {
     }
 }
 
-static FORCE_INLINE void initCoords_mp(mpreal &cr, mpreal &ci,
-    mpreal &zr, mpreal &zi) {
-    if (isInverse) {
-        complexInverse_mp(cr, ci);
-    }
-
-    if (isJuliaSet) {
-        zr = cr;
-        zi = ci;
-
-        cr = seed_r_mp;
-        ci = seed_i_mp;
-    } else {
-        zr = seed_r_mp;
-        zi = seed_i_mp;
-    }
-}
-
 namespace MpfrRenderer {
+    FORCE_INLINE void initCoords_mp(mpreal &cr, mpreal &ci,
+        mpreal &zr, mpreal &zi) {
+        if (isInverse) {
+            complexInverse_mp(cr, ci);
+        }
+
+        if (isJuliaSet) {
+            zr = cr;
+            zi = ci;
+
+            cr = seed_r_mp;
+            ci = seed_i_mp;
+        } else {
+            zr = seed_r_mp;
+            zi = seed_i_mp;
+        }
+    }
+
     FORCE_INLINE int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,

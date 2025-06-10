@@ -2,6 +2,7 @@
 #include "VectorRenderer.h"
 
 #include <cstdint>
+#include <type_traits>
 
 #include "VectorTypes.h"
 #include "../scalar/ScalarTypes.h"
@@ -21,36 +22,20 @@ using namespace ScalarGlobals;
 
 #define USE_VECTOR_STORE
 
-static FORCE_INLINE void complexInverse_vec(simd_full_t &cr_vec, simd_full_t &ci_vec) {
-    const simd_full_t cr2 = SIMD_MUL_F(cr_vec, cr_vec);
-    const simd_full_t ci2 = SIMD_MUL_F(ci_vec, ci_vec);
-    simd_full_t cmag = SIMD_ADD_F(cr2, ci2);
+static FORCE_INLINE void complexInverse_vec(
+    simd_full_t &real, simd_full_t &imag
+) {
+    const simd_full_t re2 = SIMD_MUL_F(real, real);
+    const simd_full_t im2 = SIMD_MUL_F(imag, imag);
+    simd_full_t mag = SIMD_ADD_F(re2, im2);
 
-    const simd_full_mask_t mask = SIMD_CMP_NEQ_F(cmag, f_zero);
-    cmag = SIMD_BLEND_F(f_one, cmag, mask);
+    const simd_full_mask_t mask = SIMD_CMP_NEQ_F(mag, f_zero);
+    mag = SIMD_BLEND_F(f_one, mag, mask);
 
-    const simd_full_t inv_cmag = SIMD_DIV_F(f_one, cmag);
+    const simd_full_t inv_mag = SIMD_DIV_F(f_one, mag);
 
-    cr_vec = SIMD_MUL_F(cr_vec, inv_cmag);
-    ci_vec = SIMD_MUL_F(ci_vec, SIMD_MUL_F(inv_cmag, f_neg_one));
-}
-
-static FORCE_INLINE void initCoords_vec(simd_full_t &cr_vec, simd_full_t &ci_vec,
-    simd_full_t &zr, simd_full_t &zi) {
-    if (isInverse) {
-        complexInverse_vec(cr_vec, ci_vec);
-    }
-
-    if (isJuliaSet) {
-        zr = cr_vec;
-        zi = ci_vec;
-
-        cr_vec = f_seed_r_vec;
-        ci_vec = f_seed_i_vec;
-    } else {
-        zr = f_seed_r_vec;
-        zi = f_seed_i_vec;
-    }
+    real = SIMD_MUL_F(real, inv_mag);
+    imag = SIMD_MUL_F(imag, SIMD_MUL_F(inv_mag, f_neg_one));
 }
 
 #ifdef USE_VECTOR_STORE
@@ -80,41 +65,41 @@ static const __m128i rgbMask = _mm_loadu_si128(
     reinterpret_cast<const __m128i *>(makeRgbMask<4, 16>().data())
 );
 
-static FORCE_INLINE void store128bitLane_vec(uint8_t *out, const __m128i &data, int lane) {
+static FORCE_INLINE void store128bitLane_vec(uint8_t *out,
+    const __m128i &data, int lane) {
     _mm_storeu_si128(
         reinterpret_cast<__m128i *>(out + lane * WIDTH_128_STRIDE),
         data
     );
 }
 
-static FORCE_INLINE void writePixelData_vec(uint8_t *out, const __m128i &RGBA8) {
-    const __m128i mix = _mm_shuffle_epi8(RGBA8, rgbMask);
-    store128bitLane_vec(out, mix, 0);
-}
+template<typename T>
+static FORCE_INLINE void writePixelData_vec(uint8_t *out, const T &RGBA8) {
+    if constexpr (std::is_same_v<T, __m128i>) {
+        const __m128i mix = _mm_shuffle_epi8(RGBA8, rgbMask);
+        store128bitLane_vec(out, mix, 0);
+    } else if constexpr (std::is_same_v<T, __m256i>) {
+        const __m128i lanes[2] = {
+            _mm256_castsi256_si128(RGBA8),
+            _mm256_extracti128_si256(RGBA8, 1)
+        };
 
-static FORCE_INLINE void writePixelData_vec(uint8_t *out, const __m256i &RGBA8) {
-    const __m128i lanes[2] = {
-        _mm256_castsi256_si128(RGBA8),
-        _mm256_extracti128_si256(RGBA8, 1)
-    };
+        for (int i = 0; i < 2; i++) {
+            const __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
+            store128bitLane_vec(out, mix, i);
+        }
+    } else if constexpr (std::is_same_v<T, __m512i>) {
+        const __m128i lanes[4] = {
+            _mm512_extracti32x4_epi32(RGBA8, 0),
+            _mm512_extracti32x4_epi32(RGBA8, 1),
+            _mm512_extracti32x4_epi32(RGBA8, 2),
+            _mm512_extracti32x4_epi32(RGBA8, 3),
+        };
 
-    for (int i = 0; i < 2; i++) {
-        const __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
-        store128bitLane_vec(out, mix, i);
-    }
-}
-
-static FORCE_INLINE void writePixelData_vec(uint8_t *out, const __m512i &RGBA8) {
-    const __m128i lanes[4] = {
-        _mm512_extracti32x4_epi32(RGBA8, 0),
-        _mm512_extracti32x4_epi32(RGBA8, 1),
-        _mm512_extracti32x4_epi32(RGBA8, 2),
-        _mm512_extracti32x4_epi32(RGBA8, 3),
-    };
-
-    for (int i = 0; i < 4; i++) {
-        const __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
-        store128bitLane_vec(out, mix, i);
+        for (int i = 0; i < 4; i++) {
+            const __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
+            store128bitLane_vec(out, mix, i);
+        }
     }
 }
 
@@ -129,9 +114,20 @@ static FORCE_INLINE simd_half_t normCos_vec(const simd_half_t &x) {
 
 static FORCE_INLINE void getColorPixel_vec(const simd_half_t &val,
     simd_half_t &outR, simd_half_t &outG, simd_half_t &outB) {
-    const simd_half_t R_x = SIMD_ADD_H(SIMD_MUL_H(val, h_freq_r_vec), h_phase_r_vec);
-    const simd_half_t G_x = SIMD_ADD_H(SIMD_MUL_H(val, h_freq_g_vec), h_phase_g_vec);
-    const simd_half_t B_x = SIMD_ADD_H(SIMD_MUL_H(val, h_freq_b_vec), h_phase_b_vec);
+    const simd_half_t R_x = SIMD_ADD_H(
+        SIMD_MUL_H(val, h_freq_r_vec),
+        h_phase_r_vec
+    );
+
+    const simd_half_t G_x = SIMD_ADD_H(
+        SIMD_MUL_H(val, h_freq_g_vec),
+        h_phase_g_vec
+    );
+
+    const simd_half_t B_x = SIMD_ADD_H(
+        SIMD_MUL_H(val, h_freq_b_vec),
+        h_phase_b_vec
+    );
 
     outR = normCos_vec(R_x);
     outG = normCos_vec(G_x);
@@ -158,29 +154,48 @@ static FORCE_INLINE simd_half_t getIterVal_vec(const simd_half_t &iter) {
 #endif
 }
 
-static FORCE_INLINE simd_half_t getSmoothIterVal_vec(const simd_half_t &iter, const simd_half_t &mag) {
+static FORCE_INLINE simd_half_t getSmoothIterVal_vec(
+    const simd_half_t &iter, const simd_half_t &mag
+) {
     const simd_half_t sqrt_mag = SIMD_SQRT_H(mag);
     const simd_half_t lg1 = SIMD_LOG_H(sqrt_mag);
+
     const simd_half_t m1 = SIMD_MUL_H(lg1, h_invLnBail_vec);
     const simd_half_t lg2 = SIMD_LOG_H(m1);
+
     const simd_half_t m2 = SIMD_MUL_H(lg2, h_invLnPow_vec);
     return SIMD_SUB_H(iter, m2);
 }
 
-static FORCE_INLINE simd_half_t getLightVal_vec(const simd_half_t &zr, const simd_half_t &zi,
-    const simd_half_t &dr, const simd_half_t &di) {
+static FORCE_INLINE simd_half_t getLightVal_vec(
+    const simd_half_t &zr, const simd_half_t &zi,
+    const simd_half_t &dr, const simd_half_t &di
+) {
     const simd_half_t dr2 = SIMD_MUL_H(dr, dr);
     const simd_half_t di2 = SIMD_MUL_H(di, di);
     const simd_half_t dinv = SIMD_DIV_H(h_one, SIMD_ADD_H(dr2, di2));
 
-    simd_half_t ur = SIMD_ADD_H(SIMD_MUL_H(zr, dr), SIMD_MUL_H(zi, di));
-    simd_half_t ui = SIMD_SUB_H(SIMD_MUL_H(zi, dr), SIMD_MUL_H(zr, di));
+    simd_half_t ur = SIMD_ADD_H(
+        SIMD_MUL_H(zr, dr),
+        SIMD_MUL_H(zi, di)
+    );
+
+    simd_half_t ui = SIMD_SUB_H(
+        SIMD_MUL_H(zi, dr),
+        SIMD_MUL_H(zr, di)
+    );
+
     ur = SIMD_MUL_H(ur, dinv);
     ui = SIMD_MUL_H(ui, dinv);
 
     const simd_half_t ur2 = SIMD_MUL_H(ur, ur);
     const simd_half_t ui2 = SIMD_MUL_H(ui, ui);
-    const simd_half_t umag = SIMD_DIV_H(h_one, SIMD_SQRT_H(SIMD_ADD_H(ur2, ui2)));
+
+    const simd_half_t umag = SIMD_DIV_H(
+        h_one,
+        SIMD_SQRT_H(SIMD_ADD_H(ur2, ui2))
+    );
+
     ur = SIMD_MUL_H(ur, umag);
     ui = SIMD_MUL_H(ui, umag);
 
@@ -190,6 +205,7 @@ static FORCE_INLINE simd_half_t getLightVal_vec(const simd_half_t &zr, const sim
             SIMD_MUL_H(ui, h_light_i_vec)
         ),
         h_light_h_vec);
+
     const simd_half_t den = SIMD_ADD_H(h_light_h_vec, h_one);
     const simd_half_t light = SIMD_DIV_H(num, den);
 
@@ -201,10 +217,30 @@ static FORCE_INLINE simd_half_t getLightVal_vec(const simd_half_t &zr, const sim
 }
 
 namespace VectorRenderer {
-    FORCE_INLINE simd_full_t iterateFractalSimd(const simd_full_t &cr, const simd_full_t &ci,
+    FORCE_INLINE void initCoords_vec(simd_full_t &cr, simd_full_t &ci,
+        simd_full_t &zr, simd_full_t &zi) {
+        if (isInverse) {
+            complexInverse_vec(cr, ci);
+        }
+
+        if (isJuliaSet) {
+            zr = cr;
+            zi = ci;
+
+            cr = f_seed_r_vec;
+            ci = f_seed_i_vec;
+        } else {
+            zr = f_seed_r_vec;
+            zi = f_seed_i_vec;
+        }
+    }
+
+    FORCE_INLINE simd_full_t iterateFractalSimd(
+        const simd_full_t &cr, const simd_full_t &ci,
         simd_full_t &zr, simd_full_t &zi,
         simd_full_t &dr, simd_full_t &di,
-        simd_full_t &mag, simd_full_mask_t &active) {
+        simd_full_t &mag, simd_full_mask_t &active
+    ) {
         simd_full_t iter = f_zero;
         mag = f_zero;
 
@@ -215,7 +251,8 @@ namespace VectorRenderer {
             const simd_full_t zi2 = SIMD_MUL_F(zi, zi);
             mag = SIMD_ADD_F(zr2, zi2);
 
-            const simd_full_mask_t stillIterating = SIMD_CMP_LT_F(mag, f_bailout_vec);
+            const simd_full_mask_t stillIterating =
+                SIMD_CMP_LT_F(mag, f_bailout_vec);
             active = SIMD_AND_MASK_F(active, stillIterating);
 
             if (SIMD_MASK_F(active) == 0) break;
@@ -250,7 +287,8 @@ namespace VectorRenderer {
     }
 
     FORCE_INLINE void setPixels_vec(uint8_t *pixels, int &pos,
-        int width, const simd_half_t &R, const simd_half_t &G, const simd_half_t &B) {
+        int width,
+        const simd_half_t &R, const simd_half_t &G, const simd_half_t &B) {
         const int byteCount = width * Image::STRIDE;
         uint8_t *out = pixels + pos;
 
@@ -284,7 +322,8 @@ namespace VectorRenderer {
     }
 
     FORCE_INLINE void colorPixelsSimd(uint8_t *pixels, int &pos, int width,
-        const simd_full_t &iter, const simd_full_t &mag, const simd_full_mask_t &active,
+        const simd_full_t &iter, const simd_full_t &mag,
+        const simd_full_mask_t &active,
         const simd_full_t &zr, const simd_full_t &zi,
         const simd_full_t &dr, const simd_full_t &di) {
         const simd_half_t h_active = SIMD_FULL_MASK_TO_HALF(active);
@@ -341,9 +380,20 @@ namespace VectorRenderer {
         simd_full_t mag;
         simd_full_mask_t active;
 
-        simd_full_t iter = iterateFractalSimd(cr_vec, ci_vec, zr, zi, dr, di, mag, active);
+        simd_full_t iter = iterateFractalSimd(
+            cr_vec, ci_vec,
+            zr, zi,
+            dr, di,
+            mag, active
+        );
 
-        colorPixelsSimd(pixels, pos, width, iter, mag, active, zr, zi, dr, di);
+        colorPixelsSimd(
+            pixels, pos, width,
+            iter, mag,
+            active,
+            zr, zi,
+            dr, di
+        );
     }
 }
 

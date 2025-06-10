@@ -23,7 +23,12 @@
 #define SIMD_FULL_ARCH_WIDTH 0
 #endif
 
-#ifdef USE_DOUBLES
+#if defined(USE_FLOATS)
+#define SIMD_HALF_ARCH_WIDTH SIMD_FULL_ARCH_WIDTH
+#define SIMD_SYM_H SIMD_SYM_F
+
+#define simd_full_t _CONCAT2(__m, SIMD_FULL_ARCH_WIDTH)
+#elif defined(USE_DOUBLES)
 #define SIMD_SYM_H(a) _EVAL(a)
 
 #if defined(__AVX512__)
@@ -40,27 +45,10 @@
 #endif
 
 #define simd_full_t _CONCAT3(__m, SIMD_FULL_ARCH_WIDTH, d)
-#else
-#define SIMD_HALF_ARCH_WIDTH SIMD_FULL_ARCH_WIDTH
-#define SIMD_SYM_H SIMD_SYM_F
-
-#define simd_full_t _CONCAT2(__m, SIMD_FULL_ARCH_WIDTH)
 #endif
 #define simd_half_t _CONCAT2(__m, SIMD_HALF_ARCH_WIDTH)
 
-#ifdef USE_DOUBLES
-
-#if defined(__AVX512__)
-#define SIMD_FULL_WIDTH 8
-#elif defined(__AVX2__)
-#define SIMD_FULL_WIDTH 4
-#elif defined(__SSE2__)
-#define SIMD_FULL_WIDTH 2
-#else
-#define SIMD_FULL_WIDTH 0
-#endif
-
-#else
+#if defined(USE_FLOATS)
 
 #if defined(__AVX512__)
 #define SIMD_FULL_WIDTH 16
@@ -68,6 +56,18 @@
 #define SIMD_FULL_WIDTH 8
 #elif defined(__SSE2__)
 #define SIMD_FULL_WIDTH 4
+#else
+#define SIMD_FULL_WIDTH 0
+#endif
+
+#elif defined(USE_DOUBLES)
+
+#if defined(__AVX512__)
+#define SIMD_FULL_WIDTH 8
+#elif defined(__AVX2__)
+#define SIMD_FULL_WIDTH 4
+#elif defined(__SSE2__)
+#define SIMD_FULL_WIDTH 2
 #else
 #define SIMD_FULL_WIDTH 0
 #endif
@@ -89,13 +89,14 @@ static constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #define simd_half_mask_t simd_half_t
 #endif
 
-#ifdef USE_DOUBLES
-#define FULL_SUFFIX pd
-#define _SLEEF_FULL_SUFFIX d
-#else
+#if defined(USE_FLOATS)
 #define FULL_SUFFIX ps
 #define _SLEEF_FULL_SUFFIX f
+#elif defined(USE_DOUBLES)
+#define FULL_SUFFIX pd
+#define _SLEEF_FULL_SUFFIX d
 #endif
+
 #define HALF_SUFFIX ps
 #define _SLEEF_HALF_SUFFIX f
 
@@ -153,7 +154,9 @@ static constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #define SIMD_SET_INT64_F(x) SIMD_FUNC_INT_F(set1, _INT64_SIZE_SYM_F, CAST_INT_S(x, 64))
 #define SIMD_SET_INT64_H(x) SIMD_FUNC_INT_H(set1, _INT64_SIZE_SYM_H, CAST_INT_S(x, 64))
 
-#ifdef USE_DOUBLES
+#if defined(USE_FLOATS)
+#define SIMD_FULL_TO_HALF(x) x
+#elif defined(USE_DOUBLES)
 
 #if defined(__AVX512__)
 #include "../util/InlineUtil.h"
@@ -167,12 +170,11 @@ static FORCE_INLINE __m256 SIMD_FULL_TO_HALF(__m512d x) {
 
     return _mm256_set_m128(h_high, h_low);
 }
+
 #else
 #define SIMD_FULL_TO_HALF(x) SIMD_FUNC_F(_CONCAT2(cvt, FULL_SUFFIX), HALF_SUFFIX, x)
 #endif
 
-#else
-#define SIMD_FULL_TO_HALF(x) x
 #endif
 
 #define SIMD_HALF_TO_INT32(x) SIMD_FUNC_INT_H(_CONCAT2(cvt, HALF_SUFFIX), 32, x)
