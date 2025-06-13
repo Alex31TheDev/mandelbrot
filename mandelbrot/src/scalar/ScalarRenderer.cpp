@@ -115,6 +115,9 @@ namespace ScalarRenderer {
                 case 2:
                     derivative(zr, zi, dr, di, mag, dr, di);
                     break;
+
+                default:
+                    break;
             }
 
             formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
@@ -145,7 +148,8 @@ namespace ScalarRenderer {
             return;
         }
 
-        scalar_half_t val, R, G, B;
+        scalar_half_t val,
+            R = 0, G = 0, B = 0;
 
         switch (colorMethod) {
             case 0:
@@ -162,6 +166,9 @@ namespace ScalarRenderer {
                 val = getLightVal(zr, zi, dr, di);
                 R = G = B = val;
                 break;
+
+            default:
+                break;
         }
 
         ScalarRenderer::setPixel(pixels, pos, R, G, B);
@@ -177,7 +184,7 @@ namespace ScalarRenderer {
         initCoords(cr, ci, zr, zi);
 
         scalar_full_t mag = 0;
-        int i = iterateFractalScalar(cr, ci, zr, zi, dr, di, mag);
+        const int i = iterateFractalScalar(cr, ci, zr, zi, dr, di, mag);
 
         colorPixelScalar(pixels, pos, i, mag, zr, zi, dr, di);
     }

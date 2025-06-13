@@ -6,6 +6,30 @@
 #include <vector>
 #include <string>
 
+ArgsVec::ArgsVec(int count)
+    : argc(count), argv(new char *[count + 1]) {
+    argv[count] = nullptr;
+}
+
+ArgsVec::~ArgsVec() {
+    for (int i = 0; i < argc; i++) delete[] argv[i];
+    delete[] argv;
+}
+
+ArgsVec ArgsVec::fromParsed(char *progName,
+    std::vector<std::string> &&parsedArgs) {
+    int count = static_cast<int>(parsedArgs.size() + 1);
+    ArgsVec result(count);
+
+    result.argv[0] = strdup(progName);
+
+    for (size_t i = 0; i < parsedArgs.size(); i++) {
+        result.argv[i + 1] = strdup(parsedArgs[i].c_str());
+    }
+
+    return result;
+}
+
 namespace ParserUtil {
     bool parseBool(const char *str, bool &ok) {
         if (!str) {

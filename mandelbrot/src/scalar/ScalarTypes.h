@@ -14,6 +14,8 @@ typedef float scalar_full_t;
 typedef double scalar_full_t;
 #define SC_SYM_F(a) _EVAL(a)
 #define SC_SYMS_F(a) _CONCAT2(a, d)
+#else
+#error "Must define either USE_FLOATS or USE_DOUBLES to select precision."
 #endif
 
 typedef float scalar_half_t;

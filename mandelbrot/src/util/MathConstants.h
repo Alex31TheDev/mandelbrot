@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef M_E
 #undef M_E
 #undef M_LOG2E
 #undef M_LOG10E
@@ -14,7 +13,6 @@
 #undef M_2_SQRTPI
 #undef M_SQRT2
 #undef M_SQRT2_2
-#endif
 
 #define M_E        2.71828182845904523536   // e
 #define M_LOG2E    1.44269504088896340736   // log2(e)

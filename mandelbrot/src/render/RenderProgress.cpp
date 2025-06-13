@@ -9,8 +9,10 @@
 #include <mutex>
 #include <chrono>
 
-RenderProgress::RenderProgress(int total_rows)
-    : _totalRows(total_rows),
+#include "../util/TimeUtil.h"
+
+RenderProgress::RenderProgress(int totalRows)
+    : _totalRows(totalRows),
     _startTime(std::chrono::steady_clock::now()) {
     _printProgress(0);
 }
@@ -27,9 +29,9 @@ void RenderProgress::_printProgress(int perc) {
 void RenderProgress::update(int processed) {
     _completedRows.fetch_add(processed, std::memory_order_relaxed);
 
-    int current = _completedRows.load(std::memory_order_relaxed);
-    int perc = (current * 100) / _totalRows;
-    int last = _lastPrinted.load(std::memory_order_relaxed);
+    const int current = _completedRows.load(std::memory_order_relaxed);
+    const int perc = (current * 100) / _totalRows;
+    const int last = _lastPrinted.load(std::memory_order_relaxed);
 
     if (perc > last) {
         _printProgress(perc);
@@ -37,25 +39,31 @@ void RenderProgress::update(int processed) {
 }
 
 template <typename T>
-void RenderProgress::_printElapsed(T elapsed) {
+void RenderProgress::_printElapsed(T elapsed, bool format) {
     std::lock_guard<std::mutex> lock(_printfMutex);
 
-    if constexpr (std::is_same_v<T, int32_t>) {
-        printf(" (completed in: %" PRId32 " ms)\n", elapsed);
-    } else if constexpr (std::is_same_v<T, int64_t>) {
-        printf(" (completed in: %" PRId64 " ms)\n", elapsed);
+    if (format) {
+        printf(" (completed in: %s)\n",
+            TimeUtil::formatTime(elapsed).c_str());
+    } else {
+        if constexpr (std::is_same_v<T, int32_t>) {
+            printf(" (completed in: %" PRId32 " ms)\n", elapsed);
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+            printf(" (completed in: %" PRId64 " ms)\n", elapsed);
+        }
     }
 
     fflush(stdout);
 }
 
-template void RenderProgress::_printElapsed<int32_t>(int32_t elapsed);
-template void RenderProgress::_printElapsed<int64_t>(int64_t elapsed);
+template void RenderProgress::_printElapsed<int32_t>(int32_t, bool);
+template void RenderProgress::_printElapsed<int64_t>(int64_t, bool);
 
-void RenderProgress::complete() {
-    auto endTime = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - _startTime).count();
+void RenderProgress::complete(bool formatTime) {
+    const auto endTime = std::chrono::steady_clock::now();
+    const auto elapsed = std::chrono::duration_cast
+        <std::chrono::milliseconds>(endTime - _startTime).count();
 
     _printProgress(100);
-    _printElapsed(elapsed);
+    _printElapsed(elapsed, formatTime);
 }

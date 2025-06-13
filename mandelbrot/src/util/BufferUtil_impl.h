@@ -2,12 +2,15 @@
 
 #include <cstdint>
 #include <cstring>
+#include <type_traits>
 
 #ifdef _WIN32
 #include <malloc.h>
 #endif
 
-constexpr size_t BufferUtil::alignTo(size_t size, size_t alignment) {
+template<typename T>
+constexpr T BufferUtil::alignTo(T size, T alignment) {
+    static_assert(std::is_integral_v<T>, "Alignment must be performed on integral types");
     return (size + alignment - 1) & ~(alignment - 1);
 }
 
@@ -40,10 +43,9 @@ void BufferUtil::bufferFree(uint8_t *ptr) noexcept {
 #if defined(_WIN32)
     if constexpr (ALIGNMENT > 8) {
         _aligned_free(ptr);
-        return;
-    }
+    } else
 #endif
-    free(ptr);
+        free(ptr);
 }
 
 template <size_t ALIGNMENT>

@@ -6,9 +6,9 @@
 
 class RenderProgress {
 public:
-    RenderProgress(int total_rows);
-    void update(int rows_processed = 1);
-    void complete();
+    RenderProgress(int totalRows);
+    void update(int processed = 1);
+    void complete(bool formatTime = false);
 
 private:
     int _totalRows;
@@ -21,5 +21,5 @@ private:
 
     void _printProgress(int perc);
     template <typename T>
-    void _printElapsed(T elapsed);
+    void _printElapsed(T elapsed, bool format);
 };

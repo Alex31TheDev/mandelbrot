@@ -6,7 +6,7 @@
 
 #include "../util/InlineUtil.h"
 
-static FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
+FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
     number_param_t zr, number_param_t zi,
     number_param_t zr2, number_param_t zi2, number_param_t mag,
     number_t &new_zr, number_t &new_zi) {
@@ -47,7 +47,7 @@ static FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
     }
 }
 
-static FORCE_INLINE void derivative(const number_t &zr, const number_t &zi,
+FORCE_INLINE void derivative(const number_t &zr, const number_t &zi,
     const number_t &dr, const number_t &di,
     const number_t &mag,
     number_t &new_dr, number_t &new_di) {

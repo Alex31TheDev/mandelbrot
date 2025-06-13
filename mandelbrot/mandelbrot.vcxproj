@@ -597,7 +597,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_SCALAR</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_SCALAR</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
@@ -631,7 +631,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_SCALAR</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_SCALAR</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
@@ -783,9 +783,11 @@
   <ItemGroup>
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ColorMethods.h" />
+    <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
+    <ClInclude Include="src\util\fnv1a.h" />
     <ClInclude Include="src\util\ParserUtil.h" />
     <ClInclude Include="src\args\Usage.h" />
     <ClInclude Include="src\formulas\FormulaTypes.h" />
@@ -802,6 +804,8 @@
     <ClInclude Include="src\scalar\ScalarGlobals.h" />
     <ClInclude Include="src\scalar\ScalarTypes.h" />
     <ClInclude Include="src\util\MathConstants.h" />
+    <ClInclude Include="src\util\TemplateUtil.h" />
+    <ClInclude Include="src\util\TimeUtil.h" />
     <ClInclude Include="src\vector\VectorCoords.h" />
     <ClInclude Include="src\vector\VectorGlobals.h" />
     <ClInclude Include="src\image\Image.h" />
@@ -813,7 +817,10 @@
   <ItemGroup>
     <ClCompile Include="src\args\ArgsParser.cpp" />
     <ClCompile Include="src\args\ColorMethods.cpp" />
+    <ClCompile Include="src\args\Usage.cpp" />
+    <ClCompile Include="src\image\BmpWriter.cpp" />
     <ClCompile Include="src\render\RenderGlobals.cpp" />
+    <ClCompile Include="src\util\BufferUtil.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\mpfr\MpfrGlobals.cpp" />
     <ClCompile Include="src\mpfr\MpfrRenderer.cpp" />
@@ -822,6 +829,7 @@
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
     <ClCompile Include="src\util\PathUtil.cpp" />
     <ClCompile Include="src\util\PathUtil.h" />
+    <ClCompile Include="src\util\TimeUtil.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
     <ClCompile Include="src\image\Image.cpp" />
     <ClCompile Include="src\Main.cpp" />

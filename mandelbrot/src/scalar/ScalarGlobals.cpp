@@ -1,7 +1,5 @@
 #include "ScalarGlobals.h"
 
-#include <cstdlib>
-
 #include "ScalarTypes.h"
 
 #include "../render/RenderGlobals.h"

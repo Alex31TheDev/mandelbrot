@@ -58,9 +58,9 @@ clang++ -std=c++20 -O3 \
     $(find ./mandelbrot/src -name '*.cpp') \
     -I "$VCPKG_ROOT/installed/x64-linux/include" \
     -L "$VCPKG_ROOT/installed/x64-linux/lib" \
-    -Wall \
-    -lpthread -lsleef -flto \
-    -mtune=native -march=native
+    -Wall -Wextra -Wpedantic \
+    -lpthread -lsleef \
+    -flto -march=native -mtune=native
 ```
 
 # L'image

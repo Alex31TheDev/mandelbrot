@@ -2,7 +2,9 @@
 #ifdef USE_VECTORS
 
 #include <immintrin.h>
+#pragma warning(push, 0)
 #include <sleef.h>
+#pragma warning(pop)
 
 #include "../scalar/ScalarTypes.h"
 
@@ -20,7 +22,7 @@
 #undef SIMD_SYM_F
 #define SIMD_SYM_F(a) _EVAL(a)
 #else
-#define SIMD_FULL_ARCH_WIDTH 0
+#error "No supported SIMD instruction set detected (requires __SSE2__, __AVX2__, or __AVX512__)."
 #endif
 
 #if defined(USE_FLOATS)
@@ -45,6 +47,8 @@
 #endif
 
 #define simd_full_t _CONCAT3(__m, SIMD_FULL_ARCH_WIDTH, d)
+#else
+#error "Must define either USE_FLOATS or USE_DOUBLES to select precision."
 #endif
 #define simd_half_t _CONCAT2(__m, SIMD_HALF_ARCH_WIDTH)
 
@@ -75,8 +79,8 @@
 #endif
 #define SIMD_HALF_WIDTH SIMD_FULL_WIDTH
 
-static constexpr int SIMD_FULL_ALIGNMENT = SIMD_FULL_ARCH_WIDTH / 8;
-static constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
+constexpr int SIMD_FULL_ALIGNMENT = SIMD_FULL_ARCH_WIDTH / 8;
+constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 
 #define simd_full_int_t _CONCAT3(__m, SIMD_FULL_ARCH_WIDTH, i)
 #define simd_half_int_t _CONCAT3(__m, SIMD_HALF_ARCH_WIDTH, i)
@@ -116,9 +120,9 @@ static constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #define SIMD_FUNC_MASK_H(name, ...) SIMD_FUNC_H(name, _CONCAT2(HALF_SUFFIX, _mask), __VA_ARGS__)
 
 #define SLEEF_FUNC_DEC_F(name, prec, ...) \
-    _CONCAT6(Sleef_, name, _SLEEF_FULL_SUFFIX, SIMD_FULL_WIDTH, _u, prec)(__VA_ARGS__)
+    _CONCAT4(Sleef_ ## name, _SLEEF_FULL_SUFFIX, SIMD_FULL_WIDTH, _u ## prec)(__VA_ARGS__)
 #define SLEEF_FUNC_DEC_H(name, prec, ...) \
-    _CONCAT6(Sleef_, name, _SLEEF_HALF_SUFFIX, SIMD_HALF_WIDTH, _u, prec)(__VA_ARGS__)
+    _CONCAT4(Sleef_ ## name, _SLEEF_HALF_SUFFIX, SIMD_HALF_WIDTH, _u ## prec)(__VA_ARGS__)
 
 #define SIMD_LOAD_F(ptr) SIMD_FUNC_DEC_F(loadu, reinterpret_cast<const scalar_full_t *>(ptr))
 #define SIMD_LOAD_H(ptr) SIMD_FUNC_DEC_H(loadu, reinterpret_cast<const scalar_half_t *>(ptr))

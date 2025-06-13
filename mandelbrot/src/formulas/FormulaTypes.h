@@ -69,4 +69,6 @@ typedef const number_t &number_param_t;
 #define NUM_COS(x) cos(x)
 #define NUM_ATAN2(a, b) atan2(a, b)
 
+#else
+#error "Must define a formula type."
 #endif

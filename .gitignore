@@ -369,3 +369,11 @@ vcpkg_installed/
 
 # Render output
 mandelbrot.png
+mandelbrot.bmp
+mandelbrot-*.png
+mandelbrot-*.bmp
+mandelbrot_*.png
+mandelbrot_*.bmp
+
+# Clang output
+mandelbrot_app

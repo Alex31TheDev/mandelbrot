@@ -3,13 +3,14 @@
 #include <cstdint>
 
 #include <string>
+#include <string_view>
 #include <memory>
 #include <iostream>
 
 #ifdef USE_VECTORS
 #include "../vector/VectorTypes.h"
 #else
-static constexpr int SIMD_HALF_ALIGNMENT = 0;
+constexpr int SIMD_HALF_ALIGNMENT = 0;
 #endif
 
 #include "../util/BufferUtil.h"
@@ -22,17 +23,23 @@ public:
     static size_t calcBufferSize(int32_t width, int32_t height);
     static std::unique_ptr<Image> create(int32_t width, int32_t height);
 
-    int32_t width() const { return _width; }
-    int32_t height() const { return _height; }
-    float aspect() const { return _aspect; }
+    friend std::unique_ptr<Image> std::make_unique<Image>();
 
-    uint8_t *pixels() { return _pixels.get(); }
-    const uint8_t *pixels() const { return _pixels.get(); }
+    [[nodiscard]] int32_t width() const noexcept { return _width; }
+    [[nodiscard]] int32_t height() const noexcept { return _height; }
+    [[nodiscard]] float aspect() const noexcept { return _aspect; }
+
+    [[nodiscard]] uint8_t *pixels() noexcept { return _pixels.get(); }
+    [[nodiscard]] const uint8_t *pixels() const noexcept {
+        return _pixels.get();
+    }
 
     void clear();
 
-    bool writeToStream(std::ostream &output) const;
-    bool saveToFile(const std::string &filename, bool appendDate = false) const;
+    bool writeToStream(std::ostream &fout,
+        const char *type = "png") const;
+    bool saveToFile(std::string_view filePath, bool appendDate = false,
+        const char *type = "png") const;
 
     Image(const Image &) = delete;
     Image &operator=(const Image &) = delete;

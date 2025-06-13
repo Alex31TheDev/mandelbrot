@@ -19,6 +19,7 @@ using namespace ScalarGlobals;
 #include "../formulas/FractalFormulas.h"
 
 #include "../util/InlineUtil.h"
+#include "../util/TemplateUtil.h"
 
 #define USE_VECTOR_STORE
 
@@ -100,6 +101,8 @@ static FORCE_INLINE void writePixelData_vec(uint8_t *out, const T &RGBA8) {
             const __m128i mix = _mm_shuffle_epi8(lanes[i], rgbMask);
             store128bitLane_vec(out, mix, i);
         }
+    } else {
+        static_assert(always_false<T>, "Unsupported SIMD type");
     }
 }
 
@@ -267,6 +270,9 @@ namespace VectorRenderer {
                     di = SIMD_BLEND_F(di, new_di, active);
                 }
                 break;
+
+                default:
+                    break;
             }
 
             simd_full_t new_zr, new_zi;
@@ -362,6 +368,9 @@ namespace VectorRenderer {
                 r_vec = g_vec = b_vec = vals;
             }
             break;
+
+            default:
+                break;
         }
 
         setPixelsMasked_vec(pixels, pos, width, h_active, r_vec, g_vec, b_vec);
@@ -380,7 +389,7 @@ namespace VectorRenderer {
         simd_full_t mag;
         simd_full_mask_t active;
 
-        simd_full_t iter = iterateFractalSimd(
+        const simd_full_t iter = iterateFractalSimd(
             cr_vec, ci_vec,
             zr, zi,
             dr, di,

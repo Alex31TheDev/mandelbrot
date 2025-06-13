@@ -1,64 +1,100 @@
 #include "PathUtil.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <chrono>
+#include <algorithm>
 using namespace std::chrono;
 
-static std::tuple<std::string, std::string> splitFilename(const std::string &filename) {
-    std::string name, ext;
-    size_t pos = filename.rfind('.');
-
-    if (pos == 0 || pos == filename.size() - 1 ||
-        pos == std::string::npos) {
-        name = filename;
-        ext = "";
-    } else {
-        name = filename.substr(0, pos);
-        ext = filename.substr(pos);
-    }
-
-    return std::make_tuple(name, ext);
+static bool safeLocaltime(time_t time, tm &out) {
+#if defined(_MSC_VER)
+    return localtime_s(&out, &time) == 0;
+#else
+    return localtime_r(&time, &out) != nullptr;
+#endif
 }
 
 namespace PathUtil {
-    std::string appendSeqnum(const std::string &filename, int x) {
-        auto [name, ext] = splitFilename(filename);
-        return name + "_" + std::to_string(x) + ext;
+    std::tuple<std::string_view, std::string_view>
+        splitFilename(std::string_view filePath) {
+        std::string_view name, ext;
+
+        size_t lastDot = filePath.find_last_of('.');
+        size_t lastSlash = filePath.find_last_of("/\\");
+
+        if (lastDot != std::string::npos &&
+            lastDot != filePath.length() - 1 &&
+            (lastSlash == std::string::npos ||
+                lastDot > lastSlash)) {
+            name = filePath.substr(0, lastDot);
+            ext = filePath.substr(lastDot);
+        } else {
+            name = filePath;
+            ext = "";
+        }
+
+        return std::make_tuple(name, ext);
     }
 
-    std::string appendIsoDate(const std::string &filename) {
-        auto [name, ext] = splitFilename(filename);
+    std::string appendSeqnum(std::string_view filePath, int x) {
+        const auto [name, ext] = splitFilename(filePath);
+        const std::string x_str = std::to_string(x);
 
-        time_t now = system_clock::to_time_t(system_clock::now());
-        std::tm *localTime = std::localtime(&now);
+        std::string result;
+        result.reserve(name.size() + x_str.size() + ext.size() + 1);
+        result.append(name);
+        result.push_back('_');
+        result.append(x_str);
+        result.append(ext);
+        return result;
+    }
+
+    std::string appendIsoDate(std::string_view filePath) {
+        const auto [name, ext] = splitFilename(filePath);
+
+        const time_t now = system_clock::to_time_t(system_clock::now());
+        tm localTime;
+
+        if (!safeLocaltime(now, localTime)) return "";
 
         char buf[20];
-        strftime(buf, sizeof(buf), "%Y_%m_%d-%H_%M_%S", localTime);
+        strftime(buf, sizeof(buf), "%Y_%m_%d-%H_%M_%S", &localTime);
 
-        return name + "-" + buf + ext;
+        std::string result;
+        result.reserve(name.size() + strlen(buf) + ext.size() + 1);
+        result.append(name);
+        result.push_back('-');
+        result.append(buf);
+        result.append(ext);
+        return result;
     }
 
-    std::string getAbsolutePath(const std::string &filename) {
+    std::string getAbsolutePath(std::string_view filePath) {
 #ifdef _WIN32
         char absPath[_MAX_PATH] = { 0 };
+        size_t copyLen = std::min(filePath.size(),
+            static_cast<size_t>(_MAX_PATH - 1));
+        std::memcpy(absPath, filePath.data(), copyLen);
+        absPath[copyLen] = '\0';
 
-        if (_fullpath(absPath, filename.c_str(), _MAX_PATH) != nullptr) {
+        if (_fullpath(absPath, absPath, _MAX_PATH) != nullptr) {
             return absPath;
         }
 #else
-        char *resolved = realpath(filename.c_str(), nullptr);
+        std::string temp(filePath);
+        char *resolved = realpath(temp.c_str(), nullptr);
 
         if (resolved != nullptr) {
             std::string result(resolved);
             free(resolved);
-
             return result;
         }
 #endif
-        return filename;
+        return std::string(filePath);
     }
 }

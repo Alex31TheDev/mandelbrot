@@ -18,10 +18,12 @@ using namespace ParserUtil;
 using namespace RenderGlobals;
 using namespace ScalarGlobals;
 
-static const char flagHelp[] = "flag must be \"true\" or \"false\"";
+static const char *flagHelp = "flag must be \"true\" or \"false\"";
 
 namespace ArgsParser {
     bool checkHelp(int argc, char **argv) {
+        if (argv == nullptr) return false;
+
         if (argsCount(argc) < 1) {
             printUsage(argv[0]);
             return true;
@@ -29,7 +31,7 @@ namespace ArgsParser {
             return false;
         }
 
-        for (const char *opt : helpOptions) {
+        for (const char *opt : helpOptionsRange{}) {
             if (strcmp(argv[1], opt) == 0) {
                 printUsage(argv[0]);
                 return true;
@@ -40,14 +42,16 @@ namespace ArgsParser {
     }
 
     bool parse(int argc, char **argv) {
+        if (argv == nullptr) return false;
+
         if (argsCount(argc) < MIN_ARGS ||
             argsCount(argc) > MAX_ARGS) {
             printUsage(argv[0], true);
             return false;
         }
 
-        int img_w = PARSE_INT32(argv[1]);
-        int img_h = PARSE_INT32(argv[2]);
+        const int img_w = PARSE_INT32(argv[1]);
+        const int img_h = PARSE_INT32(argv[2]);
 
         if (setImageGlobals(img_w, img_h)) {
             initImageValues();
@@ -59,7 +63,7 @@ namespace ArgsParser {
         point_r = PARSE_F(argv[3]);
         point_i = PARSE_F(argv[4]);
 
-        float zoomScale = PARSE_H(argv[5]);
+        const float zoomScale = PARSE_H(argv[5]);
         int iterCount = 0;
 
         if (argc > 6 && strcmp(argv[6], "auto") != 0) {
@@ -82,7 +86,7 @@ namespace ArgsParser {
         }
 
         if (argc > 8) {
-            int method = parseColorMethod(argv[8]);
+            const int method = parseColorMethod(argv[8]);
             if (method == -1) return false;
 
             colorMethod = method;
@@ -113,7 +117,8 @@ namespace ArgsParser {
         seed_r = argc > 11 ? PARSE_F(argv[11]) : DEFAULT_SEED_R;
         seed_i = argc > 12 ? PARSE_F(argv[12]) : DEFAULT_SEED_I;
 
-        scalar_full_t pw = argc > 13 ? PARSE_F(argv[13]) : DEFAULT_FRACTAL_EXP;
+        const scalar_full_t pw = argc > 13 ?
+            PARSE_F(argv[13]) : DEFAULT_FRACTAL_EXP;
 
         if (!setFractalExponent(pw)) {
             fprintf(stderr, "Invalid args.\nFractal exponent must be > 1.\n");
@@ -124,13 +129,15 @@ namespace ArgsParser {
             case 0:
             case 1:
             {
-                float R = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_FREQ_R;
-                float G = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_FREQ_G;
-                float B = argc > 16 ? PARSE_H(argv[16]) : DEFAULT_FREQ_B;
-                float mult = argc > 17 ? PARSE_H(argv[17]) : DEFAULT_FREQ_MULT;
+                const float R = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_FREQ_R;
+                const float G = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_FREQ_G;
+                const float B = argc > 16 ? PARSE_H(argv[16]) : DEFAULT_FREQ_B;
+                const float mult = argc > 17 ?
+                    PARSE_H(argv[17]) : DEFAULT_FREQ_MULT;
 
                 if (!setColorGlobals(R, G, B, mult)) {
-                    fprintf(stderr, "Invalid args.\nFrequency multiplier must be non-zero.\n");
+                    fprintf(stderr, "Invalid args.\n"
+                        "Frequency multiplier must be non-zero.\n");
                     return false;
                 }
             }
@@ -138,15 +145,21 @@ namespace ArgsParser {
 
             case 2:
             {
-                float real = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_LIGHT_R;
-                float imag = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_LIGHT_I;
+                const float real = argc > 14 ?
+                    PARSE_H(argv[14]) : DEFAULT_LIGHT_R;
+                const float imag = argc > 15 ?
+                    PARSE_H(argv[15]) : DEFAULT_LIGHT_I;
 
                 if (!setLightGlobals(real, imag)) {
-                    fprintf(stderr, "Invalid args.\nLight vector must be non-zero.\n");
+                    fprintf(stderr, "Invalid args.\n"
+                        "Light vector must be non-zero.\n");
                     return false;
                 }
             }
             break;
+
+            default:
+                return false;
         }
 
         VectorGlobals::initVectors();

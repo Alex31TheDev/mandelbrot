@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace BufferUtil {
-    constexpr size_t alignTo(size_t size, size_t alignment);
+    template<typename T>
+    constexpr T alignTo(T size, T alignment);
 
     template <size_t ALIGNMENT>
     uint8_t *bufferAlloc(size_t bufferSize, size_t *alignedSizeOut = nullptr);
@@ -15,6 +17,8 @@ namespace BufferUtil {
     struct AlignedDeleter {
         void operator()(uint8_t *ptr) noexcept;
     };
+
+    std::string formatSize(size_t size);
 }
 
 #include "BufferUtil_impl.h"
