@@ -11,8 +11,8 @@
 
 #include "../util/TimeUtil.h"
 
-RenderProgress::RenderProgress(int totalRows)
-    : _totalRows(totalRows),
+RenderProgress::RenderProgress(int totalWork)
+    : _totalWork(totalWork),
     _startTime(std::chrono::steady_clock::now()) {
     _printProgress(0);
 }
@@ -27,10 +27,10 @@ void RenderProgress::_printProgress(int perc) {
 }
 
 void RenderProgress::update(int processed) {
-    _completedRows.fetch_add(processed, std::memory_order_relaxed);
+    _completedWork.fetch_add(processed, std::memory_order_relaxed);
 
-    const int current = _completedRows.load(std::memory_order_relaxed);
-    const int perc = (current * 100) / _totalRows;
+    const int current = _completedWork.load(std::memory_order_relaxed);
+    const int perc = (current * 100) / _totalWork;
     const int last = _lastPrinted.load(std::memory_order_relaxed);
 
     if (perc > last) {

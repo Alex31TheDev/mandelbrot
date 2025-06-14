@@ -785,6 +785,8 @@
     <ClInclude Include="src\args\ColorMethods.h" />
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
+    <ClInclude Include="src\render\ThreadPool.h" />
+    <ClInclude Include="src\render\ThreadSafeQueue.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
     <ClInclude Include="src\util\fnv1a.h" />

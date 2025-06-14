@@ -1,8 +1,9 @@
 #include "RenderImage.h"
 
-#include <vector>
 #include <algorithm>
 #include <thread>
+#include <memory>
+#include <mutex>
 
 #include "../image/Image.h"
 #include "RenderProgress.h"
@@ -31,6 +32,21 @@ constexpr auto imagCenterCoord = &getCenterImag;
 #include "../mpfr/MpfrCoords.h"
 constexpr auto imagCenterCoord = &getCenterImag_mp;
 #endif
+
+#include "ThreadPool.h"
+
+constexpr int MAX_TASK_COUNT = 4096;
+
+static ThreadPool<> &getThreadPool() {
+    static std::unique_ptr<ThreadPool<>> pool;
+    static std::once_flag initFlag;
+
+    std::call_once(initFlag, [&]() {
+        pool = std::make_unique<ThreadPool<>>(std::thread::hardware_concurrency());
+        });
+
+    return *pool;
+}
 
 static void renderStrip(Image *image,
     int start_y, int end_y,
@@ -68,37 +84,34 @@ void renderImageSequential(Image *image) {
 
 void renderImageParallel(Image *image) {
     if (image == nullptr) return;
-    int threadCount = std::thread::hardware_concurrency();
+    ThreadPool<> &pool = getThreadPool();
 
-    if (threadCount == 0) {
+    if (pool.size() == 0 || pool.size() == 1) {
         renderImageSequential(image);
         return;
     }
 
     RenderProgress progress(height);
 
-    threadCount = std::min(threadCount, height);
-    std::vector<std::thread> threads;
+    const int taskCount = std::min(height, MAX_TASK_COUNT);
 
-    const int rowsPerThread = height / threadCount;
-    const int extraRows = height % threadCount;
+    const int rowsPerTask = height / taskCount;
+    const int extraRows = height % taskCount;
 
     int start_y = 0;
 
-    for (int i = 0; i < threadCount; i++) {
-        const int chunkRows = rowsPerThread + (i < extraRows ? 1 : 0);
+    for (int i = 0; i < taskCount; i++) {
+        const int chunkRows = rowsPerTask + (i < extraRows ? 1 : 0);
         const int end_y = start_y + chunkRows;
 
-        threads.emplace_back([image, start_y, end_y, &progress]() {
-            renderStrip(image, start_y, end_y, &progress); });
+        pool.enqueueDetach([=, &progress]() {
+            renderStrip(image, start_y, end_y, &progress);
+            });
 
         start_y = end_y;
     }
 
-    for (auto &thread : threads) {
-        thread.join();
-    }
-
+    pool.waitForTasks();
     progress.complete(true);
 }
 
