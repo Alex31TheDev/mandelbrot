@@ -8,7 +8,8 @@
 
 namespace ScalarRenderer {
     void initCoords(scalar_full_t &cr, scalar_full_t &ci,
-        scalar_full_t &zr, scalar_full_t &zi);
+        scalar_full_t &zr, scalar_full_t &zi,
+        scalar_full_t &dr, scalar_full_t &di);
     int iterateFractalScalar(scalar_full_t cr, scalar_full_t ci,
         scalar_full_t &zr, scalar_full_t &zi,
         scalar_full_t &dr, scalar_full_t &di,

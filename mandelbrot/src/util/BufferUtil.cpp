@@ -18,12 +18,12 @@ namespace BufferUtil {
             return oss.str();
         }
 
-        int unitIndex = 0;
+        int unitIdx = 0;
         double count = static_cast<double>(size);
 
-        while (count >= 1024 && unitIndex < unitCount - 1) {
+        while (count >= 1024 && unitIdx < unitCount - 1) {
             count /= 1024;
-            unitIndex++;
+            unitIdx++;
         }
 
         if (count == floor(count)) {
@@ -32,7 +32,7 @@ namespace BufferUtil {
             oss << std::setprecision(1);
         }
 
-        oss << count << " " << units[unitIndex];
+        oss << count << " " << units[unitIdx];
         return oss.str();
     }
 }

@@ -48,7 +48,7 @@ bool writeBmpStream(std::ostream &fout, const uint8_t *pixels,
 
     const size_t dataSize = rowSize * height;
 
-    BmpHeader bmpHeader = {
+    const BmpHeader bmpHeader = {
        .type = { 'B', 'M' },
        .size = static_cast <uint32_t>(
            sizeof(BmpHeader) + sizeof(DibHeader) + dataSize
@@ -58,7 +58,7 @@ bool writeBmpStream(std::ostream &fout, const uint8_t *pixels,
            )
     };
 
-    DibHeader dibHeader = {
+    const DibHeader dibHeader = {
         .size = sizeof(DibHeader),
         .width = width,
         .height = height,

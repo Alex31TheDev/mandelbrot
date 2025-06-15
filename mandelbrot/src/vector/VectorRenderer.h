@@ -8,7 +8,8 @@
 
 namespace VectorRenderer {
     void initCoords_vec(simd_full_t &cr, simd_full_t &ci,
-        simd_full_t &zr, simd_full_t &zi);
+        simd_full_t &zr, simd_full_t &zi,
+        simd_full_t &dr, simd_full_t &di);
     simd_full_t iterateFractalSimd(
         const simd_full_t &cr, const simd_full_t &ci,
         simd_full_t &zr, simd_full_t &zi,

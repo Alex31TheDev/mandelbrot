@@ -3,6 +3,8 @@
 #include "ScalarTypes.h"
 #include "../util/MathConstants.h"
 
+#include "ScalarColorPalette.h"
+
 namespace ScalarGlobals {
     constexpr int MIN_ITERATIONS = 500;
     constexpr scalar_full_t BAILOUT = SC_SYM_F(256.0);
@@ -52,4 +54,11 @@ namespace ScalarGlobals {
     bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B,
         scalar_half_t mult);
     bool setLightGlobals(scalar_half_t real, scalar_half_t imag);
+
+    const std::vector<ScalarColor> ramp = {
+       {1.0f, 0,    0,    1.0f},
+       {0,    1.0f, 0,    1.0f},
+       {0,    0,    1.0f, 1.0f}
+    };
+    const ScalarColorPalette palette(ramp, 64.0f);
 }

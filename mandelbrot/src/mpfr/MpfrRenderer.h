@@ -11,7 +11,8 @@ namespace MpfrRenderer {
     using namespace mpfr;
 
     void initCoords_mp(mpreal &cr, mpreal &ci,
-        mpreal &zr, mpreal &zi);
+        mpreal &zr, mpreal &zi,
+        mpreal &dr, mpreal &di);
     int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,

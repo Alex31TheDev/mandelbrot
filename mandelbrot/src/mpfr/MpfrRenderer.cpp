@@ -31,8 +31,11 @@ static FORCE_INLINE void complexInverse_mp(mpreal &cr, mpreal &ci) {
 }
 
 namespace MpfrRenderer {
-    FORCE_INLINE void initCoords_mp(mpreal &cr, mpreal &ci,
-        mpreal &zr, mpreal &zi) {
+    FORCE_INLINE void initCoords_mp(
+        mpreal &cr, mpreal &ci,
+        mpreal &zr, mpreal &zi,
+        mpreal &dr, mpreal &di
+    ) {
         if (isInverse) {
             complexInverse_mp(cr, ci);
         }
@@ -47,12 +50,17 @@ namespace MpfrRenderer {
             zr = seed_r_mp;
             zi = seed_i_mp;
         }
+
+        dr = 1;
+        di = 0;
     }
 
-    FORCE_INLINE int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
+    FORCE_INLINE int iterateFractalMpfr(
+        const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,
-        mpreal &mag) {
+        mpreal &mag
+    ) {
         mag = 0;
         int i = 0;
 
@@ -75,10 +83,12 @@ namespace MpfrRenderer {
         return i;
     }
 
-    FORCE_INLINE void colorPixelMpfr(uint8_t *pixels, int &pos,
+    FORCE_INLINE void colorPixelMpfr(
+        uint8_t *pixels, int &pos,
         int i, const mpreal &mag,
         const mpreal &zr, const mpreal &zi,
-        const mpreal &dr, const mpreal &di) {
+        const mpreal &dr, const mpreal &di
+    ) {
         const scalar_half_t mag_sc = CAST_H(mag);
 
         const scalar_half_t zr_sc = CAST_H(zr);
@@ -90,16 +100,18 @@ namespace MpfrRenderer {
         colorPixelScalar(pixels, pos, i, mag_sc, zr_sc, zi_sc, dr_sc, di_sc);
     }
 
-    void renderPixelMpfr(uint8_t *pixels, int &pos,
-        int x, mpreal ci) {
+    void renderPixelMpfr(
+        uint8_t *pixels, int &pos,
+        int x, mpreal ci
+    ) {
         mpreal cr = getCenterReal_mp(x);
 
         mpreal zr, zi;
-        mpreal dr = 1, di = 0;
+        mpreal dr, di;
 
-        initCoords_mp(cr, ci, zr, zi);
+        initCoords_mp(cr, ci, zr, zi, dr, di);
 
-        mpreal mag = 0;
+        mpreal mag;
         int i = iterateFractalMpfr(cr, ci, zr, zi, dr, di, mag);
 
         colorPixelMpfr(pixels, pos, i, mag, zr, zi, dr, di);

@@ -18,7 +18,7 @@ ArgsVec::~ArgsVec() {
 
 ArgsVec ArgsVec::fromParsed(char *progName,
     std::vector<std::string> &&parsedArgs) {
-    int count = static_cast<int>(parsedArgs.size() + 1);
+    const int count = static_cast<int>(parsedArgs.size() + 1);
     ArgsVec result(count);
 
     result.argv[0] = strdup(progName);
@@ -37,7 +37,7 @@ namespace ParserUtil {
             return false;
         }
 
-        size_t len = strlen(str);
+        const size_t len = strlen(str);
 
         if (len != 4 && len != 5) {
             ok = false;
@@ -69,7 +69,7 @@ namespace ParserUtil {
         bool inQuotes = false;
         bool inEscape = false;
 
-        for (char c : cmd) {
+        for (const char c : cmd) {
             if (inEscape) {
                 current += c;
                 inEscape = false;

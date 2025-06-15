@@ -24,8 +24,8 @@ namespace PathUtil {
         splitFilename(std::string_view filePath) {
         std::string_view name, ext;
 
-        size_t lastDot = filePath.find_last_of('.');
-        size_t lastSlash = filePath.find_last_of("/\\");
+        const size_t lastDot = filePath.find_last_of('.');
+        const size_t lastSlash = filePath.find_last_of("/\\");
 
         if (lastDot != std::string::npos &&
             lastDot != filePath.length() - 1 &&
@@ -77,7 +77,7 @@ namespace PathUtil {
     std::string getAbsolutePath(std::string_view filePath) {
 #ifdef _WIN32
         char absPath[_MAX_PATH] = { 0 };
-        size_t copyLen = std::min(filePath.size(),
+        const size_t copyLen = std::min(filePath.size(),
             static_cast<size_t>(_MAX_PATH - 1));
         std::memcpy(absPath, filePath.data(), copyLen);
         absPath[copyLen] = '\0';

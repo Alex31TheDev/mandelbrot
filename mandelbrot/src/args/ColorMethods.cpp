@@ -20,6 +20,7 @@ namespace ColorMethods {
         fprintf(stderr, "Invalid colorMethod '%s'. Valid options: ", str);
 
         bool first = true;
+
         for (const ColorMethod &method : colorMethods) {
             fprintf(stderr, "%s%s", first ? "" : ", ", method.name);
             first = false;

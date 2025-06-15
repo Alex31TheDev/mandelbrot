@@ -63,8 +63,9 @@ static void renderStrip(Image *image,
         }
 #elif defined(USE_VECTORS)
         for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
-            int pixels_left = width - x;
-            int simd_width = (pixels_left < SIMD_FULL_WIDTH ? pixels_left : SIMD_FULL_WIDTH);
+            const int pixels_left = width - x;
+            const int simd_width = pixels_left < SIMD_FULL_WIDTH ?
+                pixels_left : SIMD_FULL_WIDTH;
 
             renderPixel(image->pixels(), pos, simd_width, x, ci);
         }
@@ -74,7 +75,7 @@ static void renderStrip(Image *image,
     }
 }
 
-void renderImageSequential(Image *image) {
+static void renderImageSequential(Image *image) {
     if (image == nullptr) return;
 
     RenderProgress progress(height);
@@ -82,7 +83,7 @@ void renderImageSequential(Image *image) {
     progress.complete(true);
 }
 
-void renderImageParallel(Image *image) {
+static void renderImageParallel(Image *image) {
     if (image == nullptr) return;
     ThreadPool<> &pool = getThreadPool();
 

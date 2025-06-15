@@ -24,15 +24,15 @@ namespace TimeUtil {
             return oss.str();
         }
 
-        int unitIndex = 0;
+        int unitIdx = 0;
         double count = static_cast<double>(millis);
 
-        while (unitIndex < maxSteps && count >= factors[unitIndex]) {
-            count /= factors[unitIndex];
-            unitIndex++;
+        while (unitIdx < maxSteps && count >= factors[unitIdx]) {
+            count /= factors[unitIdx];
+            unitIdx++;
         }
 
-        unitIndex = std::min(unitIndex, unitCount - 1);
+        unitIdx = std::min(unitIdx, unitCount - 1);
 
         if (count == std::floor(count)) {
             oss << std::setprecision(0);
@@ -40,7 +40,7 @@ namespace TimeUtil {
             oss << std::setprecision(1);
         }
 
-        oss << count << " " << units[unitIndex];
+        oss << count << " " << units[unitIdx];
         return oss.str();
     }
 }

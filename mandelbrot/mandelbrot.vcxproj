@@ -340,90 +340,112 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MPFR|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX2|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX512|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleScalar|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleScalar|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX2|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX512|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatScalar|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - MPFR|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatScalar|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatAVX2|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatAVX512|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleScalar|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleScalar|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleAVX2|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleAVX512|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
@@ -787,6 +809,7 @@
     <ClInclude Include="src\render\RenderGlobals.h" />
     <ClInclude Include="src\render\ThreadPool.h" />
     <ClInclude Include="src\render\ThreadSafeQueue.h" />
+    <ClInclude Include="src\scalar\ScalarColorPalette.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
     <ClInclude Include="src\util\fnv1a.h" />
@@ -822,6 +845,7 @@
     <ClCompile Include="src\args\Usage.cpp" />
     <ClCompile Include="src\image\BmpWriter.cpp" />
     <ClCompile Include="src\render\RenderGlobals.cpp" />
+    <ClCompile Include="src\scalar\ScalarColorPalette.cpp" />
     <ClCompile Include="src\util\BufferUtil.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\mpfr\MpfrGlobals.cpp" />

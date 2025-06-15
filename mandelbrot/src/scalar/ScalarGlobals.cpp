@@ -27,8 +27,8 @@ namespace ScalarGlobals {
     void initImageValues() {
         aspect = CAST_H(width) / height;
 
-        halfWidth = CAST_F(width) / 2;
-        halfHeight = CAST_F(height) / 2;
+        halfWidth = CAST_F(width) / SC_SYM_F(2.0);
+        halfHeight = CAST_F(height) / SC_SYM_F(2.0);
 
         invWidth = RECIP_F(width);
         invHeight = RECIP_F(height);
@@ -59,7 +59,7 @@ namespace ScalarGlobals {
     }
 
     bool setFractalExponent(scalar_full_t pw) {
-        if (pw <= 1) return false;
+        if (pw <= ONE_F) return false;
 
         N = pw;
         invLnPow = RECIP_H(LOG_H(pw));
@@ -86,7 +86,7 @@ namespace ScalarGlobals {
 
     bool setLightGlobals(scalar_half_t real, scalar_half_t imag) {
         const scalar_half_t mag = SQRT_H(real * real + imag * imag);
-        if (mag <= 0) return false;
+        if (NEG0_H(mag)) return false;
 
         light_r = real / mag;
         light_i = imag / mag;
