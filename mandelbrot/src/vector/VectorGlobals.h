@@ -2,9 +2,12 @@
 #ifdef USE_VECTORS
 
 #include "VectorTypes.h"
-#include "../util/MathConstants.h"
+#include "../scalar/ScalarTypes.h"
 
+#include "../util/MathConstants.h"
 #include "../scalar/ScalarGlobals.h"
+
+#include "VectorColorPalette.h"
 
 namespace VectorGlobals {
     using namespace ScalarGlobals;
@@ -20,8 +23,11 @@ namespace VectorGlobals {
     const simd_half_t h_invLnBail_vec = SIMD_SET_H(invLnBail);
     const simd_half_t h_pi_2 = SIMD_SET_H(M_PI_2);
     const simd_half_t h_255 = SIMD_SET_H(255.0);
+    const simd_half_t h_colorEps_vec = SIMD_SET_H(COLOR_EPS);
+    const simd_half_t h_epsilon_vec = SIMD_SET_H(HALF_EPSILON);
 
-    const simd_half_int_t hi_zero = SIMD_SET_INT64_H(0);
+    const simd_half_int_t hi_zero = SIMD_SET_INT_H(0);
+    const simd_half_int_t hi_one = SIMD_SET_INT_H(1);
 
     extern simd_full_t f_idx_vec;
     extern simd_full_t f_halfWidth_vec, f_invWidth_vec;
@@ -36,6 +42,8 @@ namespace VectorGlobals {
     extern simd_half_t h_light_r_vec, h_light_i_vec, h_light_h_vec;
 
     void initVectors();
+
+    const VectorColorPalette palette_vec(palette);
 }
 
 #else

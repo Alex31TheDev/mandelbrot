@@ -11,11 +11,7 @@ using namespace ScalarGlobals;
 
 constexpr auto makeIndexArray() {
     std::array<scalar_full_t, SIMD_FULL_WIDTH> arr{};
-
-    for (int i = 0; i < SIMD_FULL_WIDTH; i++) {
-        arr[i] = CAST_F(i);
-    }
-
+    for (int i = 0; i < SIMD_FULL_WIDTH; i++) arr[i] = CAST_F(i);
     return arr;
 }
 

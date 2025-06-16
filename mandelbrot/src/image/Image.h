@@ -30,9 +30,8 @@ public:
     [[nodiscard]] float aspect() const noexcept { return _aspect; }
 
     [[nodiscard]] uint8_t *pixels() noexcept { return _pixels.get(); }
-    [[nodiscard]] const uint8_t *pixels() const noexcept {
-        return _pixels.get();
-    }
+    [[nodiscard]] const uint8_t *
+        pixels() const noexcept { return _pixels.get(); }
 
     void clear();
 

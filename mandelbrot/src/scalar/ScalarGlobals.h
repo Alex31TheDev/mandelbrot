@@ -3,6 +3,7 @@
 #include "ScalarTypes.h"
 #include "../util/MathConstants.h"
 
+#include "../image/Image.h"
 #include "ScalarColorPalette.h"
 
 namespace ScalarGlobals {
@@ -27,6 +28,11 @@ namespace ScalarGlobals {
 
     constexpr scalar_half_t DEFAULT_LIGHT_R = SC_SYM_H(1.0);
     constexpr scalar_half_t DEFAULT_LIGHT_I = SC_SYM_H(1.0);
+
+    const scalar_half_t HALF_EPSILON =
+        NEXTAFTER_H(1, 2) - SC_SYM_H(1.0);
+    constexpr scalar_half_t COLOR_EPS =
+        Image::STRIDE * RECIP_H(SC_SYM_H(255.0));
 
     const scalar_half_t invLnBail = RECIP_H(LOG_H(BAILOUT));
 
@@ -55,10 +61,14 @@ namespace ScalarGlobals {
         scalar_half_t mult);
     bool setLightGlobals(scalar_half_t real, scalar_half_t imag);
 
-    const std::vector<ScalarColor> ramp = {
-       {1.0f, 0,    0,    1.0f},
-       {0,    1.0f, 0,    1.0f},
-       {0,    0,    1.0f, 1.0f}
+    const std::vector<ScalarColor> gradient = {
+       { 0.0f, 0.0f, 0.4f, 1.0f },
+       { 0.125f, 0.42f, 0.8f, 1.0f },
+       { 0.92f, 1.0f, 1.0f, 1.0f },
+       { 1.0f, 0.66f, 0.0f, 1.0f },
+       { 0.0f, 0.0f, 0.0f, 1.0f },
     };
-    const ScalarColorPalette palette(ramp, 64.0f);
+
+    const ScalarColorPalette palette(
+        gradient, 10.0f);
 }

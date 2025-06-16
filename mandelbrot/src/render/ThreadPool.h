@@ -34,7 +34,7 @@ public:
         ) : _tasks(threadCount) {
         size_t currentId = 0;
 
-        for (size_t i = 0; i < threadCount; ++i) {
+        for (size_t i = 0; i < threadCount; i++) {
             _priorityQueue.pushBack(size_t(currentId));
 
             try {
@@ -54,7 +54,7 @@ public:
                                     _inFlightTasks.fetch_sub(1, std::memory_order_release);
                                 }
 
-                                for (size_t j = 1; j < _tasks.size(); ++j) {
+                                for (size_t j = 1; j < _tasks.size(); j++) {
                                     const size_t index = (id + j) % _tasks.size();
 
                                     if (auto task = _tasks[index].tasks.steal()) {
@@ -77,7 +77,7 @@ public:
                     }
                 );
 
-                ++currentId;
+                currentId++;
             } catch (...) {
                 _tasks.pop_back();
                 std::ignore = _priorityQueue.popBack();
@@ -88,7 +88,7 @@ public:
     ~ThreadPool() {
         waitForTasks();
 
-        for (size_t i = 0; i < _threads.size(); ++i) {
+        for (size_t i = 0; i < _threads.size(); i++) {
             _threads[i].request_stop();
             _tasks[i].signal.release();
             _threads[i].join();

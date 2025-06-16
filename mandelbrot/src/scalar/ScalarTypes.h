@@ -37,11 +37,11 @@ typedef float scalar_half_t;
 #define ONE_F SC_SYM_F(1.0)
 #define ONE_H SC_SYM_F(1.0)
 
-#define ISZERO_F(x) (CAST_F(x) == ZERO_F)
-#define ISZERO_H(x) (CAST_H(x) == ZERO_H)
+#define IS0_F(x) (CAST_F(x) == ZERO_F)
+#define IS0_H(x) (CAST_H(x) == ZERO_H)
 
-#define NONZERO_F(x) (CAST_F(x) != ZERO_F)
-#define NONZERO_H(x) (CAST_H(x) != ZERO_H)
+#define NOT0_F(x) (CAST_F(x) != ZERO_F)
+#define NOT0_H(x) (CAST_H(x) != ZERO_H)
 
 #define POS_F(x) (CAST_F(x) > ZERO_F)
 #define POS_H(x) (CAST_H(x) > ZERO_H)
@@ -64,6 +64,15 @@ typedef float scalar_half_t;
 #define FUNC2_F(name, a, b) SC_SYM_F(name)(CAST_F(a), CAST_F(b))
 #define FUNC2_H(name, a, b) SC_SYM_H(name)(CAST_H(a), CAST_H(b))
 
+#define PARSE_F(str) FUNCS_F(strto, str, nullptr)
+#define PARSE_H(str) FUNCS_H(strto, str, nullptr)
+
+#define PARSE_INT32(str) static_cast<int32_t>(strtol(str, nullptr, 10))
+#define PARSE_INT64(str) static_cast<int64_t>(strtoll(str, nullptr, 10))
+
+#define ABS_F(x) FUNC1_F(fabs, x)
+#define ABS_H(x) FUNC1_H(fabs, x)
+
 #define FLOOR_F(x) FUNC1_F(floor, x)
 #define FLOOR_H(x) FUNC1_H(floor, x)
 
@@ -73,9 +82,6 @@ typedef float scalar_half_t;
 #define FRAC_F(x) (CAST_F(x) - FLOOR_F(x))
 #define FRAC_H(x) (CAST_H(x) - FLOOR_H(x))
 
-#define ABS_F(x) FUNC1_F(fabs, x)
-#define ABS_H(x) FUNC1_H(fabs, x)
-
 #define MIN_F(a, b) FUNC2_F(fmin, a, b)
 #define MIN_H(a, b) FUNC2_H(fmin, a, b)
 
@@ -84,12 +90,6 @@ typedef float scalar_half_t;
 
 #define CLAMP_F(x, a, b) MIN_F(MAX_F(x, a), b)
 #define CLAMP_H(x, a, b) MIN_H(MAX_H(x, a), b)
-
-#define PARSE_F(str) FUNCS_F(strto, str, nullptr)
-#define PARSE_H(str) FUNCS_H(strto, str, nullptr)
-
-#define PARSE_INT32(str) static_cast<int32_t>(strtol(str, nullptr, 10))
-#define PARSE_INT64(str) static_cast<int64_t>(strtoll(str, nullptr, 10))
 
 #define SQRT_F(x) FUNC1_F(sqrt, x)
 #define SQRT_H(x) FUNC1_H(sqrt, x)

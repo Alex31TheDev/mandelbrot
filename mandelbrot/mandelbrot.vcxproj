@@ -815,8 +815,8 @@
     <ClInclude Include="src\util\fnv1a.h" />
     <ClInclude Include="src\util\ParserUtil.h" />
     <ClInclude Include="src\args\Usage.h" />
-    <ClInclude Include="src\formulas\FormulaTypes.h" />
-    <ClInclude Include="src\formulas\FractalFormulas.h" />
+    <ClInclude Include="src\formula\FormulaTypes.h" />
+    <ClInclude Include="src\formula\FractalFormulas.h" />
     <ClInclude Include="src\mpfr\MpfrCoords.h" />
     <ClInclude Include="src\mpfr\MpfrGlobals.h" />
     <ClInclude Include="src\mpfr\MpfrRenderer.h" />
@@ -831,6 +831,7 @@
     <ClInclude Include="src\util\MathConstants.h" />
     <ClInclude Include="src\util\TemplateUtil.h" />
     <ClInclude Include="src\util\TimeUtil.h" />
+    <ClInclude Include="src\vector\VectorColorPalette.h" />
     <ClInclude Include="src\vector\VectorCoords.h" />
     <ClInclude Include="src\vector\VectorGlobals.h" />
     <ClInclude Include="src\image\Image.h" />
@@ -856,6 +857,7 @@
     <ClCompile Include="src\util\PathUtil.cpp" />
     <ClCompile Include="src\util\PathUtil.h" />
     <ClCompile Include="src\util\TimeUtil.cpp" />
+    <ClCompile Include="src\vector\VectorColorPalette.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
     <ClCompile Include="src\image\Image.cpp" />
     <ClCompile Include="src\Main.cpp" />

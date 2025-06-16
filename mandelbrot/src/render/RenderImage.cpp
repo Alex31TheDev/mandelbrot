@@ -17,10 +17,10 @@ constexpr auto renderPixel = &ScalarRenderer::renderPixelScalar;
 #elif defined(USE_VECTORS)
 #include "../vector/VectorTypes.h"
 #include "../vector/VectorRenderer.h"
-constexpr auto renderPixel = &VectorRenderer::renderPixelSimd;
+constexpr auto renderPixel = &VectorRenderer::renderPixelSIMD;
 #elif defined(USE_MPFR)
-#include "../mpfr/MpfrRenderer.h"
-constexpr auto renderPixel = &MpfrRenderer::renderPixelMpfr;
+#include "../mpfr/MPFRRenderer.h"
+constexpr auto renderPixel = &MPFRRenderer::renderPixelMPFR;
 #else
 #error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, or USE_MPFR)"
 #endif
@@ -29,7 +29,7 @@ constexpr auto renderPixel = &MpfrRenderer::renderPixelMpfr;
 #include "../scalar/ScalarCoords.h"
 constexpr auto imagCenterCoord = &getCenterImag;
 #elif defined(USE_MPFR)
-#include "../mpfr/MpfrCoords.h"
+#include "../mpfr/MPFRCoords.h"
 constexpr auto imagCenterCoord = &getCenterImag_mp;
 #endif
 
@@ -42,7 +42,8 @@ static ThreadPool<> &getThreadPool() {
     static std::once_flag initFlag;
 
     std::call_once(initFlag, [&]() {
-        pool = std::make_unique<ThreadPool<>>(std::thread::hardware_concurrency());
+        pool = std::make_unique<ThreadPool<>>
+            (std::thread::hardware_concurrency());
         });
 
     return *pool;
@@ -52,7 +53,7 @@ static void renderStrip(Image *image,
     int start_y, int end_y,
     RenderProgress *progress = nullptr) {
     if (image == nullptr) return;
-    int pos = start_y * width * Image::STRIDE;
+    size_t pos = static_cast<size_t>(start_y) * width * Image::STRIDE;
 
     for (int y = start_y; y < end_y; y++) {
         const auto ci = imagCenterCoord(y);

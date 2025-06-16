@@ -1,5 +1,5 @@
 #ifdef USE_MPFR
-#include "MpfrGlobals.h"
+#include "MPFRGlobals.h"
 
 #include "mpreal.h"
 using namespace mpfr;
@@ -9,7 +9,7 @@ using namespace mpfr;
 using namespace ScalarGlobals;
 using namespace RenderGlobals;
 
-namespace MpfrGlobals {
+namespace MPFRGlobals {
     mpreal aspect_mp;
     mpreal halfWidth_mp, halfHeight_mp;
     mpreal invWidth_mp, invHeight_mp;
@@ -18,12 +18,12 @@ namespace MpfrGlobals {
     mpreal point_r_mp = 0, point_i_mp = 0;
     mpreal seed_r_mp = 0, seed_i_mp = 0;
 
-    void initMpfr(int prec) {
+    void initMPFR(int prec) {
         if (prec <= 0) prec = digits;
         mpreal::set_default_prec(digits2bits(prec));
     }
 
-    void initMpfrValues(const char *pr_str, const char *pi_str) {
+    void initMPFRValues(const char *pr_str, const char *pi_str) {
         aspect_mp = static_cast<mpreal>(width) / height;
 
         halfWidth_mp = static_cast<mpreal>(width) / 2;

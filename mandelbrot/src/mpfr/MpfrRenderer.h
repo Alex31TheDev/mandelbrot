@@ -7,23 +7,23 @@
 
 #include "../util/InlineUtil.h"
 
-namespace MpfrRenderer {
+namespace MPFRRenderer {
     using namespace mpfr;
 
     void initCoords_mp(mpreal &cr, mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di);
-    int iterateFractalMpfr(const mpreal &cr, const mpreal &ci,
+    int iterateFractalMPFR(const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,
         mpreal &mag);
 
-    void colorPixelMpfr(uint8_t *pixels, int &pos,
+    void colorPixelMPFR(uint8_t *pixels, size_t &pos,
         int i, const mpreal &mag,
         const mpreal &zr, const mpreal &zi,
         const mpreal &dr, const mpreal &di);
 
-    void renderPixelMpfr(uint8_t *pixels, int &pos,
+    void renderPixelMPFR(uint8_t *pixels, size_t &pos,
         int x, mpreal ci);
 }
 

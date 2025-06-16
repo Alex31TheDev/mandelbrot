@@ -14,7 +14,7 @@ using namespace ParserUtil;
 #include "../render/RenderGlobals.h"
 #include "../scalar/ScalarGlobals.h"
 #include "../vector/VectorGlobals.h"
-#include "../mpfr/MpfrGlobals.h"
+#include "../mpfr/MPFRGlobals.h"
 using namespace RenderGlobals;
 using namespace ScalarGlobals;
 
@@ -163,7 +163,7 @@ namespace ArgsParser {
         }
 
         VectorGlobals::initVectors();
-        MpfrGlobals::initMpfrValues(argv[3], argv[4]);
+        MPFRGlobals::initMPFRValues(argv[3], argv[4]);
 
         return true;
     }

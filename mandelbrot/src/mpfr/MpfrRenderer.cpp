@@ -1,17 +1,17 @@
 #ifdef USE_MPFR
-#include "MpfrRenderer.h"
+#include "MPFRRenderer.h"
 
 #include <cstdint>
 
 #include "mpreal.h"
 #include "../scalar/ScalarTypes.h"
 
-#include "MpfrGlobals.h"
+#include "MPFRGlobals.h"
 #include "../scalar/ScalarGlobals.h"
-using namespace MpfrGlobals;
+using namespace MPFRGlobals;
 using namespace ScalarGlobals;
 
-#include "MpfrCoords.h"
+#include "MPFRCoords.h"
 
 #define FORMULA_MPFR
 #include "../formulas/FractalFormulas.h"
@@ -30,7 +30,7 @@ static FORCE_INLINE void complexInverse_mp(mpreal &cr, mpreal &ci) {
     }
 }
 
-namespace MpfrRenderer {
+namespace MPFRRenderer {
     FORCE_INLINE void initCoords_mp(
         mpreal &cr, mpreal &ci,
         mpreal &zr, mpreal &zi,
@@ -55,7 +55,7 @@ namespace MpfrRenderer {
         di = 0;
     }
 
-    FORCE_INLINE int iterateFractalMpfr(
+    FORCE_INLINE int iterateFractalMPFR(
         const mpreal &cr, const mpreal &ci,
         mpreal &zr, mpreal &zi,
         mpreal &dr, mpreal &di,
@@ -83,8 +83,8 @@ namespace MpfrRenderer {
         return i;
     }
 
-    FORCE_INLINE void colorPixelMpfr(
-        uint8_t *pixels, int &pos,
+    FORCE_INLINE void colorPixelMPFR(
+        uint8_t *pixels, size_t &pos,
         int i, const mpreal &mag,
         const mpreal &zr, const mpreal &zi,
         const mpreal &dr, const mpreal &di
@@ -100,8 +100,8 @@ namespace MpfrRenderer {
         colorPixelScalar(pixels, pos, i, mag_sc, zr_sc, zi_sc, dr_sc, di_sc);
     }
 
-    void renderPixelMpfr(
-        uint8_t *pixels, int &pos,
+    void renderPixelMPFR(
+        uint8_t *pixels, size_t &pos,
         int x, mpreal ci
     ) {
         mpreal cr = getCenterReal_mp(x);
@@ -112,9 +112,9 @@ namespace MpfrRenderer {
         initCoords_mp(cr, ci, zr, zi, dr, di);
 
         mpreal mag;
-        int i = iterateFractalMpfr(cr, ci, zr, zi, dr, di, mag);
+        int i = iterateFractalMPFR(cr, ci, zr, zi, dr, di, mag);
 
-        colorPixelMpfr(pixels, pos, i, mag, zr, zi, dr, di);
+        colorPixelMPFR(pixels, pos, i, mag, zr, zi, dr, di);
     }
 }
 

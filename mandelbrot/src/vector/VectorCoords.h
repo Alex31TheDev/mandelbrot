@@ -20,8 +20,8 @@ FORCE_INLINE simd_full_t getCenterReal_vec(int width, int x) {
 
     const simd_full_t vals = SIMD_ADD_F(scaled, f_point_r_vec);
 
-    const simd_full_mask_t mask = SIMD_CMP_LT_F(f_idx_vec, width_vec);
-    return SIMD_BLEND_F(f_bailout_vec, vals, mask);
+    const simd_full_mask_t valid = SIMD_CMP_LT_F(f_idx_vec, width_vec);
+    return SIMD_BLEND_F(f_bailout_vec, vals, valid);
 }
 
 #endif

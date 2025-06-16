@@ -5,7 +5,7 @@
 
 #include "../scalar/ScalarGlobals.h"
 
-namespace MpfrGlobals {
+namespace MPFRGlobals {
     using namespace mpfr;
     using namespace ScalarGlobals;
 
@@ -21,15 +21,15 @@ namespace MpfrGlobals {
     extern mpreal point_r_mp, point_i_mp;
     extern mpreal seed_r_mp, seed_i_mp;
 
-    void initMpfr(int prec = 0);
-    void initMpfrValues(const char *pr_str, const char *pi_str);
+    void initMPFR(int prec = 0);
+    void initMPFRValues(const char *pr_str, const char *pi_str);
 }
 
 #else
 
-namespace MpfrGlobals {
-    [[maybe_unused]] static void initMpfr(int = 0) {}
-    [[maybe_unused]] static void initMpfrValues(const char *, const char *) {}
+namespace MPFRGlobals {
+    [[maybe_unused]] static void initMPFR(int = 0) {}
+    [[maybe_unused]] static void initMPFRValues(const char *, const char *) {}
 }
 
 #endif

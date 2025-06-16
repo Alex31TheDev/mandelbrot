@@ -7,10 +7,11 @@
 #include "ScalarGlobals.h"
 using namespace ScalarGlobals;
 
+#include "../image/Image.h"
 #include "ScalarCoords.h"
 
 #define FORMULA_SCALAR
-#include "../formulas/FractalFormulas.h"
+#include "../formula/FractalFormulas.h"
 
 #include "../util/InlineUtil.h"
 
@@ -19,7 +20,7 @@ static FORCE_INLINE void complexInverse(
 ) {
     const scalar_full_t cmag = cr * cr + ci * ci;
 
-    if (NONZERO_F(cmag)) {
+    if (NOT0_F(cmag)) {
         cr = cr / cmag;
         ci = -ci / cmag;
     }
@@ -45,15 +46,17 @@ static FORCE_INLINE scalar_half_t normCos(scalar_half_t x) {
 
 static FORCE_INLINE void getColorPixel(scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB) {
-    //const scalar_half_t R_x = val * freq_r + phase_r;
-    //const scalar_half_t G_x = val * freq_g + phase_g;
-    //const scalar_half_t B_x = val * freq_b + phase_b;
-    //
-    //outR = normCos(R_x * 10);
-    //outG = normCos(G_x * 10);
-    //outB = normCos(B_x * 10);
+#if false
+    const scalar_half_t R_x = val * freq_r + phase_r;
+    const scalar_half_t G_x = val * freq_g + phase_g;
+    const scalar_half_t B_x = val * freq_b + phase_b;
 
+    outR = normCos(R_x * 10);
+    outG = normCos(G_x * 10);
+    outB = normCos(B_x * 10);
+#else
     palette.sample(val, outR, outG, outB);
+#endif
 }
 
 static FORCE_INLINE scalar_half_t getLightVal(
@@ -134,21 +137,25 @@ namespace ScalarRenderer {
         return i;
     }
 
-    FORCE_INLINE uint8_t pixelToInt(scalar_half_t val) {
+    FORCE_INLINE uint8_t colorToInt(scalar_half_t val) {
         scalar_half_t newVal = val * SC_SYM_H(255.0);
         newVal = CLAMP_H(newVal, 0, 255);
         return CAST_INT_U(newVal, 8);
     }
 
-    FORCE_INLINE void setPixel(uint8_t *pixels, int &pos,
+    FORCE_INLINE void setPixel(uint8_t *pixels, size_t &pos,
         scalar_half_t R, scalar_half_t G, scalar_half_t B) {
-        pixels[pos++] = pixelToInt(R);
-        pixels[pos++] = pixelToInt(G);
-        pixels[pos++] = pixelToInt(B);
+        if (R + G + B < COLOR_EPS) {
+            pos += Image::STRIDE;
+        } else {
+            pixels[pos++] = colorToInt(R);
+            pixels[pos++] = colorToInt(G);
+            pixels[pos++] = colorToInt(B);
+        }
     }
 
     FORCE_INLINE void colorPixelScalar(
-        uint8_t *pixels, int &pos,
+        uint8_t *pixels, size_t &pos,
         int i, scalar_full_t mag,
         scalar_full_t zr, scalar_full_t zi,
         scalar_full_t dr, scalar_full_t di
@@ -186,7 +193,7 @@ namespace ScalarRenderer {
     }
 
     void renderPixelScalar(
-        uint8_t *pixels, int &pos,
+        uint8_t *pixels, size_t &pos,
         int x, scalar_full_t ci
     ) {
         scalar_full_t cr = getCenterReal(x);
