@@ -74,27 +74,22 @@ namespace PathUtil {
         return result;
     }
 
-    std::string getAbsolutePath(std::string_view filePath) {
+    std::string getAbsolutePath(const std::string &filePath) {
 #ifdef _WIN32
         char absPath[_MAX_PATH] = { 0 };
-        const size_t copyLen = std::min(filePath.size(),
-            static_cast<size_t>(_MAX_PATH - 1));
-        std::memcpy(absPath, filePath.data(), copyLen);
-        absPath[copyLen] = '\0';
 
-        if (_fullpath(absPath, absPath, _MAX_PATH) != nullptr) {
-            return absPath;
+        if (_fullpath(absPath, filePath.c_str(), _MAX_PATH) != nullptr) {
+            return std::string(absPath);
         }
 #else
-        std::string temp(filePath);
-        char *resolved = realpath(temp.c_str(), nullptr);
+        char *resolved = realpath(filePath.c_str(), nullptr);
 
         if (resolved != nullptr) {
             std::string result(resolved);
             free(resolved);
-            return result;
+            return std::string(result);
         }
 #endif
-        return std::string(filePath);
+        return filePath;
     }
 }

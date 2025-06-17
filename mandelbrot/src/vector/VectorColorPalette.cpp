@@ -56,7 +56,7 @@ VectorColorPalette::_locate_vec(const simd_half_t &x) const {
 
     for (size_t i = 0; i + 1 < _numSegments; i++) {
         const simd_half_mask_t matched = SIMD_CMP_LE_H(_accum_vec[i + 1], t);
-        idx = SIMD_ADD_INT_MASK_H(idx, hi_one, matched);
+        idx = SIMD_ADD_INT_MASK_H(idx, hi_one, SIMD_HALF_TO_INT_CAST(matched));
     }
 
     const simd_half_t accum = SIMD_GATHER_H(_accum.data(), idx);

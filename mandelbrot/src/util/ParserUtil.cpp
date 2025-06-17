@@ -3,8 +3,19 @@
 #include <cctype>
 #include <cstring>
 
-#include <vector>
 #include <string>
+#include <string_view>
+#include <vector>
+
+static bool insensitiveCompare(std::string_view str, const char *target) {
+    if (str.size() != strlen(target)) return false;
+
+    for (size_t i = 0; i < str.size(); i++) {
+        if (tolower(str[i]) != target[i]) return false;
+    }
+
+    return true;
+};
 
 ArgsVec::ArgsVec(int count)
     : argc(count), argv(new char *[count + 1]) {
@@ -31,35 +42,22 @@ ArgsVec ArgsVec::fromParsed(char *progName,
 }
 
 namespace ParserUtil {
-    bool parseBool(const char *str, bool &ok) {
-        if (!str) {
-            ok = false;
-            return false;
+    bool parseBool(std::string_view input, bool *ok) {
+        bool valid = false;
+        bool result = false;
+
+        if (!input.empty()) {
+            if (insensitiveCompare(input, "true")) {
+                valid = true;
+                result = true;
+            } else if (insensitiveCompare(input, "false")) {
+                valid = true;
+                result = false;
+            }
         }
 
-        const size_t len = strlen(str);
-
-        if (len != 4 && len != 5) {
-            ok = false;
-            return false;
-        }
-
-        char lower[6] = { 0 };
-
-        for (int i = 0; i < 5 && str[i]; i++) {
-            lower[i] = static_cast<char>(tolower(str[i]));
-        }
-
-        if (strcmp(lower, "true") == 0) {
-            ok = true;
-            return true;
-        } else if (strcmp(lower, "false") == 0) {
-            ok = true;
-            return false;
-        }
-
-        ok = false;
-        return false;
+        if (ok) *ok = valid;
+        return result;
     }
 
     std::vector<std::string> parseCommandLine(const std::string &cmd) {

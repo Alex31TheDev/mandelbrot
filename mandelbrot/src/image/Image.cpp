@@ -5,7 +5,6 @@
 #include <cstring>
 
 #include <string>
-#include <string_view>
 #include <memory>
 
 #include <iostream>
@@ -48,7 +47,7 @@ void Image::clear() {
 }
 
 bool Image::writeToStream(std::ostream &fout,
-    const char *type) const {
+    const std::string &type) const {
     if (!_pixels) {
         fprintf(stderr, "Cannot write image. No pixel data allocated.\n");
         return false;
@@ -83,26 +82,26 @@ bool Image::writeToStream(std::ostream &fout,
                 _width, _height);
         break;
         default:
-            fprintf(stderr, "Invalid image type: %s\n", type);
+            fprintf(stderr, "Invalid image type: %s\n", type.c_str());
             return false;
     }
 
     if (result) return result;
     else {
-        fprintf(stderr, "Failed to write %s data to stream\n", type);
+        fprintf(stderr, "Failed to write %s data to stream\n", type.c_str());
         return false;
     }
 }
 
-bool Image::saveToFile(std::string_view filePath, bool appendDate,
-    const char *type) const {
+bool Image::saveToFile(const std::string &filePath, bool appendDate,
+    const std::string &type) const {
     if (!_pixels) {
         fprintf(stderr, "Cannot save image. No pixel data allocated.\n");
         return false;
     }
 
     const std::string outPath = appendDate ?
-        PathUtil::appendIsoDate(filePath) : std::string(filePath);
+        PathUtil::appendIsoDate(filePath) : filePath;
     const std::string absPath = PathUtil::getAbsolutePath(outPath);
 
     std::ofstream fout(absPath, std::ios::binary);
@@ -113,7 +112,7 @@ bool Image::saveToFile(std::string_view filePath, bool appendDate,
         printf("Successfully saved: %s (%dx%d)\n", absPath.c_str(),
             _width, _height);
     } else {
-        fprintf(stderr, "Failed to write %s file: %s\n", type,
+        fprintf(stderr, "Failed to write %s file: %s\n", type.c_str(),
             absPath.c_str());
     }
 

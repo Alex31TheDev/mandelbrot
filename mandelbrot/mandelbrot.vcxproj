@@ -829,6 +829,7 @@
     <ClInclude Include="src\scalar\ScalarGlobals.h" />
     <ClInclude Include="src\scalar\ScalarTypes.h" />
     <ClInclude Include="src\util\MathConstants.h" />
+    <ClInclude Include="src\util\ParserUtil_impl.h" />
     <ClInclude Include="src\util\TemplateUtil.h" />
     <ClInclude Include="src\util\TimeUtil.h" />
     <ClInclude Include="src\vector\VectorColorPalette.h" />

@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include <string>
-#include <string_view>
 #include <memory>
 #include <iostream>
 
@@ -36,9 +35,9 @@ public:
     void clear();
 
     bool writeToStream(std::ostream &fout,
-        const char *type = "png") const;
-    bool saveToFile(std::string_view filePath, bool appendDate = false,
-        const char *type = "png") const;
+        const std::string &type = "png") const;
+    bool saveToFile(const std::string &filePath, bool appendDate = false,
+        const std::string &type = "png") const;
 
     Image(const Image &) = delete;
     Image &operator=(const Image &) = delete;

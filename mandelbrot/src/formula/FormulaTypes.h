@@ -14,6 +14,7 @@ typedef number_t number_param_t;
 #define NUM_MUL(a, b) (CAST_F(a) * (b))
 #define NUM_DIV(a, b) (CAST_F(a) / (b))
 
+#define NUM_NEG(x) -(x)
 #define NUM_ABS ABS_F
 
 #define NUM_SQRT SQRT_F
@@ -37,6 +38,7 @@ typedef const number_t &number_param_t;
 #define NUM_MUL SIMD_MUL_F
 #define NUM_DIV SIMD_DIV_F
 
+#define NUM_NEG SIMD_NEG_F
 #define NUM_ABS SIMD_ABS_F
 
 #define NUM_SQRT SIMD_SQRT_F
@@ -60,6 +62,7 @@ typedef const number_t &number_param_t;
 #define NUM_MUL(a, b) ((a) * (b))
 #define NUM_DIV(a, b) ((a) / (b))
 
+#define NUM_NEG(x) -(x)
 #define NUM_ABS(x) abs(x)
 
 #define NUM_SQRT(x) sqrt(x)

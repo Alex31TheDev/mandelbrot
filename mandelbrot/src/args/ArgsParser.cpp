@@ -18,6 +18,9 @@ using namespace ParserUtil;
 using namespace RenderGlobals;
 using namespace ScalarGlobals;
 
+#define PARSE_NUM(idx, default) \
+    parseNumber(argc, argv, idx, DEFAULT_ ## default)
+
 static const char *flagHelp = "flag must be \"true\" or \"false\"";
 
 namespace ArgsParser {
@@ -77,7 +80,7 @@ namespace ArgsParser {
 
         if (argc > 7) {
             bool ok;
-            useThreads = parseBool(argv[7], ok);
+            useThreads = parseBool(argv[7], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nThreads %s.\n", flagHelp);
@@ -96,7 +99,7 @@ namespace ArgsParser {
 
         if (argc > 9) {
             bool ok;
-            isJuliaSet = parseBool(argv[9], ok);
+            isJuliaSet = parseBool(argv[9], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nJulia set %s.\n", flagHelp);
@@ -106,7 +109,7 @@ namespace ArgsParser {
 
         if (argc > 10) {
             bool ok;
-            isInverse = parseBool(argv[10], ok);
+            isInverse = parseBool(argv[10], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nInverse %s.\n", flagHelp);
@@ -114,11 +117,10 @@ namespace ArgsParser {
             }
         }
 
-        seed_r = argc > 11 ? PARSE_F(argv[11]) : DEFAULT_SEED_R;
-        seed_i = argc > 12 ? PARSE_F(argv[12]) : DEFAULT_SEED_I;
+        seed_r = PARSE_NUM(11, SEED_R);
+        seed_i = PARSE_NUM(12, SEED_I);
 
-        const scalar_full_t pw = argc > 13 ?
-            PARSE_F(argv[13]) : DEFAULT_FRACTAL_EXP;
+        const scalar_full_t pw = PARSE_NUM(13, FRACTAL_EXP);
 
         if (!setFractalExponent(pw)) {
             fprintf(stderr, "Invalid args.\nFractal exponent must be > 1.\n");
@@ -129,11 +131,10 @@ namespace ArgsParser {
             case 0:
             case 1:
             {
-                const float R = argc > 14 ? PARSE_H(argv[14]) : DEFAULT_FREQ_R;
-                const float G = argc > 15 ? PARSE_H(argv[15]) : DEFAULT_FREQ_G;
-                const float B = argc > 16 ? PARSE_H(argv[16]) : DEFAULT_FREQ_B;
-                const float mult = argc > 17 ?
-                    PARSE_H(argv[17]) : DEFAULT_FREQ_MULT;
+                const scalar_half_t R = PARSE_NUM(14, FREQ_R);
+                const scalar_half_t G = PARSE_NUM(15, FREQ_G);
+                const scalar_half_t B = PARSE_NUM(16, FREQ_B);
+                const scalar_half_t mult = PARSE_NUM(17, FREQ_MULT);
 
                 if (!setColorGlobals(R, G, B, mult)) {
                     fprintf(stderr, "Invalid args.\n"
@@ -145,10 +146,8 @@ namespace ArgsParser {
 
             case 2:
             {
-                const float real = argc > 14 ?
-                    PARSE_H(argv[14]) : DEFAULT_LIGHT_R;
-                const float imag = argc > 15 ?
-                    PARSE_H(argv[15]) : DEFAULT_LIGHT_I;
+                const scalar_half_t real = PARSE_NUM(14, LIGHT_R);
+                const scalar_half_t imag = PARSE_NUM(15, LIGHT_I);
 
                 if (!setLightGlobals(real, imag)) {
                     fprintf(stderr, "Invalid args.\n"

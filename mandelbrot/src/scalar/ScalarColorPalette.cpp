@@ -55,7 +55,7 @@ ScalarColorPalette::ScalarColorPalette(
     if (!_blendEnds) _totalLength = _accum[_numSegments];
     _invLength = POS_H(_totalLength) ? RECIP_H(_totalLength) : ZERO_H;
 
-    _offset = CLAMP_H(_offset, 0, _totalLength);
+    _offset = CLAMP_H(offset, 0, _totalLength);
     _epsilon = NEXTAFTER_H(_totalLength, 0);
 }
 
@@ -63,8 +63,8 @@ ScalarColorPalette::_Segment
 ScalarColorPalette::_locate(scalar_half_t x) const {
     if (_numSegments == 0) return { 0, 0, ZERO_H };
 
-    x += _offset;
-    scalar_half_t t = x - _totalLength * FLOOR_H(x * _invLength);
+    const scalar_half_t inVal= x + _offset;
+    scalar_half_t t = inVal - _totalLength * FLOOR_H(inVal * _invLength);
     if (NEG_H(t)) t += _totalLength;
     t = MIN_H(t, _epsilon);
 

@@ -9,5 +9,5 @@ namespace PathUtil {
         splitFilename(std::string_view filePath);
     std::string appendSeqnum(std::string_view filePath, int x);
     std::string appendIsoDate(std::string_view filePath);
-    std::string getAbsolutePath(std::string_view filePath);
+    std::string getAbsolutePath(const std::string &filePath);
 }

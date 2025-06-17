@@ -349,6 +349,24 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_SUB_INT_H SIMD_SUB_INT64_H
 #endif
 
+#define SIMD_MUL_INT32_F(a, b) SIMD_FUNC_INT_F(mul, 32, a, b)
+#define SIMD_MUL_INT32_H(a, b) SIMD_FUNC_INT_H(mul, 32, a, b)
+
+#define SIMD_MUL_INT64_F(a, b) SIMD_FUNC_INT_F(mul, 64, a, b)
+#define SIMD_MUL_INT64_H(a, b) SIMD_FUNC_INT_H(mul, 64, a, b)
+
+#if _FULL_SIZE == 32
+#define SIMD_MUL_INT_F SIMD_MUL_INT32_F
+#elif _FULL_SIZE == 64
+#define SIMD_MUL_INT_F SIMD_MUL_INT64_F
+#endif
+
+#if _HALF_SIZE == 32
+#define SIMD_MUL_INT_H SIMD_MUL_INT32_H
+#elif _HALF_SIZE == 64
+#define SIMD_MUL_INT_H SIMD_MUL_INT64_H
+#endif
+
 #if defined(__AVX512__)
 #define SIMD_MASK_F(x) static_cast<simd_full_mask_t>(x)
 #define SIMD_MASK_H(x) static_cast<simd_half_mask_t>(x)
@@ -358,8 +376,8 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #endif
 
 #if defined(__AVX512__)
-#define SIMD_AND_F(a, b) SIMD_FUNC_DEC_F(maskz_mov, b, a)
-#define SIMD_AND_H(a, b) SIMD_FUNC_DEC_H(maskz_mov, b, a)
+#define SIMD_AND_F(a, b) SIMD_FUNC_DEC_F(maskz_and, b, a)
+#define SIMD_AND_H(a, b) SIMD_FUNC_DEC_H(maskz_and, b, a)
 #else
 #define SIMD_AND_F(a, b) SIMD_FUNC_DEC_F(and, a, b)
 #define SIMD_AND_H(a, b) SIMD_FUNC_DEC_H(and, a, b)
@@ -378,8 +396,53 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_AND_MASK_H SIMD_AND_H
 #endif
 
+#if defined(__AVX512__)
+#define SIMD_OR_F(a, b) SIMD_FUNC_DEC_F(maskz_or, b, a)
+#define SIMD_OR_H(a, b) SIMD_FUNC_DEC_H(maskz_or, b, a)
+#else
+#define SIMD_OR_F(a, b) SIMD_FUNC_DEC_F(or, a, b)
+#define SIMD_OR_H(a, b) SIMD_FUNC_DEC_H(or, a, b)
+#endif
+
+#if defined(__AVX512__)
+#define SIMD_OR_MASK_F(a, b) (a) | (b)
+#define SIMD_OR_MASK_H SIMD_OR_MASK_F
+#else
+#define SIMD_OR_MASK_F SIMD_OR_F
+#define SIMD_OR_MASK_H SIMD_OR_H
+#endif
+
+#if defined(__AVX512__)
+#define SIMD_XOR_F(a, b) SIMD_FUNC_DEC_F(maskz_xor, b, a)
+#define SIMD_XOR_H(a, b) SIMD_FUNC_DEC_H(maskz_xor, b, a)
+#else
+#define SIMD_XOR_F(a, b) SIMD_FUNC_DEC_F(xor, a, b)
+#define SIMD_XOR_H(a, b) SIMD_FUNC_DEC_H(xor, a, b)
+#endif
+
+#if defined(__AVX512__)
+#define SIMD_XOR_MASK_F(a, b) (a) ^ (b)
+#define SIMD_XOR_MASK_H SIMD_XOR_MASK_F
+#else
+#define SIMD_XOR_MASK_F SIMD_XOR_F
+#define SIMD_XOR_MASK_H SIMD_XOR_H
+#endif
+
+#if defined(__AVX512__)
+#define SIMD_NOT_MASK_F(x) ~(x)
+#define SIMD_NOT_MASK_H SIMD_NOT_MASK_F
+#else
+#define SIMD_NOT_MASK_F(x) SIMD_XOR_F(x, SIMD_INIT_ONES_MASK_F)
+#define SIMD_NOT_MASK_H(x) SIMD_XOR_H(x, SIMD_INIT_ONES_MASK_H)
+#endif
+
+#if defined(__AVX512__)
+#define SIMD_ANDNOT_F(a, b) SIMD_FUNC_DEC_F(maskz_andnot, b, a)
+#define SIMD_ANDNOT_H(a, b) SIMD_FUNC_DEC_H(maskz_andnot, b, a)
+#else
 #define SIMD_ANDNOT_F(a, b) SIMD_FUNC_DEC_F(andnot, a, b)
 #define SIMD_ANDNOT_H(a, b) SIMD_FUNC_DEC_H(andnot, a, b)
+#endif
 
 #if defined(__AVX512__)
 #define SIMD_ANDNOT_MASK_F(a, b) (a) & ~(b)
@@ -440,10 +503,18 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #else
 
 #define SIMD_ADD_INT_MASK_F(a, b, mask) \
-    SIMD_ADD_INT_F(a, SIMD_AND_INT_H(SIMD_FULL_TO_INT_CONV(mask), b))
+    SIMD_ADD_INT_F(a, SIMD_AND_INT_H(mask, b))
 #define SIMD_ADD_INT_MASK_H(a, b, mask) \
-    SIMD_ADD_INT_H(a, SIMD_AND_INT_H(SIMD_HALF_TO_INT_CONV(mask), b))
+    SIMD_ADD_INT_H(a, SIMD_AND_INT_H(mask, b))
 
+#endif
+
+#if defined(__AVX512__)
+#define SIMD_SUB_MASK_F(a, b, mask) SIMD_FUNC_DEC_F(mask_sub, a, mask, a, b)
+#define SIMD_SUB_MASK_H(a, b, mask) SIMD_FUNC_DEC_H(mask_sub, a, mask, a, b)
+#else
+#define SIMD_SUB_MASK_F(a, b, mask) SIMD_SUB_F(a, SIMD_AND_F(mask, b))
+#define SIMD_SUB_MASK_H(a, b, mask) SIMD_SUB_H(a, SIMD_AND_H(mask, b))
 #endif
 
 #if defined(__AVX512__)
@@ -459,6 +530,9 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 
 #define SIMD_MAX_F(a, b) SIMD_FUNC_DEC_F(max, a, b)
 #define SIMD_MAX_H(a, b) SIMD_FUNC_DEC_H(max, a, b)
+
+#define SIMD_NEG_F(x) SIMD_XOR_F(x, SIMD_SET_F(-0.0))
+#define SIMD_NEG_H(x) SIMD_XOR_H(x, SIMD_SET_H(-0.0))
 
 #define SIMD_ABS_F(x) SIMD_ANDNOT_F(SIMD_SET_F(-0.0), x)
 #define SIMD_ABS_H(x) SIMD_ANDNOT_H(SIMD_SET_H(-0.0), x)
