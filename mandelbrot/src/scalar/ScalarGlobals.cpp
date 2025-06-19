@@ -1,3 +1,4 @@
+#include "CommonDefs.h"
 #include "ScalarGlobals.h"
 
 #include "ScalarTypes.h"

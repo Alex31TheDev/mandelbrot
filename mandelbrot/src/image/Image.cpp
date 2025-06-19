@@ -10,10 +10,12 @@
 #include <iostream>
 #include <fstream>
 
-#pragma warning(push, 0)
+#include "../util/WarningUtil.h"
+
+PUSH_DISABLE_WARNINGS
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-#pragma warning(pop)
+POP_DISABLE_WARNINGS
 
 #include "BmpWriter.h"
 

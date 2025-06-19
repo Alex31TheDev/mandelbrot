@@ -1,4 +1,5 @@
 #ifdef USE_MPFR
+#include "CommonDefs.h"
 #include "MPFRRenderer.h"
 
 #include <cstdint>

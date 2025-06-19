@@ -1,3 +1,4 @@
+#include "CommonDefs.h"
 #include "ScalarRenderer.h"
 
 #include <cstdint>

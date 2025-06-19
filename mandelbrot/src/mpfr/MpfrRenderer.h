@@ -1,5 +1,6 @@
 #pragma once
 #ifdef USE_MPFR
+#include "CommonDefs.h"
 
 #include <cstdint>
 

@@ -1,4 +1,5 @@
 #ifdef USE_VECTORS
+#include "CommonDefs.h"
 #include "VectorRenderer.h"
 
 #include <cstdint>
@@ -20,8 +21,6 @@ using namespace ScalarGlobals;
 
 #include "../util/InlineUtil.h"
 #include "../util/TemplateUtil.h"
-
-#define USE_VECTOR_STORE
 
 static FORCE_INLINE void complexInverse_vec(
     simd_full_t &real, simd_full_t &imag

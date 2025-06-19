@@ -1,3 +1,4 @@
+#include "CommonDefs.h"
 #include "ScalarColorPalette.h"
 
 #include <vector>
@@ -8,7 +9,7 @@ ScalarColorPalette::ScalarColorPalette(
     const std::vector<ScalarColor> &entries,
     scalar_half_t totalLength, scalar_half_t offset,
     bool blendEnds
-) : _totalLength(totalLength), _blendEnds(blendEnds) {
+) : _blendEnds(blendEnds), _totalLength(totalLength) {
     if (entries.empty() || NEG0_H(_totalLength)) {
         _totalLength = ONE_H;
         _invLength = ZERO_H;
@@ -63,7 +64,7 @@ ScalarColorPalette::_Segment
 ScalarColorPalette::_locate(scalar_half_t x) const {
     if (_numSegments == 0) return { 0, 0, ZERO_H };
 
-    const scalar_half_t inVal= x + _offset;
+    const scalar_half_t inVal = x + _offset;
     scalar_half_t t = inVal - _totalLength * FLOOR_H(inVal * _invLength);
     if (NEG_H(t)) t += _totalLength;
     t = MIN_H(t, _epsilon);

@@ -1,8 +1,8 @@
 #pragma once
 #ifdef USE_VECTORS
+#include "CommonDefs.h"
 
 #include "VectorTypes.h"
-
 #include "VectorGlobals.h"
 
 #include "../util/InlineUtil.h"

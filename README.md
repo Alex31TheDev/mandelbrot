@@ -53,7 +53,7 @@ cd mandelbrot
 ```bash
 clang++ -std=c++20 -O3 \
     -o mandelbrot_app \
-    -DUSE_VECTORS -DUSE_DOUBLES \
+    -DUSE_DOUBLES -DUSE_VECTORS \
     -I ./mandelbrot/src \
     $(find ./mandelbrot/src -name '*.cpp') \
     -I "$VCPKG_ROOT/installed/x64-linux/include" \

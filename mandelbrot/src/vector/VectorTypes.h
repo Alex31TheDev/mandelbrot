@@ -1,10 +1,15 @@
 #pragma once
 #ifdef USE_VECTORS
+#include "CommonDefs.h"
 
 #include <immintrin.h>
-#pragma warning(push, 0)
+#ifdef USE_SLEEF
+#include "../util/WarningUtil.h"
+
+PUSH_DISABLE_WARNINGS
 #include <sleef.h>
-#pragma warning(pop)
+POP_DISABLE_WARNINGS
+#endif
 
 #include "../scalar/ScalarTypes.h"
 
@@ -12,17 +17,17 @@
 
 #define SIMD_SYM_F(a) _CONCAT2(a, SIMD_FULL_ARCH_WIDTH)
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_FULL_ARCH_WIDTH 512
-#elif defined(__AVX2__)
+#elif AVX2
 #define  SIMD_FULL_ARCH_WIDTH 256
-#elif defined(__SSE2__)
+#elif SSE
 #define SIMD_FULL_ARCH_WIDTH 128
 
 #undef SIMD_SYM_F
 #define SIMD_SYM_F(a) _EVAL(a)
 #else
-#error "No supported SIMD instruction set detected (requires __SSE2__, __AVX2__, or __AVX512__)."
+#error "No supported SIMD instruction set detected (requires SSE4.2, AVX2 or AVX512)."
 #endif
 
 #if defined(USE_FLOATS)
@@ -33,14 +38,14 @@
 #elif defined(USE_DOUBLES)
 #define SIMD_SYM_H(a) _EVAL(a)
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_HALF_ARCH_WIDTH 256
 
 #undef SIMD_SYM_H
 #define SIMD_SYM_H(a) _CONCAT2(a, SIMD_HALF_ARCH_WIDTH)
-#elif defined(__AVX2__)
+#elif AVX2
 #define SIMD_HALF_ARCH_WIDTH 128
-#elif defined(__SSE2__)
+#elif SSE
 #define SIMD_HALF_ARCH_WIDTH 128
 #endif
 
@@ -52,35 +57,44 @@
 
 #define HALF_SUFFIX ps
 #define _HALF_SIZE 32
-#define _SLEEF_HALF_SUFFIX f
 
 #if defined(USE_FLOATS)
 #define FULL_SUFFIX HALF_SUFFIX
 #define _FULL_SIZE _HALF_SIZE
-#define _SLEEF_FULL_SUFFIX _SLEEF_HALF_SUFFIX
 #elif defined(USE_DOUBLES)
 #define FULL_SUFFIX pd
 #define _FULL_SIZE 64
+#endif
+
+#ifdef USE_SLEEF
+
+#define _SLEEF_HALF_SUFFIX f
+
+#if defined(USE_FLOATS)
+#define _SLEEF_FULL_SUFFIX _SLEEF_HALF_SUFFIX
+#elif defined(USE_DOUBLES)
 #define _SLEEF_FULL_SUFFIX d
+#endif
+
 #endif
 
 #if defined(USE_FLOATS)
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_FULL_WIDTH 16
-#elif defined(__AVX2__)
+#elif AVX2
 #define SIMD_FULL_WIDTH 8
-#elif defined(__SSE2__)
+#elif SSE
 #define SIMD_FULL_WIDTH 4
 #endif
 
 #elif defined(USE_DOUBLES)
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_FULL_WIDTH 8
-#elif defined(__AVX2__)
+#elif AVX2
 #define SIMD_FULL_WIDTH 4
-#elif defined(__SSE2__)
+#elif SSE
 #define SIMD_FULL_WIDTH 2
 #endif
 
@@ -93,7 +107,7 @@ constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #define simd_full_int_t _CONCAT3(__m, SIMD_FULL_ARCH_WIDTH, i)
 #define simd_half_int_t _CONCAT3(__m, SIMD_HALF_ARCH_WIDTH, i)
 
-#if defined(__AVX512__)
+#if AVX512
 #define simd_full_mask_t _CONCAT2(__mmask, SIMD_FULL_WIDTH)
 #define simd_half_mask_t _CONCAT2(__mmask, SIMD_HALF_WIDTH)
 
@@ -135,12 +149,16 @@ constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #define SIMD_FUNC_INT_MASK_H(name, size, ...) \
     SIMD_FUNC_H(name, epi ## size ## _mask, __VA_ARGS__)
 
+#ifdef USE_SLEEF
+
 #define SLEEF_FUNC_DEC_F(name, prec, ...) \
     _CONCAT4(Sleef_ ## name, _SLEEF_FULL_SUFFIX, \
     SIMD_FULL_WIDTH, _u ## prec)(__VA_ARGS__)
 #define SLEEF_FUNC_DEC_H(name, prec, ...) \
     _CONCAT4(Sleef_ ## name, _SLEEF_HALF_SUFFIX, \
     SIMD_HALF_WIDTH, _u ## prec)(__VA_ARGS__)
+
+#endif
 
 #define SIMD_LOAD_F(ptr) \
     SIMD_FUNC_DEC_F(loadu, reinterpret_cast<const scalar_full_t *>(ptr))
@@ -224,7 +242,7 @@ constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #define SIMD_FULL_TO_HALF_CONV(x) x
 #elif defined(USE_DOUBLES)
 
-#if defined(__AVX512__)
+#if AVX512
 #include "../util/InlineUtil.h"
 
 FORCE_INLINE __m256 SIMD_FULL_TO_HALF_CONV(__m512d x) {
@@ -272,7 +290,7 @@ constexpr int SIMD_ZERO_LANES_H = 0;
 constexpr int SIMD_ONES_LANES_F = (1 << SIMD_FULL_WIDTH) - 1;
 constexpr int SIMD_ONES_LANES_H = (1 << SIMD_HALF_WIDTH) - 1;
 
-#if defined(__AVX512__)
+#if AVX512
 constexpr simd_full_mask_t SIMD_INIT_ZERO_MASK_F = SIMD_ZERO_LANES_F;
 constexpr simd_full_mask_t SIMD_INIT_ZERO_MASK_H = SIMD_ZERO_LANES_H;
 
@@ -286,7 +304,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_INIT_ONES_MASK_H SIMD_INT_TO_HALF_CAST(SIMD_SET_INT_H(-1))
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_FULL_MASK_TO_HALF(x) SIMD_AND_H(SIMD_SET_H(1), x)
 #else
 #define SIMD_FULL_MASK_TO_HALF SIMD_FULL_TO_HALF_CONV
@@ -367,7 +385,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_MUL_INT_H SIMD_MUL_INT64_H
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_MASK_F(x) static_cast<simd_full_mask_t>(x)
 #define SIMD_MASK_H(x) static_cast<simd_half_mask_t>(x)
 #else
@@ -375,7 +393,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_MASK_H(x) SIMD_FUNC_DEC_H(movemask, x)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_AND_F(a, b) SIMD_FUNC_DEC_F(maskz_and, b, a)
 #define SIMD_AND_H(a, b) SIMD_FUNC_DEC_H(maskz_and, b, a)
 #else
@@ -388,7 +406,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_AND_INT_H(a, b) \
     SIMD_FUNC_H(and, _CONCAT2(si, SIMD_HALF_ARCH_WIDTH), a, b)
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_AND_MASK_F(a, b) (a) & (b)
 #define SIMD_AND_MASK_H SIMD_AND_MASK_F
 #else
@@ -396,7 +414,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_AND_MASK_H SIMD_AND_H
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_OR_F(a, b) SIMD_FUNC_DEC_F(maskz_or, b, a)
 #define SIMD_OR_H(a, b) SIMD_FUNC_DEC_H(maskz_or, b, a)
 #else
@@ -404,7 +422,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_OR_H(a, b) SIMD_FUNC_DEC_H(or, a, b)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_OR_MASK_F(a, b) (a) | (b)
 #define SIMD_OR_MASK_H SIMD_OR_MASK_F
 #else
@@ -412,7 +430,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_OR_MASK_H SIMD_OR_H
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_XOR_F(a, b) SIMD_FUNC_DEC_F(maskz_xor, b, a)
 #define SIMD_XOR_H(a, b) SIMD_FUNC_DEC_H(maskz_xor, b, a)
 #else
@@ -420,7 +438,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_XOR_H(a, b) SIMD_FUNC_DEC_H(xor, a, b)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_XOR_MASK_F(a, b) (a) ^ (b)
 #define SIMD_XOR_MASK_H SIMD_XOR_MASK_F
 #else
@@ -428,7 +446,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_XOR_MASK_H SIMD_XOR_H
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_NOT_MASK_F(x) ~(x)
 #define SIMD_NOT_MASK_H SIMD_NOT_MASK_F
 #else
@@ -436,7 +454,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_NOT_MASK_H(x) SIMD_XOR_H(x, SIMD_INIT_ONES_MASK_H)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_ANDNOT_F(a, b) SIMD_FUNC_DEC_F(maskz_andnot, b, a)
 #define SIMD_ANDNOT_H(a, b) SIMD_FUNC_DEC_H(maskz_andnot, b, a)
 #else
@@ -444,7 +462,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_ANDNOT_H(a, b) SIMD_FUNC_DEC_H(andnot, a, b)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_ANDNOT_MASK_F(a, b) (a) & ~(b)
 #define SIMD_ANDNOT_MASK_H SIMD_ANDNOT_MASK_F
 #else
@@ -452,7 +470,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_ANDNOT_MASK_H SIMD_ANDNOT_H
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_BLEND_F(a, b, x) SIMD_FUNC_DEC_F(mask_blend, x, a, b)
 #define SIMD_BLEND_H(a, b, x) SIMD_FUNC_DEC_H(mask_blend, x, a, b)
 #else
@@ -460,7 +478,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_BLEND_H(a, b, x) SIMD_FUNC_DEC_H(blendv, a, b, x)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_BLEND_INT8_F(a, b, x) SIMD_FUNC_INT_F(mask_blend, 8, x, a, b)
 #define SIMD_BLEND_INT8_H(a, b, x) SIMD_FUNC_INT_H(mask_blend, 8, x, a, b)
 #else
@@ -468,7 +486,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_BLEND_INT8_H(a, b, x) SIMD_FUNC_INT_H(blendv, 8, a, b, x)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_ADD_MASK_F(a, b, mask) SIMD_FUNC_DEC_F(mask_add, a, mask, a, b)
 #define SIMD_ADD_MASK_H(a, b, mask) SIMD_FUNC_DEC_H(mask_add, a, mask, a, b)
 #else
@@ -476,7 +494,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_ADD_MASK_H(a, b, mask) SIMD_ADD_H(a, SIMD_AND_H(mask, b))
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 
 #define SIMD_ADD_INT32_MASK_F(a, b, mask) \
     SIMD_FUNC_INT_F(mask_add, 32, a, mask, a, b)
@@ -509,7 +527,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_SUB_MASK_F(a, b, mask) SIMD_FUNC_DEC_F(mask_sub, a, mask, a, b)
 #define SIMD_SUB_MASK_H(a, b, mask) SIMD_FUNC_DEC_H(mask_sub, a, mask, a, b)
 #else
@@ -517,7 +535,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_SUB_MASK_H(a, b, mask) SIMD_SUB_H(a, SIMD_AND_H(mask, b))
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_MUL_MASK_F(a, b, mask) SIMD_FUNC_DEC_F(mask_mul, a, mask, a, b)
 #define SIMD_MUL_MASK_H(a, b, mask) SIMD_FUNC_DEC_H(mask_mul, a, mask, a, b)
 #else
@@ -537,7 +555,7 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_ABS_F(x) SIMD_ANDNOT_F(SIMD_SET_F(-0.0), x)
 #define SIMD_ABS_H(x) SIMD_ANDNOT_H(SIMD_SET_H(-0.0), x)
 
-#if defined(__AVX512__)
+#if AVX512
 #include "../util/InlineUtil.h"
 
 FORCE_INLINE __m512 _floor_ps(__m512 x) {
@@ -573,15 +591,15 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 #define SIMD_FLOOR_H(x) SIMD_FUNC_DEC_H(floor, x)
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define SIMD_CMP_F(a, b, x) SIMD_FUNC_DEC_MASK_F(cmp, a, b, x)
 #define SIMD_CMP_H(a, b, x) SIMD_FUNC_DEC_MASK_H(cmp, a, b, x)
-#elif defined(__AVX2__)
+#elif AVX2
 #define SIMD_CMP_F(a, b, x) SIMD_FUNC_DEC_F(cmp, a, b, x)
 #define SIMD_CMP_H(a, b, x) SIMD_FUNC_DEC_H(cmp, a, b, x)
 #endif
 
-#if defined(__AVX512__) || defined(__AVX2__)
+#if AVX512 || AVX2
 
 #define SIMD_CMP_EQ_F(a, b) SIMD_CMP_F(a, b, _CMP_EQ_OQ)
 #define SIMD_CMP_EQ_H(a, b) SIMD_CMP_H(a, b, _CMP_EQ_OQ)
@@ -601,7 +619,7 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 #define SIMD_CMP_GE_F(a, b) SIMD_CMP_F(a, b, _CMP_GE_OQ)
 #define SIMD_CMP_GE_H(a, b) SIMD_CMP_H(a, b, _CMP_GE_OQ)
 
-#elif defined(__SSE2__)
+#elif SSE
 
 #define SIMD_CMP_EQ_F(a, b) SIMD_FUNC_DEC_F(cmpeq, a, b)
 #define SIMD_CMP_EQ_H(a, b) SIMD_FUNC_DEC_H(cmpeq, a, b)
@@ -623,7 +641,7 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 
 #endif
 
-#if defined(__AVX512__)
+#if AVX512
 #define _INT_CMP_FUNC_F(type, size, ...) \
     SIMD_FUNC_INT_MASK_F(cmp ## type, size, __VA_ARGS__)
 #define _INT_CMP_FUNC_H(type, size, ...) \
@@ -704,6 +722,7 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 #define SIMD_CMP_INT_GE_H SIMD_CMP_INT64_GE_H
 #endif
 
+#ifdef USE_SLEEF
 #define SIMD_SQRT_F(x) SLEEF_FUNC_DEC_F(sqrt, 35, x)
 #define SIMD_SQRT_H(x) SLEEF_FUNC_DEC_H(sqrt, 35, x)
 
@@ -721,6 +740,25 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 
 #define SIMD_ATAN2_F(a, b) SLEEF_FUNC_DEC_F(atan2, 35, a, b)
 #define SIMD_ATAN2_H(a, b) SLEEF_FUNC_DEC_H(atan2, 35, a, b)
+#else
+#define SIMD_SQRT_F(x) SIMD_FUNC_DEC_F(sqrt, x)
+#define SIMD_SQRT_H(x) SIMD_FUNC_DEC_H(sqrt, x)
+
+#define SIMD_POW_F(a, b) SIMD_FUNC_DEC_F(pow, a, b)
+#define SIMD_POW_H(a, b) SIMD_FUNC_DEC_H(pow, a, b)
+
+#define SIMD_LOG_F(x) SIMD_FUNC_DEC_F(log, x)
+#define SIMD_LOG_H(x) SIMD_FUNC_DEC_H(log, x)
+
+#define SIMD_SIN_F(x) SIMD_FUNC_DEC_F(sin, x)
+#define SIMD_SIN_H(x) SIMD_FUNC_DEC_H(sin, x)
+
+#define SIMD_COS_F(x) SIMD_FUNC_DEC_F(cos, x)
+#define SIMD_COS_H(x) SIMD_FUNC_DEC_H(cos, x)
+
+#define SIMD_ATAN2_F(a, b) SIMD_FUNC_DEC_F(atan2, a, b)
+#define SIMD_ATAN2_H(a, b) SIMD_FUNC_DEC_H(atan2, a, b)
+#endif
 
 #if defined(USE_FLOATS)
 #define _GATHER_SCALE_F 4

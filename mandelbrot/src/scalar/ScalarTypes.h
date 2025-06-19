@@ -1,4 +1,5 @@
 #pragma once
+#include "CommonDefs.h"
 
 #include <cstdlib>
 #include <cstdint>

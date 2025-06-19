@@ -1,4 +1,5 @@
 #ifdef USE_VECTORS
+#include "CommonDefs.h"
 #include "VectorGlobals.h"
 
 #include <array>

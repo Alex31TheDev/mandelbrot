@@ -17,8 +17,8 @@
       <Configuration>Debug - DoubleScalar</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug - DoubleSSE2|Win32">
-      <Configuration>Debug - DoubleSSE2</Configuration>
+    <ProjectConfiguration Include="Debug - DoubleSSE4_2|Win32">
+      <Configuration>Debug - DoubleSSE4_2</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug - FloatAVX2|x64">
@@ -37,8 +37,8 @@
       <Configuration>Debug - FloatScalar</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug - FloatSSE2|Win32">
-      <Configuration>Debug - FloatSSE2</Configuration>
+    <ProjectConfiguration Include="Debug - FloatSSE4_2|Win32">
+      <Configuration>Debug - FloatSSE4_2</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug - MPFR|x64">
@@ -61,8 +61,8 @@
       <Configuration>Release - DoubleScalar</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release - DoubleSSE2|Win32">
-      <Configuration>Release - DoubleSSE2</Configuration>
+    <ProjectConfiguration Include="Release - DoubleSSE4_2|Win32">
+      <Configuration>Release - DoubleSSE4_2</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release - FloatAVX2|x64">
@@ -81,8 +81,8 @@
       <Configuration>Release - FloatScalar</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release - FloatSSE2|Win32">
-      <Configuration>Release - FloatSSE2</Configuration>
+    <ProjectConfiguration Include="Release - FloatSSE4_2|Win32">
+      <Configuration>Release - FloatSSE4_2</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release - MPFR|x64">
@@ -128,7 +128,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE2|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE4_2|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -158,7 +158,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE2|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE4_2|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -199,7 +199,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE2|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE4_2|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -234,7 +234,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE2|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE4_2|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -267,7 +267,7 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX512|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE2|Win32'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE4_2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleScalar|x64'" Label="PropertySheets">
@@ -288,7 +288,7 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX512|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE2|Win32'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE4_2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release - FloatScalar|x64'">
@@ -312,7 +312,7 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatAVX512|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE2|Win32'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE4_2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleScalar|x64'" Label="PropertySheets">
@@ -333,7 +333,7 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleAVX512|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE2|Win32'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE4_2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -362,7 +362,7 @@
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE2|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE4_2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
@@ -387,7 +387,7 @@
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE2|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE4_2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
@@ -417,7 +417,7 @@
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE2|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE4_2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
@@ -442,7 +442,7 @@
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE2|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE4_2|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
@@ -468,7 +468,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MPFR|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_MPFR;USE_DOUBLES;__AVX2__;__AVX512__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_MPFR;USE_DOUBLES;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -498,7 +498,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX2|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__AVX2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -513,7 +513,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX512|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -525,14 +525,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE2|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE4_2|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__SSE4_2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
@@ -573,7 +573,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX2|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__AVX2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -588,7 +588,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX512|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -600,14 +600,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE2|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE4_2|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
@@ -636,7 +636,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_MPFR;USE_DOUBLES;__SSE2__;__AVX2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_MPFR;USE_DOUBLES;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -670,7 +670,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__AVX2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -687,7 +687,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions512</EnableEnhancedInstructionSet>
@@ -700,14 +700,14 @@
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE2|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE4_2|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_FLOATS;USE_VECTORS;__SSE2__;__SSE4_2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
@@ -755,7 +755,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__AVX2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -772,7 +772,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__;__AVX512__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions512</EnableEnhancedInstructionSet>
@@ -785,14 +785,14 @@
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE2|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE4_2|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
@@ -806,9 +806,11 @@
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ColorMethods.h" />
     <ClInclude Include="src\image\BmpWriter.h" />
+    <ClInclude Include="src\mpfr\CommonDefs.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
     <ClInclude Include="src\render\ThreadPool.h" />
     <ClInclude Include="src\render\ThreadSafeQueue.h" />
+    <ClInclude Include="src\scalar\CommonDefs.h" />
     <ClInclude Include="src\scalar\ScalarColorPalette.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
@@ -832,6 +834,8 @@
     <ClInclude Include="src\util\ParserUtil_impl.h" />
     <ClInclude Include="src\util\TemplateUtil.h" />
     <ClInclude Include="src\util\TimeUtil.h" />
+    <ClInclude Include="src\util\WarningUtil.h" />
+    <ClInclude Include="src\vector\CommonDefs.h" />
     <ClInclude Include="src\vector\VectorColorPalette.h" />
     <ClInclude Include="src\vector\VectorCoords.h" />
     <ClInclude Include="src\vector\VectorGlobals.h" />

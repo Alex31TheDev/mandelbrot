@@ -1,4 +1,5 @@
 #pragma once
+#include "CommonDefs.h"
 
 #include "ScalarTypes.h"
 #include "../util/MathConstants.h"
