@@ -4,6 +4,7 @@
 #include "../scalar/ScalarTypes.h"
 
 typedef scalar_full_t number_t;
+typedef scalar_full_2_t number_2_t;
 typedef number_t number_param_t;
 
 #define NUM_CONST SC_SYM_F
@@ -23,11 +24,13 @@ typedef number_t number_param_t;
 #define NUM_SIN SIN_F
 #define NUM_COS COS_F
 #define NUM_ATAN2 ATAN2_F
+#define NUM_SINCOS SINCOS_F
 
 #elif defined(FORMULA_VECTOR)
 #include "../vector/VectorTypes.h"
 
 typedef simd_full_t number_t;
+typedef simd_full_2_t number_2_t;
 typedef const number_t &number_param_t;
 
 #define NUM_CONST SIMD_SET_F
@@ -47,6 +50,7 @@ typedef const number_t &number_param_t;
 #define NUM_SIN SIMD_SIN_F
 #define NUM_COS SIMD_COS_F
 #define NUM_ATAN2 SIMD_ATAN2_F
+#define NUM_SINCOS SIMD_SINCOS_F
 
 #elif defined(FORMULA_MPFR)
 #include "../mpfr/mpreal.h"

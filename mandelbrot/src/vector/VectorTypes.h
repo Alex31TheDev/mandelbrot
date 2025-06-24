@@ -14,6 +14,7 @@ POP_DISABLE_WARNINGS
 #include "../scalar/ScalarTypes.h"
 
 #include "../util/MacroUtil.h"
+#include "../util/InlineUtil.h"
 
 #define SIMD_SYM_F(a) _CONCAT2(a, SIMD_FULL_ARCH_WIDTH)
 
@@ -30,11 +31,25 @@ POP_DISABLE_WARNINGS
 #error "No supported SIMD instruction set detected (requires SSE4.2, AVX2 or AVX512)."
 #endif
 
+#ifdef USE_SLEEF
+
+#if AVX512
+#define _SLEEF_FULL_ARCH_NAME avx512
+#elif AVX2
+#define _SLEEF_FULL_ARCH_NAME avx2
+#elif SSE
+#define _SLEEF_FULL_ARCH_NAME sse2
+#endif
+
+#endif
+
 #if defined(USE_FLOATS)
 #define SIMD_HALF_ARCH_WIDTH SIMD_FULL_ARCH_WIDTH
 #define SIMD_SYM_H SIMD_SYM_F
 
 #define simd_full_t _CONCAT2(__m, SIMD_FULL_ARCH_WIDTH)
+
+#define _SLEEF_HALF_ARCH_NAME _SLEEF_FULL_ARCH_NAME
 #elif defined(USE_DOUBLES)
 #define SIMD_SYM_H(a) _EVAL(a)
 
@@ -43,10 +58,14 @@ POP_DISABLE_WARNINGS
 
 #undef SIMD_SYM_H
 #define SIMD_SYM_H(a) _CONCAT2(a, SIMD_HALF_ARCH_WIDTH)
+
+#define _SLEEF_HALF_ARCH_NAME avx2
 #elif AVX2
 #define SIMD_HALF_ARCH_WIDTH 128
+#define _SLEEF_HALF_ARCH_NAME avx2128
 #elif SSE
 #define SIMD_HALF_ARCH_WIDTH 128
+#define _SLEEF_HALF_ARCH_NAME sse2
 #endif
 
 #define simd_full_t _CONCAT3(__m, SIMD_FULL_ARCH_WIDTH, d)
@@ -67,7 +86,6 @@ POP_DISABLE_WARNINGS
 #endif
 
 #ifdef USE_SLEEF
-
 #define _SLEEF_HALF_SUFFIX f
 
 #if defined(USE_FLOATS)
@@ -103,6 +121,13 @@ POP_DISABLE_WARNINGS
 
 constexpr int SIMD_FULL_ALIGNMENT = SIMD_FULL_ARCH_WIDTH / 8;
 constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
+
+struct simd_full_2_t {
+    simd_full_t x, y;
+};
+struct simd_half_2_t {
+    simd_half_t x, y;
+};
 
 #define simd_full_int_t _CONCAT3(__m, SIMD_FULL_ARCH_WIDTH, i)
 #define simd_half_int_t _CONCAT3(__m, SIMD_HALF_ARCH_WIDTH, i)
@@ -152,11 +177,11 @@ constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #ifdef USE_SLEEF
 
 #define SLEEF_FUNC_DEC_F(name, prec, ...) \
-    _CONCAT4(Sleef_ ## name, _SLEEF_FULL_SUFFIX, \
-    SIMD_FULL_WIDTH, _u ## prec)(__VA_ARGS__)
+    _CONCAT5(Sleef_ ## name, _SLEEF_FULL_SUFFIX, \
+    SIMD_FULL_WIDTH, _u ## prec, _SLEEF_FULL_ARCH_NAME)(__VA_ARGS__)
 #define SLEEF_FUNC_DEC_H(name, prec, ...) \
-    _CONCAT4(Sleef_ ## name, _SLEEF_HALF_SUFFIX, \
-    SIMD_HALF_WIDTH, _u ## prec)(__VA_ARGS__)
+    _CONCAT5(Sleef_ ## name, _SLEEF_HALF_SUFFIX, \
+    SIMD_HALF_WIDTH, _u ## prec, _SLEEF_HALF_ARCH_NAME)(__VA_ARGS__)
 
 #endif
 
@@ -243,9 +268,8 @@ constexpr int SIMD_HALF_ALIGNMENT = SIMD_HALF_ARCH_WIDTH / 8;
 #elif defined(USE_DOUBLES)
 
 #if AVX512
-#include "../util/InlineUtil.h"
 
-FORCE_INLINE __m256 SIMD_FULL_TO_HALF_CONV(__m512d x) {
+FORCE_INLINE __m256 SIMD_FULL_TO_HALF_CONV(const __m512d &x) {
     const __m256d f_low = _mm512_castpd512_pd256(x);
     const __m256d f_high = _mm512_extractf64x4_pd(x, 1);
 
@@ -556,17 +580,15 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #define SIMD_ABS_H(x) SIMD_ANDNOT_H(SIMD_SET_H(-0.0), x)
 
 #if AVX512
-#include "../util/InlineUtil.h"
 
-FORCE_INLINE __m512 _floor_ps(__m512 x) {
+FORCE_INLINE __m512 _floor_ps_impl(const __m512 &x) {
     __m512i tmp = _mm512_cvttps_epi32(x);
     const __m512 floored = _mm512_cvtepi32_ps(tmp);
     const __mmask16 needsAdj = _mm512_cmp_ps_mask(floored, x, _CMP_GT_OQ);
     tmp = _mm512_mask_sub_epi32(tmp, needsAdj, tmp, _mm512_set1_epi32(1));
     return _mm512_cvtepi32_ps(tmp);
 }
-
-FORCE_INLINE __m512d _floor_pd(__m512d x) {
+FORCE_INLINE __m512d _floor_pd_impl(const __m512d &x) {
     __m512i tmp = _mm512_cvttpd_epi64(x);
     const __m512d floored = _mm512_cvtepi64_pd(tmp);
     const __mmask8 needsAdj = _mm512_cmp_pd_mask(floored, x, _CMP_GT_OQ);
@@ -575,13 +597,13 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 }
 
 #if SIMD_FULL_ARCH_WIDTH == 512
-#define SIMD_FLOOR_F _CONCAT2(_floor_, FULL_SUFFIX)
+#define SIMD_FLOOR_F _CONCAT3(_floor_, FULL_SUFFIX, _impl)
 #else
 #define SIMD_FLOOR_F(x) SIMD_FUNC_DEC_F(floor, x)
 #endif
 
 #if SIMD_HALF_ARCH_WIDTH == 512
-#define SIMD_FLOOR_H _CONCAT2(_floor_, HALF_SUFFIX)
+#define SIMD_FLOOR_H _CONCAT3(_floor_, HALF_SUFFIX, _impl)
 #else
 #define SIMD_FLOOR_H(x) SIMD_FUNC_DEC_H(floor, x)
 #endif
@@ -723,14 +745,14 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 #endif
 
 #ifdef USE_SLEEF
-#define SIMD_SQRT_F(x) SLEEF_FUNC_DEC_F(sqrt, 35, x)
-#define SIMD_SQRT_H(x) SLEEF_FUNC_DEC_H(sqrt, 35, x)
+#define SIMD_SQRT_F(x) SLEEF_FUNC_DEC_F(sqrt, 05, x)
+#define SIMD_SQRT_H(x) SLEEF_FUNC_DEC_H(sqrt, 05, x)
 
 #define SIMD_POW_F(a, b) SLEEF_FUNC_DEC_F(pow, 10, a, b)
 #define SIMD_POW_H(a, b) SLEEF_FUNC_DEC_H(pow, 10, a, b)
 
-#define SIMD_LOG_F(x) SLEEF_FUNC_DEC_F(log, 35, x)
-#define SIMD_LOG_H(x) SLEEF_FUNC_DEC_H(log, 35, x)
+#define SIMD_LOG_F(x) SLEEF_FUNC_DEC_F(log, 10, x)
+#define SIMD_LOG_H(x) SLEEF_FUNC_DEC_H(log, 10, x)
 
 #define SIMD_SIN_F(x) SLEEF_FUNC_DEC_F(sin, 35, x)
 #define SIMD_SIN_H(x) SLEEF_FUNC_DEC_H(sin, 35, x)
@@ -740,6 +762,19 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 
 #define SIMD_ATAN2_F(a, b) SLEEF_FUNC_DEC_F(atan2, 35, a, b)
 #define SIMD_ATAN2_H(a, b) SLEEF_FUNC_DEC_H(atan2, 35, a, b)
+
+#define _SIMD_SINCOS_F_IMPL(x) SLEEF_FUNC_DEC_F(sincos, 35, x)
+#define _SIMD_SINCOS_H_IMPL(x) SLEEF_FUNC_DEC_H(sincos, 35, x)
+
+FORCE_INLINE simd_full_2_t SIMD_SINCOS_F(const simd_full_t &x) {
+    auto val = _SIMD_SINCOS_F_IMPL(x);
+    return reinterpret_cast<simd_full_2_t &>(val);
+}
+FORCE_INLINE simd_half_2_t SIMD_SINCOS_H(const simd_half_t &x) {
+    auto val = _SIMD_SINCOS_H_IMPL(x);
+    return reinterpret_cast<simd_half_2_t &>(val);
+}
+
 #else
 #define SIMD_SQRT_F(x) SIMD_FUNC_DEC_F(sqrt, x)
 #define SIMD_SQRT_H(x) SIMD_FUNC_DEC_H(sqrt, x)
@@ -758,6 +793,21 @@ FORCE_INLINE __m512d _floor_pd(__m512d x) {
 
 #define SIMD_ATAN2_F(a, b) SIMD_FUNC_DEC_F(atan2, a, b)
 #define SIMD_ATAN2_H(a, b) SIMD_FUNC_DEC_H(atan2, a, b)
+
+#define _SIMD_SINCOS_F_IMPL(ptr, x) SIMD_FUNC_DEC_F(sincos, ptr, x)
+#define _SIMD_SINCOS_H_IMPL(ptr, x) SIMD_FUNC_DEC_H(sincos, ptr, x)
+
+FORCE_INLINE simd_full_2_t SIMD_SINCOS_F(const simd_full_t &x) {
+    simd_full_2_t out{};
+    out.x = _SIMD_SINCOS_F_IMPL(&out.y, x);
+    return out;
+}
+FORCE_INLINE simd_half_2_t SIMD_SINCOS_H(const simd_half_t &x) {
+    simd_half_2_t out{};
+    out.x = _SIMD_SINCOS_H_IMPL(&out.y, x);
+    return out;
+}
+
 #endif
 
 #if defined(USE_FLOATS)

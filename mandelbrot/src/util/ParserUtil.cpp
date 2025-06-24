@@ -1,21 +1,13 @@
 #include "ParserUtil.h"
 
+#include <cstdint>
 #include <cctype>
 #include <cstring>
 
 #include <string>
 #include <string_view>
 #include <vector>
-
-static bool insensitiveCompare(std::string_view str, const char *target) {
-    if (str.size() != strlen(target)) return false;
-
-    for (size_t i = 0; i < str.size(); i++) {
-        if (tolower(str[i]) != target[i]) return false;
-    }
-
-    return true;
-};
+#include <tuple>
 
 ArgsVec::ArgsVec(int count)
     : argc(count), argv(new char *[count + 1]) {
@@ -42,6 +34,16 @@ ArgsVec ArgsVec::fromParsed(char *progName,
 }
 
 namespace ParserUtil {
+    bool insensitiveCompare(std::string_view str, std::string_view target) {
+        if (str.size() != target.size()) return false;
+
+        for (size_t i = 0; i < str.size(); i++) {
+            if (tolower(str[i]) != target[i]) return false;
+        }
+
+        return true;
+    };
+
     bool parseBool(std::string_view input, bool *ok) {
         bool valid = false;
         bool result = false;
@@ -58,6 +60,34 @@ namespace ParserUtil {
 
         if (ok) *ok = valid;
         return result;
+    }
+
+    std::tuple<float, float, float>
+        parseHexColor(std::string_view str, bool *ok) {
+        if (!str.empty() && str[0] == '#') {
+            str.remove_prefix(1);
+        }
+
+        if (str.size() != 3 && str.size() != 6) {
+            if (ok) *ok = false;
+            return std::make_tuple(0.0f, 0.0f, 0.0f);
+        }
+
+        float r = 0.0f, g = 0.0f, b = 0.0f;
+        const uint32_t rgb = parseNumber<uint32_t, 16>
+            (std::string(str), ok, 0);
+
+        if (str.size() == 3) {
+            r = ((rgb >> 8) & 0xF) / 15.0f;
+            g = ((rgb >> 4) & 0xF) / 15.0f;
+            b = (rgb & 0xF) / 15.0f;
+        } else {
+            r = ((rgb >> 16) & 0xFF) / 255.0f;
+            g = ((rgb >> 8) & 0xFF) / 255.0f;
+            b = (rgb & 0xFF) / 255.0f;
+        }
+
+        return std::make_tuple(r, g, b);
     }
 
     std::vector<std::string> parseCommandLine(const std::string &cmd) {

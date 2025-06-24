@@ -16,5 +16,8 @@
 #define AVX512 0
 #endif
 
+#ifndef _MSC_VER
 #define USE_SLEEF
+#endif
+
 #define USE_VECTOR_STORE

@@ -114,7 +114,7 @@ static FORCE_INLINE simd_half_t normCos_vec(const simd_half_t &x) {
     return SIMD_MUL_H(SIMD_ADD_H(a, h_one), h_half);
 }
 
-static FORCE_INLINE void getColorPixel_vec(
+static FORCE_INLINE void getPixelColor_vec(
     const simd_half_t &val,
     simd_half_t &outR, simd_half_t &outG, simd_half_t &outB
 ) {
@@ -227,7 +227,7 @@ static FORCE_INLINE simd_half_t getLightVal_vec(
 }
 
 namespace VectorRenderer {
-    FORCE_INLINE void initCoords_vec(
+    FORCE_INLINE void VECTOR_CALL initCoords_vec(
         simd_full_t &cr, simd_full_t &ci,
         simd_full_t &zr, simd_full_t &zi,
         simd_full_t &dr, simd_full_t &di
@@ -251,7 +251,7 @@ namespace VectorRenderer {
         di = f_zero;
     }
 
-    FORCE_INLINE simd_full_t iterateFractalSIMD(
+    FORCE_INLINE simd_full_t VECTOR_CALL iterateFractalSIMD(
         const simd_full_t &cr, const simd_full_t &ci,
         simd_full_t &zr, simd_full_t &zi,
         simd_full_t &dr, simd_full_t &di,
@@ -301,13 +301,13 @@ namespace VectorRenderer {
         return iter;
     }
 
-    FORCE_INLINE simd_half_int_t colorToInt_vec(const simd_half_t &val) {
+    FORCE_INLINE simd_half_int_t VECTOR_CALL colorToInt_vec(const simd_half_t &val) {
         simd_half_t newVal = SIMD_MUL_H(val, h_255);
         newVal = SIMD_MIN_H(SIMD_MAX_H(newVal, h_zero), h_255);
         return SIMD_HALF_TO_INT_CONV(newVal);
     }
 
-    FORCE_INLINE void setPixels_vec(
+    FORCE_INLINE void VECTOR_CALL setPixels_vec(
         uint8_t *pixels, size_t &pos, int width,
         const simd_half_t &R, const simd_half_t &G, const simd_half_t &B
     ) {
@@ -353,7 +353,7 @@ namespace VectorRenderer {
         pos += byteCount;
     }
 
-    FORCE_INLINE void colorPixelsSIMD(
+    FORCE_INLINE void VECTOR_CALL  colorPixelsSIMD(
         uint8_t *pixels, size_t &pos, int width,
         const simd_full_t &iter, const simd_full_t &mag,
         const simd_full_mask_t &active,
@@ -371,7 +371,7 @@ namespace VectorRenderer {
                 const simd_half_t h_iter = SIMD_FULL_TO_HALF_CONV(iter);
 
                 vals = getIterVal_vec(h_iter);
-                getColorPixel_vec(vals, r_vec, g_vec, b_vec);
+                getPixelColor_vec(vals, r_vec, g_vec, b_vec);
             }
             break;
 
@@ -381,7 +381,7 @@ namespace VectorRenderer {
                 const simd_half_t h_mag = SIMD_FULL_TO_HALF_CONV(mag);
 
                 vals = getSmoothIterVal_vec(h_iter, h_mag);
-                getColorPixel_vec(vals, r_vec, g_vec, b_vec);
+                getPixelColor_vec(vals, r_vec, g_vec, b_vec);
             }
             break;
 
@@ -404,7 +404,7 @@ namespace VectorRenderer {
         setPixelsMasked_vec(pixels, pos, width, h_active, r_vec, g_vec, b_vec);
     }
 
-    void renderPixelSIMD(
+    void VECTOR_CALL renderPixelSIMD(
         uint8_t *pixels, size_t &pos, int width,
         int x, scalar_full_t ci
     ) {

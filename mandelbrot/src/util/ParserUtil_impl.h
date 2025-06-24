@@ -3,14 +3,15 @@
 #include <cstdlib>
 #include <cerrno>
 #include <cstdint>
-
 #include <limits>
-#include <type_traits>
 
 namespace ParserUtil {
-    template<typename T>
+    template<typename T, int base> requires std::is_arithmetic_v<T>
     T parseNumber(const std::string &input, bool *ok, const T defaultValue) {
-        static_assert(std::is_arithmetic_v<T>, "parseNumber only works with arithmetic types");
+        if constexpr (std::is_floating_point_v<T>) {
+            static_assert(base == 10,
+                "Floats can only be parsed with base 10");
+        }
 
         if (input.empty()) {
             if (ok) *ok = false;
@@ -18,52 +19,52 @@ namespace ParserUtil {
         }
 
         bool isValid = false;
+        T result;
 
+        errno = 0;
         const char *const numStr = input.c_str();
         char *endPtr = nullptr;
 
-        errno = 0;
+        auto validateParse = [&]() -> bool {
+            return errno != ERANGE && numStr != endPtr;
+            };
 
-        if constexpr (std::is_same_v<T, float>) {
-            const float result = strtof(numStr, &endPtr);
-            isValid = errno != ERANGE && numStr != endPtr;
+        if constexpr (std::is_floating_point_v<T>) {
+            if constexpr (std::is_same_v<T, float>) {
+                result = strtof(numStr, &endPtr);
+            } else if constexpr (std::is_same_v<T, double>) {
+                result = strtod(numStr, &endPtr);
+            }
 
-            if (ok) *ok = isValid;
-            return isValid ? result : defaultValue;
-        } else if constexpr (std::is_same_v<T, double>) {
-            const double result = strtod(numStr, &endPtr);
-            isValid = errno != ERANGE && numStr != endPtr;
-
-            if (ok) *ok = isValid;
-            return isValid ? result : defaultValue;
+            isValid = validateParse();
         } else if constexpr (std::is_integral_v<T>) {
             if constexpr (std::is_unsigned_v<T>) {
-                const uint64_t result = strtoull(numStr, &endPtr, 10);
-                isValid = errno != ERANGE &&
-                    numStr != endPtr &&
-                    result <= static_cast<uint64_t>(std::numeric_limits<T>::max());
+                const uint64_t parsed = strtoull(numStr, &endPtr, base);
 
-                if (ok) *ok = isValid;
-                return isValid ? static_cast<T>(result) : defaultValue;
+                isValid = validateParse() &&
+                    parsed <= static_cast<uint64_t>(std::numeric_limits<T>::max());
+
+                result = static_cast<T>(parsed);
             } else {
-                const int64_t result = strtoll(numStr, &endPtr, 10);
-                isValid = errno != ERANGE &&
-                    numStr != endPtr &&
-                    result >= static_cast<int64_t>(std::numeric_limits<T>::min()) &&
-                    result <= static_cast<int64_t>(std::numeric_limits<T>::max());
+                const int64_t parsed = strtoll(numStr, &endPtr, base);
 
-                if (ok) *ok = isValid;
-                return isValid ? static_cast<T>(result) : defaultValue;
+                isValid = validateParse() &&
+                    parsed >= static_cast<int64_t>(std::numeric_limits<T>::min()) &&
+                    parsed <= static_cast<int64_t>(std::numeric_limits<T>::max());
+
+                result = static_cast<T>(parsed);
             }
         }
 
         if (ok) *ok = isValid;
-        return defaultValue;
+        return isValid ? result : defaultValue;
     }
 
-    template<typename T>
-    T parseNumber(int argc, char *argv[], int index, bool *ok, const T defaultValue) {
-        const std::string input = (index < argc) ? argv[index] : "";
-        return parseNumber<T>(input, ok, defaultValue);
+    template<typename T, int base> requires std::is_arithmetic_v<T>
+    T parseNumber(int argc, char *argv[], int index, bool *ok,
+        const T defaultValue) {
+        const std::string input = (index < argc) ?
+            std::string(argv[index]) : "";
+        return parseNumber<T, base>(input, ok, defaultValue);
     }
 }

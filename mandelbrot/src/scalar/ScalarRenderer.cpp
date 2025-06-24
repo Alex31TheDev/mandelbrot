@@ -45,7 +45,7 @@ static FORCE_INLINE scalar_half_t normCos(scalar_half_t x) {
     return (COS_H(x) + ONE_H) * SC_SYM_H(0.5);
 }
 
-static FORCE_INLINE void getColorPixel(scalar_half_t val,
+static FORCE_INLINE void getPixelColor(scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB) {
 #if false
     const scalar_half_t R_x = val * freq_r + phase_r;
@@ -173,12 +173,12 @@ namespace ScalarRenderer {
         switch (colorMethod) {
             case 0:
                 val = getIterVal(i);
-                getColorPixel(val, R, G, B);
+                getPixelColor(val, R, G, B);
                 break;
 
             case 1:
                 val = getSmoothIterVal(i, CAST_H(mag));
-                getColorPixel(val, R, G, B);
+                getPixelColor(val, R, G, B);
                 break;
 
             case 2:

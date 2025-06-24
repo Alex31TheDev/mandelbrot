@@ -12,6 +12,8 @@ using namespace VectorGlobals;
 
 #include "../scalar/ScalarColorPalette.h"
 
+#include "../util/InlineUtil.h"
+
 VectorColorPalette::VectorColorPalette(const ScalarColorPalette &palette) {
     _n = palette._colors.size();
     _numSegments = palette._numSegments;
@@ -43,7 +45,7 @@ VectorColorPalette::VectorColorPalette(const ScalarColorPalette &palette) {
     }
 }
 
-VectorColorPalette::_SIMDSegment
+VectorColorPalette::_SIMDSegment VECTOR_CALL
 VectorColorPalette::_locate_vec(const simd_half_t &x) const {
     const simd_half_t inVal = SIMD_ADD_H(x, _offset_vec);
     simd_half_t t = SIMD_MUL_H(inVal, _invLength_vec);
@@ -74,7 +76,7 @@ VectorColorPalette::_locate_vec(const simd_half_t &x) const {
     return { idx, next, u };
 }
 
-void VectorColorPalette::sampleSIMD(
+void VECTOR_CALL VectorColorPalette::sampleSIMD(
     const simd_half_t &x,
     simd_half_t &outR, simd_half_t &outG, simd_half_t &outB
 ) const {

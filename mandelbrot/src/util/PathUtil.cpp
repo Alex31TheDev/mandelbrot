@@ -8,7 +8,6 @@
 #include <string_view>
 #include <tuple>
 #include <chrono>
-#include <algorithm>
 using namespace std::chrono;
 
 static bool safeLocaltime(time_t time, tm &out) {

@@ -11,6 +11,7 @@ FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
     number_param_t zr2, number_param_t zi2, number_param_t mag,
     number_t &new_zr, number_t &new_zi) {
     using namespace ScalarGlobals;
+    const number_t n_var = NUM_VAR(N);
 
     if (N <= 0) {
         new_zr = cr;
@@ -37,13 +38,15 @@ FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
         new_zr = NUM_ADD(new_zr, cr);
         new_zi = NUM_ADD(new_zi, ci);
     } else {
-        const number_t rp = NUM_POW(mag, NUM_DIV(NUM_VAR(N), NUM_CONST(2.0)));
+        const number_t pw = NUM_DIV(n_var, NUM_CONST(2.0));
+        const number_t rp = NUM_POW(mag, pw);
 
         const number_t theta = NUM_ATAN2(zi, zr);
-        const number_t angle = NUM_MUL(NUM_VAR(N), theta);
+        const number_t angle = NUM_MUL(n_var, theta);
 
-        new_zr = NUM_ADD(NUM_MUL(rp, NUM_COS(angle)), cr);
-        new_zi = NUM_ADD(NUM_MUL(rp, NUM_SIN(angle)), ci);
+        const number_2_t sincos = NUM_SINCOS(angle);
+        new_zr = NUM_ADD(NUM_MUL(rp, sincos.y), cr);
+        new_zi = NUM_ADD(NUM_MUL(rp, sincos.x), ci);
     }
 }
 
@@ -52,6 +55,7 @@ FORCE_INLINE void derivative(const number_t &zr, const number_t &zi,
     const number_t &mag,
     number_t &new_dr, number_t &new_di) {
     using namespace ScalarGlobals;
+    const number_t n_var = NUM_VAR(N);
 
     if (N <= 0) {
         new_dr = new_di = NUM_CONST(0.0);
@@ -77,17 +81,18 @@ FORCE_INLINE void derivative(const number_t &zr, const number_t &zi,
         const number_t t1 = NUM_SUB(NUM_MUL(new_dr, dr), NUM_MUL(new_di, di));
         const number_t t2 = NUM_ADD(NUM_MUL(new_dr, di), NUM_MUL(new_di, dr));
 
-        new_dr = NUM_ADD(NUM_MUL(t1, NUM_VAR(N)), NUM_CONST(1.0));
-        new_di = NUM_MUL(t2, NUM_VAR(N));
+        new_dr = NUM_ADD(NUM_MUL(t1, n_var), NUM_CONST(1.0));
+        new_di = NUM_MUL(t2, n_var);
     } else {
-        const number_t pw = NUM_SUB(NUM_VAR(N), NUM_CONST(1.0));
+        const number_t pw = NUM_SUB(n_var, NUM_CONST(1.0));
         const number_t rp = NUM_POW(mag, NUM_DIV(pw, NUM_CONST(2.0)));
 
         const number_t theta = NUM_ATAN2(zi, zr);
         const number_t angle = NUM_MUL(pw, theta);
 
-        new_dr = NUM_MUL(NUM_VAR(N), NUM_MUL(rp, NUM_COS(angle)));
-        new_di = NUM_MUL(NUM_VAR(N), NUM_MUL(rp, NUM_SIN(angle)));
+        const number_2_t sincos = NUM_SINCOS(angle);
+        new_dr = NUM_MUL(n_var, NUM_MUL(rp, sincos.y));
+        new_di = NUM_MUL(n_var, NUM_MUL(rp, sincos.x));
 
         const number_t t1 = NUM_SUB(NUM_MUL(new_dr, dr), NUM_MUL(new_di, di));
         const number_t t2 = NUM_ADD(NUM_MUL(new_dr, di), NUM_MUL(new_di, dr));

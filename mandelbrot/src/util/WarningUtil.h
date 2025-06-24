@@ -4,9 +4,9 @@
 #define PUSH_DISABLE_WARNINGS __pragma(warning(push, 0))
 #define POP_DISABLE_WARNINGS __pragma(warning(pop))
 #elif defined(__clang__) || defined(__GNUC__)
-#define _GCC_PUSH_DISABLE_WARNINGS _Pragma("GCC diagnostic push")
-
 #define _PRAGMA(P) _Pragma(#P)
+
+#define _GCC_PUSH_DISABLE_WARNINGS _PRAGMA(GCC diagnostic push)
 #define _DISABLE_GCC_WARNING(WARNING) _PRAGMA(GCC diagnostic ignored #WARNING)
 
 #if __clang__
@@ -39,7 +39,7 @@
     _DISABLE_GCC_WARNING(-Wformat-security)
 #endif
 
-#define POP_DISABLE_WARNINGS _Pragma("GCC diagnostic pop")
+#define POP_DISABLE_WARNINGS _PRAGMA(GCC diagnostic pop)
 #else
 #define PUSH_DISABLE_WARNINGS
 #define POP_DISABLE_WARNINGS

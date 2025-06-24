@@ -9,9 +9,11 @@
 
 #include "../scalar/ScalarColorPalette.h"
 
+#include "../util/InlineUtil.h"
+
 class VectorColorPalette {
 public:
-    static inline simd_half_t lerp_vec(
+    static FORCE_INLINE simd_half_t lerp_vec(
         simd_half_t a, simd_half_t b, simd_half_t t
     ) {
         return SIMD_MULADD_H(SIMD_SUB_H(b, a), t, a);
@@ -19,7 +21,7 @@ public:
 
     VectorColorPalette(const ScalarColorPalette &palette);
 
-    void sampleSIMD(const simd_half_t &x,
+    void VECTOR_CALL sampleSIMD(const simd_half_t &x,
         simd_half_t &outR, simd_half_t &outG, simd_half_t &outB) const;
 
 private:
@@ -39,7 +41,7 @@ private:
         simd_half_t u;
     };
 
-    _SIMDSegment _locate_vec(const simd_half_t &x) const;
+    _SIMDSegment VECTOR_CALL _locate_vec(const simd_half_t &x) const;
 };
 
 #endif

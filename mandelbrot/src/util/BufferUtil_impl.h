@@ -10,7 +10,8 @@
 
 template<typename T>
 constexpr T BufferUtil::alignTo(T size, T alignment) {
-    static_assert(std::is_integral_v<T>, "Alignment must be performed on integral types");
+    static_assert(std::is_integral_v<T>,
+        "Alignment can only be performed on integral types");
     return (size + alignment - 1) & ~(alignment - 1);
 }
 
