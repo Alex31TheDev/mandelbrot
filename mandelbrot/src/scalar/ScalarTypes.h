@@ -91,6 +91,9 @@ struct scalar_half_2_t {
 #define FRAC_F(x) (CAST_F(x) - FLOOR_F(x))
 #define FRAC_H(x) (CAST_H(x) - FLOOR_H(x))
 
+#define ISWHOLE_F(x) (CAST_F(x) == FLOOR_F(x))
+#define ISWHOLE_H(x) (CAST_H(x) == FLOOR_H(x))
+
 #define MIN_F(a, b) SC_FUNC2_F(fmin, a, b)
 #define MIN_H(a, b) SC_FUNC2_H(fmin, a, b)
 

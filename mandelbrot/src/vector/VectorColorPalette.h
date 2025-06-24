@@ -32,9 +32,9 @@ private:
     simd_half_t _offset_vec, _epsilon_vec;
     simd_half_int_t _n_min1_vec;
 
-    std::vector<simd_half_t> _accum_vec;
-    std::vector<scalar_half_t> _accum, _inv;
-    std::vector<scalar_half_t> _R, _G, _B;
+    std::vector<simd_half_t> _accum_vec{};
+    std::vector<scalar_half_t> _accum{}, _inv{};
+    std::vector<scalar_half_t> _R{}, _G{}, _B{};
 
     struct _SIMDSegment {
         simd_half_int_t idx, next;

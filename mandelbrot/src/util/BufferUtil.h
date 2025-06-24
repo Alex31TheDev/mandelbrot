@@ -8,7 +8,7 @@ namespace BufferUtil {
     constexpr T alignTo(T size, T alignment);
 
     template <size_t ALIGNMENT>
-    uint8_t *bufferAlloc(size_t bufferSize, size_t *alignedSizeOut = nullptr);
+    uint8_t *bufferAlloc(size_t bufferSize, size_t *alignedSize = nullptr);
 
     template <size_t ALIGNMENT>
     void bufferFree(uint8_t *ptr) noexcept;

@@ -8,48 +8,56 @@
 #include <malloc.h>
 #endif
 
-template<typename T>
-constexpr T BufferUtil::alignTo(T size, T alignment) {
-    static_assert(std::is_integral_v<T>,
-        "Alignment can only be performed on integral types");
-    return (size + alignment - 1) & ~(alignment - 1);
-}
+namespace BufferUtil {
+    template<typename T>
+    constexpr T alignTo(T size, T alignment) {
+        static_assert(std::is_integral_v<T>,
+            "Alignment can only be performed on integral types");
 
-template <size_t ALIGNMENT>
-uint8_t *BufferUtil::bufferAlloc(size_t bufferSize, size_t *alignedSizeOut) {
-    void *ptr = nullptr;
-
-    if constexpr (ALIGNMENT > 8) {
-        size_t alignedSize = alignTo(bufferSize, ALIGNMENT);
-        if (alignedSizeOut)  *alignedSizeOut = alignedSize;
-
-#ifdef _WIN32
-        ptr = _aligned_malloc(alignedSize, ALIGNMENT);
-#else
-        if (posix_memalign(&ptr, ALIGNMENT, alignedSize) != 0) {
-            ptr = nullptr;
-        }
-#endif
-    } else {
-        if (alignedSizeOut)  *alignedSizeOut = bufferSize;
-        ptr = malloc(bufferSize);
+        if (alignment <= 0) return size;
+        return (size + alignment - 1) & ~(alignment - 1);
     }
 
-    if (ptr) memset(ptr, 0, bufferSize);
-    return static_cast<uint8_t *>(ptr);
-}
+    template <size_t ALIGNMENT>
+    uint8_t *bufferAlloc(size_t bufferSize, size_t *alignedSize) {
+        size_t newSize;
+        void *ptr = nullptr;
 
-template <size_t ALIGNMENT>
-void BufferUtil::bufferFree(uint8_t *ptr) noexcept {
-#if defined(_WIN32)
-    if constexpr (ALIGNMENT > 8) {
-        _aligned_free(ptr);
-    } else
+        if constexpr (ALIGNMENT > 8) {
+            newSize = bufferSize % ALIGNMENT == 0
+                ? bufferSize : alignTo(bufferSize, ALIGNMENT);
+            if (alignedSize) *alignedSize = newSize;
+
+#ifdef _WIN32
+            ptr = _aligned_malloc(newSize, ALIGNMENT);
+#else
+            if (posix_memalign(&ptr, ALIGNMENT, newSize) != 0) {
+                ptr = nullptr;
+            }
 #endif
-        free(ptr);
-}
+        } else {
+            newSize = bufferSize;
+            if (alignedSize) *alignedSize = newSize;
 
-template <size_t ALIGNMENT>
-void BufferUtil::AlignedDeleter<ALIGNMENT>::operator()(uint8_t *ptr) noexcept {
-    BufferUtil::bufferFree<ALIGNMENT>(ptr);
+            ptr = malloc(bufferSize);
+        }
+
+        if (ptr) memset(ptr, 0, newSize);
+        return static_cast<uint8_t *>(ptr);
+    }
+
+    template <size_t ALIGNMENT>
+    void bufferFree(uint8_t *ptr) noexcept {
+#if defined(_WIN32)
+        if constexpr (ALIGNMENT > 8) {
+            _aligned_free(ptr);
+        } else
+#endif
+            free(ptr);
+    }
+
+    template <size_t ALIGNMENT>
+    void AlignedDeleter<ALIGNMENT>::operator()(uint8_t *ptr) noexcept {
+        bufferFree<ALIGNMENT>(ptr);
+    }
 }

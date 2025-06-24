@@ -20,7 +20,7 @@ namespace ScalarGlobals {
     constexpr scalar_half_t DEFAULT_PHASE_R = SC_SYM_H(0.0);
     constexpr scalar_half_t DEFAULT_PHASE_G = SC_SYM_H(0.0);
     constexpr scalar_half_t DEFAULT_PHASE_B = SC_SYM_H(0.0);
-    constexpr scalar_half_t DEFAULT_COS_PHASE = SC_SYM_H(-M_PI_2);
+    constexpr scalar_half_t DEFAULT_COS_PHASE = CAST_H(-M_PI_2);
 
     constexpr scalar_half_t DEFAULT_FREQ_R = SC_SYM_H(0.98);
     constexpr scalar_half_t DEFAULT_FREQ_G = SC_SYM_H(0.91);
@@ -40,6 +40,7 @@ namespace ScalarGlobals {
     extern int count, colorMethod;
 
     extern bool isJuliaSet, isInverse;
+    extern bool invalidPower, circlePower, normalPower, wholePower;
 
     extern scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     extern scalar_full_t realScale, imagScale;

@@ -53,7 +53,7 @@ static void renderStrip(Image *image,
     int start_y, int end_y,
     RenderProgress *progress = nullptr) {
     if (image == nullptr) return;
-    size_t pos = static_cast<size_t>(start_y) * width * Image::STRIDE;
+    size_t pos = static_cast<size_t>(start_y) * image->strideWidth();
 
     for (int y = start_y; y < end_y; y++) {
         const auto ci = imagCenterCoord(y);
@@ -64,11 +64,11 @@ static void renderStrip(Image *image,
         }
 #elif defined(USE_VECTORS)
         for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
-            const int pixels_left = width - x;
-            const int simd_width = pixels_left < SIMD_FULL_WIDTH ?
-                pixels_left : SIMD_FULL_WIDTH;
+            const int pixelsLeft = width - x;
+            const int simdWidth = pixelsLeft < SIMD_FULL_WIDTH ?
+                pixelsLeft : SIMD_FULL_WIDTH;
 
-            renderPixel(image->pixels(), pos, simd_width, x, ci);
+            renderPixel(image->pixels(), pos, simdWidth, x, ci);
         }
 #endif
 

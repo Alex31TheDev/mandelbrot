@@ -10,6 +10,7 @@ namespace ScalarGlobals {
     int count, colorMethod;
 
     bool isJuliaSet = false, isInverse = false;
+    bool invalidPower, circlePower, normalPower, wholePower;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     scalar_full_t realScale, imagScale;
@@ -63,8 +64,13 @@ namespace ScalarGlobals {
         if (pw <= ONE_F) return false;
 
         N = pw;
-        invLnPow = RECIP_H(LOG_H(pw));
 
+        invalidPower = IS0_F(N);
+        circlePower = N == SC_SYM_F(1.0);
+        normalPower = N == SC_SYM_F(2.0);
+        wholePower = ISWHOLE_F(N);
+
+        invLnPow = RECIP_H(LOG_H(pw));
         return true;
     }
 

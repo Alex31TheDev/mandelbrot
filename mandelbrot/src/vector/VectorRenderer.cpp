@@ -35,7 +35,7 @@ static FORCE_INLINE void complexInverse_vec(
     const simd_full_t inv_mag = SIMD_DIV_F(f_one, mag);
 
     real = SIMD_MUL_F(real, inv_mag);
-    imag = SIMD_MUL_F(imag, SIMD_MUL_F(inv_mag, f_neg_one));
+    imag = SIMD_MUL_F(imag, SIMD_NEG_F(inv_mag));
 }
 
 #ifdef USE_VECTOR_STORE
@@ -267,13 +267,10 @@ namespace VectorRenderer {
             const simd_full_t zi2 = SIMD_MUL_F(zi, zi);
             mag = SIMD_ADD_F(zr2, zi2);
 
-            const simd_full_mask_t stillIterating =
-                SIMD_CMP_LT_F(mag, f_bailout_vec);
-            active = SIMD_AND_MASK_F(active, stillIterating);
+            const simd_full_mask_t itering = SIMD_CMP_LT_F(mag, f_bailout_vec);
+            active = SIMD_AND_MASK_F(active, itering);
 
-            if (SIMD_MASK_F(active) == SIMD_ZERO_LANES_F) {
-                break;
-            }
+            if (SIMD_MASK_ALLZERO_F(active)) break;
 
             switch (colorMethod) {
                 case 2:
@@ -317,7 +314,7 @@ namespace VectorRenderer {
 
         const int byteCount = width * Image::STRIDE;
 
-        if (SIMD_MASK_H(underThresh) == SIMD_ONES_LANES_H) {
+        if (SIMD_MASK_ALLONES_H(underThresh)) {
             pos += byteCount;
             return;
         }
@@ -353,7 +350,7 @@ namespace VectorRenderer {
         pos += byteCount;
     }
 
-    FORCE_INLINE void VECTOR_CALL  colorPixelsSIMD(
+    FORCE_INLINE void VECTOR_CALL colorPixelsSIMD(
         uint8_t *pixels, size_t &pos, int width,
         const simd_full_t &iter, const simd_full_t &mag,
         const simd_full_mask_t &active,

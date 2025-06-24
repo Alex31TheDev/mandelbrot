@@ -96,9 +96,7 @@ static int runRepl(int argc, char **argv) {
         if (RenderGlobals::width != lastWidth ||
             RenderGlobals::height != lastHeight) {
             if (!initializeImage(image)) continue;
-        } else if (image) {
-            image->clear();
-        }
+        } else if (image) image->clear();
 
         renderImage(image.get());
 

@@ -13,18 +13,18 @@ FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
     using namespace ScalarGlobals;
     const number_t n_var = NUM_VAR(N);
 
-    if (N <= 0) {
+    if (invalidPower) {
         new_zr = cr;
         new_zi = zi;
-    } else if (N == 1) {
+    } else if (circlePower) {
         new_zr = NUM_ADD(zr, cr);
         new_zi = NUM_ADD(zi, ci);
         return;
-    } else if (N == 2) {
+    } else if (normalPower) {
         const number_t zrzi = NUM_MUL(zr, zi);
         new_zr = NUM_ADD(NUM_SUB(zr2, zi2), cr);
         new_zi = NUM_ADD(NUM_ADD(zrzi, zrzi), ci);
-    } else if (static_cast<int>(N) == N) {
+    } else if (wholePower) {
         number_t zrzi = NUM_MUL(zr, zi);
         new_zr = NUM_SUB(zr2, zi2);
         new_zi = NUM_ADD(zrzi, zrzi);
@@ -38,7 +38,7 @@ FORCE_INLINE void formula(number_param_t cr, number_param_t ci,
         new_zr = NUM_ADD(new_zr, cr);
         new_zi = NUM_ADD(new_zi, ci);
     } else {
-        const number_t pw = NUM_DIV(n_var, NUM_CONST(2.0));
+        const number_t pw = NUM_MUL(n_var, NUM_CONST(0.5));
         const number_t rp = NUM_POW(mag, pw);
 
         const number_t theta = NUM_ATAN2(zi, zr);

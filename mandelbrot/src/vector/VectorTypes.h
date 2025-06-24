@@ -418,6 +418,41 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 #endif
 
 #if AVX512
+#define SIMD_MASK_ALLZERO_F(x) (x == SIMD_ZERO_LANES_F)
+#define SIMD_MASK_ALLZERO_H(x) (x == SIMD_ZERO_LANES_H)
+
+#define SIMD_MASK_ALLONES_F(x) (x == SIMD_ONES_LANES_F)
+#define SIMD_MASK_ALLONES_H(x) (x == SIMD_ONES_LANES_H)
+
+#define SIMD_MASK_NONZERO_F(x) (x != SIMD_ZERO_LANES_F)
+#define SIMD_MASK_NONZERO_H(x) (x != SIMD_ZERO_LANES_H)
+#elif AVX2
+#define _SIMD_TESTZ_F(a, b) SIMD_FUNC_DEC_F(testz, a, b)
+#define _SIMD_TESTZ_H(a, b) SIMD_FUNC_DEC_H(testz, a, b)
+
+#define _SIMD_TESTC_F(a, b) SIMD_FUNC_DEC_F(testc, a, b)
+#define _SIMD_TESTC_H(a, b) SIMD_FUNC_DEC_H(testc, a, b)
+
+#define SIMD_MASK_ALLZERO_F(x) (_SIMD_TESTZ_F(x, x) == 1)
+#define SIMD_MASK_ALLZERO_H(x) (_SIMD_TESTZ_H(x, x) == 1)
+
+#define SIMD_MASK_ALLONES_F(x) (_SIMD_TESTC_F(x, SIMD_INIT_ONES_MASK_F) != 0)
+#define SIMD_MASK_ALLONES_H(x) (_SIMD_TESTC_H(x, SIMD_INIT_ONES_MASK_H) != 0)
+
+#define SIMD_MASK_NONZERO_F(x) (_SIMD_TESTZ_F(x, x) != 0)
+#define SIMD_MASK_NONZERO_H(x) (_SIMD_TESTZ_H(x, x) != 0)
+#elif SSE
+#define SIMD_MASK_ALLZERO_F(x) (SIMD_MASK_F(x) == SIMD_ZERO_LANES_F)
+#define SIMD_MASK_ALLZERO_H(x) (SIMD_MASK_H(x) == SIMD_ZERO_LANES_H)
+
+#define SIMD_MASK_ALLONES_F(x) (SIMD_MASK_F(x) == SIMD_ONES_LANES_F)
+#define SIMD_MASK_ALLONES_H(x) (SIMD_MASK_H(x) == SIMD_ONES_LANES_H)
+
+#define SIMD_MASK_NONZERO_F(x) (SIMD_MASK_F(x) != SIMD_ZERO_LANES_F)
+#define SIMD_MASK_NONZERO_H(x) (SIMD_MASK_H(x) != SIMD_ZERO_LANES_H)
+#endif
+
+#if AVX512
 #define SIMD_AND_F(a, b) SIMD_FUNC_DEC_F(maskz_and, b, a)
 #define SIMD_AND_H(a, b) SIMD_FUNC_DEC_H(maskz_and, b, a)
 #else

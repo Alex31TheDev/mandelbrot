@@ -23,8 +23,15 @@ POP_DISABLE_WARNINGS
 #include "../util/PathUtil.h"
 #include "../util/fnv1a.h"
 
-size_t Image::calcBufferSize(int32_t width, int32_t height) {
-    return static_cast<size_t>(width) * height * STRIDE;
+size_t Image::calcBufferSize(int32_t width, int32_t height,
+    int32_t *strideWidth) {
+    int32_t wbytes;
+
+    if constexpr (ALIGNMENT == 0) wbytes = width * STRIDE;
+    else wbytes = width * STRIDE + SIMD_HALF_WIDTH;
+
+    if (strideWidth) *strideWidth = wbytes;
+    return static_cast<size_t>(wbytes) * height;
 }
 
 static void stbi_write_callback(void *context, void *data, int size) {
@@ -37,11 +44,8 @@ static void stbi_write_callback(void *context, void *data, int size) {
 std::unique_ptr<Image> Image::create(int32_t width, int32_t height) {
     std::unique_ptr<Image> image = std::make_unique<Image>();
 
-    if (image->_allocate(width, height)) {
-        return image;
-    } else {
-        return nullptr;
-    }
+    if (image->_allocate(width, height)) return image;
+    else return nullptr;
 }
 
 void Image::clear() {
@@ -55,9 +59,7 @@ bool Image::writeToStream(std::ostream &fout,
         return false;
     }
 
-    const int strideBytes = _width * STRIDE;
     const uint8_t *pixelsPtr = _pixels.get();
-
     bool result = false;
 
     STR_SWITCH(type) {
@@ -67,7 +69,7 @@ bool Image::writeToStream(std::ostream &fout,
                 &fout,
                 _width, _height,
                 STRIDE, pixelsPtr,
-                strideBytes
+                _strideWidth
             );
         break;
         STR_CASE("jpg") :
@@ -76,12 +78,16 @@ bool Image::writeToStream(std::ostream &fout,
                 &fout,
                 _width, _height,
                 STRIDE, pixelsPtr,
-                strideBytes
+                _strideWidth
             );
         break;
         STR_CASE("bmp") :
-            result = writeBmpStream(fout, pixelsPtr,
-                _width, _height);
+            result = writeBmpStream(
+                fout,
+                pixelsPtr,
+                _width, _height,
+                STRIDE, _strideWidth
+            );
         break;
         default:
             fprintf(stderr, "Invalid image type: %s\n", type.c_str());
@@ -136,7 +142,7 @@ bool Image::_allocate(int32_t width, int32_t height) {
         return false;
     }
 
-    const size_t originalSize = calcBufferSize(width, height);
+    const size_t originalSize = calcBufferSize(width, height, &_strideWidth);
     printf("Memory required: %s\n",
         BufferUtil::formatSize(originalSize).c_str());
 
