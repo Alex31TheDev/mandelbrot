@@ -6,6 +6,7 @@
 
 #include "../scalar/ScalarTypes.h"
 #include "VectorTypes.h"
+#include "VectorColor.h"
 
 #include "../scalar/ScalarColorPalette.h"
 
@@ -19,7 +20,20 @@ public:
         return SIMD_MULADD_H(SIMD_SUB_H(b, a), t, a);
     }
 
+    static FORCE_INLINE VectorColor lerp_vec(
+        const VectorColor &a, const VectorColor &b,
+        simd_half_t t
+    ) {
+        return {
+            lerp_vec(a.R, b.R, t),
+            lerp_vec(a.G, b.G, t),
+            lerp_vec(a.B, b.B, t)
+        };
+    }
+
     VectorColorPalette(const ScalarColorPalette &palette);
+
+    VectorColor VECTOR_CALL sampleSIMD(const simd_half_t &x) const;
 
     void VECTOR_CALL sampleSIMD(const simd_half_t &x,
         simd_half_t &outR, simd_half_t &outG, simd_half_t &outB) const;

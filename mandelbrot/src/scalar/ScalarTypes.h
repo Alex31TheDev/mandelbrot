@@ -46,23 +46,29 @@ struct scalar_half_2_t {
 #define ONE_F SC_SYM_F(1.0)
 #define ONE_H SC_SYM_H(1.0)
 
+#define HALF_F SC_SYM_F(0.5)
+#define HALF_H SC_SYM_H(0.5)
+
+#define NEG_ONE_F SC_SYM_F(-1.0)
+#define NEG_ONE_H SC_SYM_H(-1.0)
+
 #define IS0_F(x) (CAST_F(x) == ZERO_F)
 #define IS0_H(x) (CAST_H(x) == ZERO_H)
 
-#define NOT0_F(x) (CAST_F(x) != ZERO_F)
-#define NOT0_H(x) (CAST_H(x) != ZERO_H)
+#define ISNOT0_F(x) (CAST_F(x) != ZERO_F)
+#define ISNOT0_H(x) (CAST_H(x) != ZERO_H)
 
-#define POS_F(x) (CAST_F(x) > ZERO_F)
-#define POS_H(x) (CAST_H(x) > ZERO_H)
+#define ISPOS_F(x) (CAST_F(x) > ZERO_F)
+#define ISPOS_H(x) (CAST_H(x) > ZERO_H)
 
-#define POS0_F(x) (CAST_F(x) >= ZERO_F)
-#define POS0_H(x) (CAST_H(x) >= ZERO_H)
+#define ISPOS0_F(x) (CAST_F(x) >= ZERO_F)
+#define ISPOS0_H(x) (CAST_H(x) >= ZERO_H)
 
-#define NEG_F(x) (CAST_F(x) < ZERO_F)
-#define NEG_H(x) (CAST_H(x) < ZERO_H)
+#define ISNEG_F(x) (CAST_F(x) < ZERO_F)
+#define ISNEG_H(x) (CAST_H(x) < ZERO_H)
 
-#define NEG0_F(x) (CAST_F(x) <= ZERO_F)
-#define NEG0_H(x) (CAST_H(x) <= ZERO_H)
+#define ISNEG0_F(x) (CAST_F(x) <= ZERO_F)
+#define ISNEG0_H(x) (CAST_H(x) <= ZERO_H)
 
 #define SC_FUNC1_F(name, x) SC_SYM_F(name)(CAST_F(x))
 #define SC_FUNC1_H(name, x) SC_SYM_H(name)(CAST_H(x))

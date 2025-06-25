@@ -4,11 +4,7 @@
 #include <vector>
 
 #include "ScalarTypes.h"
-
-struct ScalarColor {
-    scalar_half_t R, G, B;
-    scalar_half_t length;
-};
+#include "ScalarColors.h"
 
 class VectorColorPalette;
 
@@ -21,23 +17,21 @@ public:
     }
 
     static inline ScalarColor lerp(
-        const ScalarColor &a,
-        const ScalarColor &b,
+        const ScalarColor &a, const ScalarColor &b,
         scalar_half_t t
     ) {
         return {
             lerp(a.R, b.R, t),
             lerp(a.G, b.G, t),
-            lerp(a.B, b.B, t),
-            ZERO_H
+            lerp(a.B, b.B, t)
         };
     }
 
-    ScalarColorPalette(const std::vector<ScalarColor> &entries,
+    ScalarColorPalette(const std::vector<ScalarPaletteColor> &entries,
         scalar_half_t totalLength = ONE_H, scalar_half_t offset = ZERO_H,
         bool blendEnds = true);
 
-    [[nodiscard]] const std::vector<ScalarColor> &
+    [[nodiscard]] const std::vector<ScalarPaletteColor> &
         getEntries() const { return _colors; }
     [[nodiscard]] scalar_half_t getTotalLength() const { return _totalLength; }
 
@@ -52,7 +46,7 @@ private:
     scalar_half_t _totalLength, _invLength;
     scalar_half_t _offset = ZERO_H, _epsilon = ZERO_H;
 
-    std::vector<ScalarColor> _colors{};
+    std::vector<ScalarPaletteColor> _colors{};
     std::vector<scalar_half_t> _accum{}, _inv{};
 
     struct _Segment {

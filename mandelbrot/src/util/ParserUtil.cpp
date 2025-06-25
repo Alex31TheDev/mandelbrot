@@ -62,29 +62,34 @@ namespace ParserUtil {
         return result;
     }
 
-    std::tuple<float, float, float>
-        parseHexColor(std::string_view str, bool *ok) {
+    std::tuple<uint8_t, uint8_t, uint8_t>
+        parseHexString(std::string_view str, bool *ok) {
         if (!str.empty() && str[0] == '#') {
             str.remove_prefix(1);
         }
 
-        if (str.size() != 3 && str.size() != 6) {
+        const bool fullHex = str.size() == 6;
+        const bool shortHex = str.size() == 3;
+
+        uint8_t r, g, b;
+        r = g = b = 0;
+
+        if (!fullHex && !shortHex) {
             if (ok) *ok = false;
-            return std::make_tuple(0.0f, 0.0f, 0.0f);
+            return std::make_tuple(r, g, b);
         }
 
-        float r = 0.0f, g = 0.0f, b = 0.0f;
         const uint32_t rgb = parseNumber<uint32_t, 16>
             (std::string(str), ok, 0);
 
-        if (str.size() == 3) {
-            r = ((rgb >> 8) & 0xF) / 15.0f;
-            g = ((rgb >> 4) & 0xF) / 15.0f;
-            b = (rgb & 0xF) / 15.0f;
-        } else {
-            r = ((rgb >> 16) & 0xFF) / 255.0f;
-            g = ((rgb >> 8) & 0xFF) / 255.0f;
-            b = (rgb & 0xFF) / 255.0f;
+        if (fullHex) {
+            r = (rgb >> 16) & 0xFF;
+            g = (rgb >> 8) & 0xFF;
+            b = rgb & 0xFF;
+        } else if (shortHex) {
+            r = (rgb >> 8) & 0xF;
+            g = (rgb >> 4) & 0xF;
+            b = rgb & 0xF;
         }
 
         return std::make_tuple(r, g, b);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -47,8 +48,8 @@ namespace ParserUtil {
         return parseNumber<T, 10>(argc, argv, index, nullptr, defaultValue);
     }
 
-    std::tuple<float, float, float>
-        parseHexColor(std::string_view str, bool *ok = nullptr);
+    std::tuple<uint8_t, uint8_t, uint8_t>
+        parseHexString(std::string_view str, bool *ok = nullptr);
 
     std::vector<std::string> parseCommandLine(const std::string &cmd);
 }

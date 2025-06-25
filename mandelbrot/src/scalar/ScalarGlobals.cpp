@@ -93,7 +93,7 @@ namespace ScalarGlobals {
 
     bool setLightGlobals(scalar_half_t real, scalar_half_t imag) {
         const scalar_half_t mag = SQRT_H(real * real + imag * imag);
-        if (NEG0_H(mag)) return false;
+        if (ISNEG0_H(mag)) return false;
 
         light_r = real / mag;
         light_i = imag / mag;

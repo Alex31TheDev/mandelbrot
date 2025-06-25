@@ -5,9 +5,7 @@
 
 #include "Usage.h"
 #include "ColorMethods.h"
-#include "../util/ParserUtil.h"
 using namespace ColorMethods;
-using namespace ParserUtil;
 
 #include "../scalar/ScalarTypes.h"
 
@@ -17,6 +15,9 @@ using namespace ParserUtil;
 #include "../mpfr/MPFRGlobals.h"
 using namespace RenderGlobals;
 using namespace ScalarGlobals;
+
+#include "../util/ParserUtil.h"
+using namespace ParserUtil;
 
 #define PARSE_NUM(idx, default) \
     parseNumber(argc, argv, idx, DEFAULT_ ## default)

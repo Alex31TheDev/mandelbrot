@@ -1,5 +1,3 @@
-#pragma once
-
 #include <cstdlib>
 #include <cerrno>
 #include <cstdint>

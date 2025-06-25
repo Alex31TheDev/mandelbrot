@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "VectorTypes.h"
+#include "VectorColor.h"
 
 #include "VectorGlobals.h"
 using namespace VectorGlobals;
@@ -74,6 +75,33 @@ VectorColorPalette::_locate_vec(const simd_half_t &x) const {
     }
 
     return { idx, next, u };
+}
+
+VectorColor VECTOR_CALL
+VectorColorPalette::sampleSIMD(const simd_half_t &x) const {
+    if (_n == 0) {
+        return { h_zero, h_zero, h_zero };
+    }
+
+    const _SIMDSegment seg = _locate_vec(x);
+
+    const float *R = _R.data();
+    const float *G = _G.data();
+    const float *B = _B.data();
+
+    const VectorColor color1 = {
+        SIMD_GATHER_H(R, seg.idx),
+        SIMD_GATHER_H(G, seg.idx),
+        SIMD_GATHER_H(B, seg.idx),
+    };
+
+    const VectorColor color2 = {
+        SIMD_GATHER_H(R, seg.next),
+        SIMD_GATHER_H(G, seg.next),
+        SIMD_GATHER_H(B, seg.next),
+    };
+
+    return lerp_vec(color1, color2, seg.u);
 }
 
 void VECTOR_CALL VectorColorPalette::sampleSIMD(

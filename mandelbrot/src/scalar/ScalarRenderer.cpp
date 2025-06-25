@@ -21,7 +21,7 @@ static FORCE_INLINE void complexInverse(
 ) {
     const scalar_full_t cmag = cr * cr + ci * ci;
 
-    if (NOT0_F(cmag)) {
+    if (ISNOT0_F(cmag)) {
         cr = cr / cmag;
         ci = -ci / cmag;
     }
@@ -42,7 +42,7 @@ static FORCE_INLINE scalar_half_t getSmoothIterVal(int i, scalar_half_t mag) {
 }
 
 static FORCE_INLINE scalar_half_t normCos(scalar_half_t x) {
-    return (COS_H(x) + ONE_H) * SC_SYM_H(0.5);
+    return (COS_H(x) + ONE_H) * HALF_H;
 }
 
 static FORCE_INLINE void getPixelColor(scalar_half_t val,

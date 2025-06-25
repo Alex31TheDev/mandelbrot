@@ -807,10 +807,15 @@
     <ClInclude Include="src\args\ColorMethods.h" />
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\mpfr\CommonDefs.h" />
+    <ClInclude Include="src\mpfr\ThreadLocalPool.h" />
+    <ClInclude Include="src\mpfr\ThreadLocalPool_impl.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
     <ClInclude Include="src\render\ThreadPool.h" />
+    <ClInclude Include="src\render\ThreadPool_impl.h" />
     <ClInclude Include="src\render\ThreadSafeQueue.h" />
+    <ClInclude Include="src\render\ThreadSafeQueue_impl.h" />
     <ClInclude Include="src\scalar\CommonDefs.h" />
+    <ClInclude Include="src\scalar\ScalarColors.h" />
     <ClInclude Include="src\scalar\ScalarColorPalette.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
@@ -836,6 +841,7 @@
     <ClInclude Include="src\util\TimeUtil.h" />
     <ClInclude Include="src\util\WarningUtil.h" />
     <ClInclude Include="src\vector\CommonDefs.h" />
+    <ClInclude Include="src\vector\VectorColor.h" />
     <ClInclude Include="src\vector\VectorColorPalette.h" />
     <ClInclude Include="src\vector\VectorCoords.h" />
     <ClInclude Include="src\vector\VectorGlobals.h" />
@@ -851,6 +857,7 @@
     <ClCompile Include="src\args\Usage.cpp" />
     <ClCompile Include="src\image\BmpWriter.cpp" />
     <ClCompile Include="src\render\RenderGlobals.cpp" />
+    <ClCompile Include="src\scalar\ScalarColors.cpp" />
     <ClCompile Include="src\scalar\ScalarColorPalette.cpp" />
     <ClCompile Include="src\util\BufferUtil.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />
