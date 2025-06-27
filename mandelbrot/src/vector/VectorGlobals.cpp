@@ -32,29 +32,29 @@ namespace VectorGlobals {
     void initVectors() {
         f_idx_vec = SIMD_LOAD_F(makeIndexArray().data());
 
-        f_halfWidth_vec = SIMD_SET_F(halfWidth);
-        f_invWidth_vec = SIMD_SET_F(invWidth);
+        f_halfWidth_vec = SIMD_SET1_F(halfWidth);
+        f_invWidth_vec = SIMD_SET1_F(invWidth);
 
-        f_realScale_vec = SIMD_SET_F(realScale);
-        f_point_r_vec = SIMD_SET_F(point_r);
+        f_realScale_vec = SIMD_SET1_F(realScale);
+        f_point_r_vec = SIMD_SET1_F(point_r);
 
-        f_seed_r_vec = SIMD_SET_F(seed_r);
-        f_seed_i_vec = SIMD_SET_F(seed_i);
+        f_seed_r_vec = SIMD_SET1_F(seed_r);
+        f_seed_i_vec = SIMD_SET1_F(seed_i);
 
-        h_invCount_vec = SIMD_SET_H(invCount);
-        h_invLnPow_vec = SIMD_SET_H(invLnPow);
+        h_invCount_vec = SIMD_SET1_H(invCount);
+        h_invLnPow_vec = SIMD_SET1_H(invLnPow);
 
-        h_freq_r_vec = SIMD_SET_H(freq_r);
-        h_freq_g_vec = SIMD_SET_H(freq_g);
-        h_freq_b_vec = SIMD_SET_H(freq_b);
+        h_freq_r_vec = SIMD_SET1_H(freq_r);
+        h_freq_g_vec = SIMD_SET1_H(freq_g);
+        h_freq_b_vec = SIMD_SET1_H(freq_b);
 
-        h_phase_r_vec = SIMD_SET_H(phase_r);
-        h_phase_g_vec = SIMD_SET_H(phase_g);
-        h_phase_b_vec = SIMD_SET_H(phase_b);
+        h_phase_r_vec = SIMD_SET1_H(phase_r);
+        h_phase_g_vec = SIMD_SET1_H(phase_g);
+        h_phase_b_vec = SIMD_SET1_H(phase_b);
 
-        h_light_r_vec = SIMD_SET_H(light_r);
-        h_light_i_vec = SIMD_SET_H(light_i);
-        h_light_h_vec = SIMD_SET_H(light_h);
+        h_light_r_vec = SIMD_SET1_H(light_r);
+        h_light_i_vec = SIMD_SET1_H(light_i);
+        h_light_h_vec = SIMD_SET1_H(light_h);
     }
 }
 

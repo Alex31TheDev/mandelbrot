@@ -8,9 +8,6 @@
 
 #ifdef USE_VECTORS
 #include "../vector/VectorTypes.h"
-#else
-constexpr int SIMD_HALF_WIDTH = 0;
-constexpr int SIMD_HALF_ALIGNMENT = 0;
 #endif
 
 #include "../util/BufferUtil.h"
@@ -18,7 +15,14 @@ constexpr int SIMD_HALF_ALIGNMENT = 0;
 class Image {
 public:
     static constexpr int STRIDE = 3;
+
+#ifdef USE_VECTORS
     static constexpr int ALIGNMENT = SIMD_HALF_ALIGNMENT;
+    static constexpr int EXTRA_BYTES = SIMD_HALF_WIDTH;
+#else
+    static constexpr int ALIGNMENT = 0;
+    static constexpr int EXTRA_BYTES = 0;
+#endif
 
     static size_t calcBufferSize(int32_t width, int32_t height,
         int32_t *strideWidth = nullptr);

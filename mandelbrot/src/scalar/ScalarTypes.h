@@ -49,8 +49,8 @@ struct scalar_half_2_t {
 #define HALF_F SC_SYM_F(0.5)
 #define HALF_H SC_SYM_H(0.5)
 
-#define NEG_ONE_F SC_SYM_F(-1.0)
-#define NEG_ONE_H SC_SYM_H(-1.0)
+#define NEGONE_F SC_SYM_F(-1.0)
+#define NEGONE_H SC_SYM_H(-1.0)
 
 #define IS0_F(x) (CAST_F(x) == ZERO_F)
 #define IS0_H(x) (CAST_H(x) == ZERO_H)
@@ -61,11 +61,11 @@ struct scalar_half_2_t {
 #define ISPOS_F(x) (CAST_F(x) > ZERO_F)
 #define ISPOS_H(x) (CAST_H(x) > ZERO_H)
 
-#define ISPOS0_F(x) (CAST_F(x) >= ZERO_F)
-#define ISPOS0_H(x) (CAST_H(x) >= ZERO_H)
-
 #define ISNEG_F(x) (CAST_F(x) < ZERO_F)
 #define ISNEG_H(x) (CAST_H(x) < ZERO_H)
+
+#define ISPOS0_F(x) (CAST_F(x) >= ZERO_F)
+#define ISPOS0_H(x) (CAST_H(x) >= ZERO_H)
 
 #define ISNEG0_F(x) (CAST_F(x) <= ZERO_F)
 #define ISNEG0_H(x) (CAST_H(x) <= ZERO_H)

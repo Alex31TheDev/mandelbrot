@@ -72,6 +72,7 @@ static void renderStrip(Image *image,
         }
 #endif
 
+        pos += Image::EXTRA_BYTES;
         if (progress) progress->update();
     }
 }

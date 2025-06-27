@@ -28,7 +28,7 @@ size_t Image::calcBufferSize(int32_t width, int32_t height,
     int32_t wbytes;
 
     if constexpr (ALIGNMENT == 0) wbytes = width * STRIDE;
-    else wbytes = width * STRIDE + SIMD_HALF_WIDTH;
+    else wbytes = width * STRIDE + EXTRA_BYTES;
 
     if (strideWidth) *strideWidth = wbytes;
     return static_cast<size_t>(wbytes) * height;

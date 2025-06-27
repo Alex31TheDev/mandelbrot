@@ -449,6 +449,7 @@
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgEnabled>true</VcpkgEnabled>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|x64'">
     <ClCompile>
@@ -805,6 +806,7 @@
   <ItemGroup>
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ColorMethods.h" />
+    <ClInclude Include="src\fullname.h" />
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\mpfr\CommonDefs.h" />
     <ClInclude Include="src\mpfr\ThreadLocalPool.h" />

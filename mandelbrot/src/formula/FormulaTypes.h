@@ -5,7 +5,7 @@
 
 typedef scalar_full_t number_t;
 typedef scalar_full_2_t number_2_t;
-typedef number_t number_param_t;
+typedef scalar_full_t number_param_t;
 
 #define NUM_CONST SC_SYM_F
 #define NUM_VAR CAST_F
@@ -14,6 +14,9 @@ typedef number_t number_param_t;
 #define NUM_SUB(a, b) (CAST_F(a) - (b))
 #define NUM_MUL(a, b) (CAST_F(a) * (b))
 #define NUM_DIV(a, b) (CAST_F(a) / (b))
+
+#define NUM_MULADD(a, b, c) ((CAST_F(a) * (b)) + c)
+#define NUM_MULSUB(a, b, c) ((CAST_F(a) * (b)) - c)
 
 #define NUM_NEG(x) -(x)
 #define NUM_ABS ABS_F
@@ -31,15 +34,18 @@ typedef number_t number_param_t;
 
 typedef simd_full_t number_t;
 typedef simd_full_2_t number_2_t;
-typedef const number_t &number_param_t;
+typedef simd_full_t number_param_t;
 
-#define NUM_CONST SIMD_SET_F
-#define NUM_VAR NUM_CONST
+#define NUM_CONST SIMD_CONSTSET_F
+#define NUM_VAR SIMD_SET1_F
 
 #define NUM_ADD SIMD_ADD_F
 #define NUM_SUB SIMD_SUB_F
 #define NUM_MUL SIMD_MUL_F
 #define NUM_DIV SIMD_DIV_F
+
+#define NUM_MULADD SIMD_MULADD_F
+#define NUM_MULSUB SIMD_MULSUB_F
 
 #define NUM_NEG SIMD_NEG_F
 #define NUM_ABS SIMD_ABS_F
