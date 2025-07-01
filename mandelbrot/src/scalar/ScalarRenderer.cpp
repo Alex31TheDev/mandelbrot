@@ -9,12 +9,13 @@
 using namespace ScalarGlobals;
 
 #include "../image/Image.h"
+#include "../util/InlineUtil.h"
+
+#ifdef USE_SCALAR
 #include "ScalarCoords.h"
 
 #define FORMULA_SCALAR
 #include "../formula/FractalFormulas.h"
-
-#include "../util/InlineUtil.h"
 
 static FORCE_INLINE void complexInverse(
     scalar_full_t &cr, scalar_full_t &ci
@@ -26,6 +27,10 @@ static FORCE_INLINE void complexInverse(
         ci = -ci / cmag;
     }
 }
+
+#endif
+
+#if USE_SCALAR_COLORING
 
 static FORCE_INLINE scalar_half_t getIterVal(int i) {
 #ifdef NORM_ITER_COUNT
@@ -42,7 +47,7 @@ static FORCE_INLINE scalar_half_t getSmoothIterVal(int i, scalar_half_t mag) {
 }
 
 static FORCE_INLINE scalar_half_t normCos(scalar_half_t x) {
-    return (COS_H(x) + ONE_H) * HALF_H;
+    return (COS_H(x) + ONE_H) * ONEHALF_H;
 }
 
 static FORCE_INLINE void getPixelColor(scalar_half_t val,
@@ -82,7 +87,11 @@ static FORCE_INLINE scalar_half_t getLightVal(
 #endif
 }
 
+#endif
+
 namespace ScalarRenderer {
+#ifdef USE_SCALAR
+
     FORCE_INLINE void initCoords(
         scalar_full_t &cr, scalar_full_t &ci,
         scalar_full_t &zr, scalar_full_t &zi,
@@ -132,11 +141,13 @@ namespace ScalarRenderer {
                     break;
             }
 
-            formula(cr, ci, zr, zi, zr2, zi2, mag, zr, zi);
+            formula(cr, ci, zr, zi, mag, zr, zi);
         }
 
         return i;
     }
+
+#endif
 
     FORCE_INLINE uint8_t colorToInt(scalar_half_t val) {
         scalar_half_t newVal = val * SC_SYM_H(255.0);
@@ -155,6 +166,7 @@ namespace ScalarRenderer {
         }
     }
 
+#if USE_SCALAR_COLORING
     FORCE_INLINE void colorPixelScalar(
         uint8_t *pixels, size_t &pos,
         int i, scalar_full_t mag,
@@ -162,8 +174,7 @@ namespace ScalarRenderer {
         scalar_full_t dr, scalar_full_t di
     ) {
         if (i == count) {
-            ScalarRenderer::setPixel(pixels, pos,
-                ZERO_H, ZERO_H, ZERO_H);
+            setPixel(pixels, pos, ZERO_H, ZERO_H, ZERO_H);
             return;
         }
 
@@ -190,8 +201,11 @@ namespace ScalarRenderer {
                 break;
         }
 
-        ScalarRenderer::setPixel(pixels, pos, R, G, B);
+        setPixel(pixels, pos, R, G, B);
     }
+#endif
+
+#ifdef USE_SCALAR
 
     void renderPixelScalar(
         uint8_t *pixels, size_t &pos,
@@ -209,4 +223,6 @@ namespace ScalarRenderer {
 
         colorPixelScalar(pixels, pos, i, mag, zr, zi, dr, di);
     }
+
+#endif
 }

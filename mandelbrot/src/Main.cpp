@@ -13,28 +13,16 @@
 
 #include "render/RenderGlobals.h"
 #include "mpfr/MPFRGlobals.h"
-#include "util/fnv1a.h"
-using namespace fnv1a;
 
 #include "image/Image.h"
 #include "render/RenderImage.h"
 
-#ifndef OUT_FILENAME
-#define OUT_FILENAME "mandelbrot"
-#endif
-#ifndef OUT_FILETYPE
-#define OUT_FILETYPE "png"
-#endif
-
-static_assert(hash_32(OUT_FILETYPE) == "png"_hash_32 ||
-    hash_32(OUT_FILETYPE) == "jpg"_hash_32 ||
-    hash_32(OUT_FILETYPE) == "bmp"_hash_32,
-    "OUT_FILETYPE must be one of: \"png\", \"jpg\", \"bmp\"");
-
-static const char *fullname = OUT_FILENAME "." OUT_FILETYPE;
+#include "fullname.h"
 
 static bool initializeImage(std::unique_ptr<Image> &image) {
-    image = Image::create(RenderGlobals::width, RenderGlobals::height);
+    image = Image::create(RenderGlobals::width, RenderGlobals::height,
+        RenderGlobals::useThreads);
+
     return image != nullptr;
 }
 

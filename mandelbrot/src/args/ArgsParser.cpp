@@ -64,8 +64,8 @@ namespace ArgsParser {
             return false;
         }
 
-        point_r = PARSE_F(argv[3]);
-        point_i = PARSE_F(argv[4]);
+        const scalar_full_t pr = PARSE_F(argv[3]);
+        const scalar_full_t pi = PARSE_F(argv[4]);
 
         const float zoomScale = PARSE_H(argv[5]);
         int iterCount = 0;
@@ -98,9 +98,11 @@ namespace ArgsParser {
             colorMethod = DEFAULT_COLOR_METHOD.id;
         }
 
+        bool julia = false, inverse = false;
+
         if (argc > 9) {
             bool ok;
-            isJuliaSet = parseBool(argv[9], &ok);
+            julia = parseBool(argv[9], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nJulia set %s.\n", flagHelp);
@@ -110,7 +112,7 @@ namespace ArgsParser {
 
         if (argc > 10) {
             bool ok;
-            isInverse = parseBool(argv[10], &ok);
+            inverse = parseBool(argv[10], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nInverse %s.\n", flagHelp);
@@ -118,8 +120,12 @@ namespace ArgsParser {
             }
         }
 
-        seed_r = PARSE_NUM(11, SEED_R);
-        seed_i = PARSE_NUM(12, SEED_I);
+        setFractalType(julia, inverse);
+
+        const scalar_full_t sr = PARSE_NUM(11, SEED_R);
+        const scalar_full_t si = PARSE_NUM(12, SEED_I);
+
+        setZoomPoints(pr, pi, sr, si);
 
         const scalar_full_t pw = PARSE_NUM(13, FRACTAL_EXP);
 

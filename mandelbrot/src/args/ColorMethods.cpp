@@ -17,7 +17,7 @@ namespace ColorMethods {
             if (strcmp(str, method.name) == 0) return method.id;
         }
 
-        fprintf(stderr, "Invalid colorMethod '%s'. Valid options: ", str);
+        fprintf(stderr, "Invalid color method '%s'. Valid options: ", str);
 
         bool first = true;
 

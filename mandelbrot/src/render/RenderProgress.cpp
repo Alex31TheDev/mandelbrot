@@ -18,7 +18,7 @@ RenderProgress::RenderProgress(int totalWork)
 }
 
 void RenderProgress::_printProgress(int perc) {
-    std::lock_guard<std::mutex> lock(_printfMutex);
+    std::scoped_lock lock(_printfMutex);
 
     printf("\rRendering: %3d%%", perc);
     fflush(stdout);
@@ -33,14 +33,12 @@ void RenderProgress::update(int processed) {
     const int perc = (current * 100) / _totalWork;
     const int last = _lastPrinted.load(std::memory_order_relaxed);
 
-    if (perc > last) {
-        _printProgress(perc);
-    }
+    if (perc > last) _printProgress(perc);
 }
 
 template <typename T>
 void RenderProgress::_printElapsed(T elapsed, bool format) {
-    std::lock_guard<std::mutex> lock(_printfMutex);
+    std::scoped_lock lock(_printfMutex);
 
     if (format) {
         printf(" (completed in: %s)\n",

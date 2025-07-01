@@ -63,6 +63,7 @@ namespace ParserUtil {
         const T defaultValue) {
         const std::string input = (index < argc) ?
             std::string(argv[index]) : "";
+
         return parseNumber<T, base>(input, ok, defaultValue);
     }
 }

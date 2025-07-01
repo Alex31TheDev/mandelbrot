@@ -12,25 +12,33 @@
 using namespace RenderGlobals;
 
 #if defined(USE_SCALAR)
+
+#include "../scalar/ScalarCoords.h"
 #include "../scalar/ScalarRenderer.h"
+
+constexpr auto imagCenterCoord = &getCenterImag;
 constexpr auto renderPixel = &ScalarRenderer::renderPixelScalar;
+
 #elif defined(USE_VECTORS)
+
 #include "../vector/VectorTypes.h"
+
+#include "../vector/VectorCoords.h"
 #include "../vector/VectorRenderer.h"
+
+constexpr auto imagCenterCoord = &getCenterImag_vec;
 constexpr auto renderPixel = &VectorRenderer::renderPixelSIMD;
+
 #elif defined(USE_MPFR)
+
+#include "../mpfr/MPFRCoords.h"
 #include "../mpfr/MPFRRenderer.h"
+
+constexpr auto imagCenterCoord = &getCenterImag_mp;
 constexpr auto renderPixel = &MPFRRenderer::renderPixelMPFR;
+
 #else
 #error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, or USE_MPFR)"
-#endif
-
-#if defined(USE_SCALAR) || defined(USE_VECTORS)
-#include "../scalar/ScalarCoords.h"
-constexpr auto imagCenterCoord = &getCenterImag;
-#elif defined(USE_MPFR)
-#include "../mpfr/MPFRCoords.h"
-constexpr auto imagCenterCoord = &getCenterImag_mp;
 #endif
 
 #include "ThreadPool.h"
@@ -56,22 +64,29 @@ static void renderStrip(Image *image,
     size_t pos = static_cast<size_t>(start_y) * image->strideWidth();
 
     for (int y = start_y; y < end_y; y++) {
+#if defined(USE_SCALAR) || defined(USE_MPFR)
         const auto ci = imagCenterCoord(y);
 
-#if defined(USE_SCALAR) || defined(USE_MPFR)
         for (int x = 0; x < width; x++) {
             renderPixel(image->pixels(), pos, x, ci);
         }
 #elif defined(USE_VECTORS)
+        const simd_full_t ci = imagCenterCoord(SIMD_SET1_F(y));
+
         for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
             const int pixelsLeft = width - x;
-            const int simdWidth = pixelsLeft < SIMD_FULL_WIDTH ?
+            const int simdWidth =
+                pixelsLeft < SIMD_FULL_WIDTH ?
                 pixelsLeft : SIMD_FULL_WIDTH;
 
-            renderPixel(image->pixels(), pos, simdWidth, x, ci);
+            renderPixel(
+                image->pixels(), pos,
+                simdWidth, x, ci
+            );
         }
 #endif
 
+        pos += image->tailBytes();
         if (progress) progress->update();
     }
 }
