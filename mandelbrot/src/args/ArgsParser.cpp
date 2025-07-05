@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <cstring>
 
+#include <tuple>
+#include <algorithm>
+
 #include "Usage.h"
 #include "ColorMethods.h"
 using namespace ColorMethods;
@@ -26,27 +29,26 @@ static const char *flagHelp = "flag must be \"true\" or \"false\"";
 
 namespace ArgsParser {
     bool checkHelp(int argc, char **argv) {
-        if (argv == nullptr) return false;
+        if (!argv) return false;
+        const char *progPath = argv[0];
 
         if (argsCount(argc) < 1) {
-            printUsage(argv[0]);
+            printUsage(progPath);
             return true;
         } else if (argsCount(argc) != 1) {
             return false;
         }
 
-        for (const char *opt : helpOptionsRange{}) {
-            if (strcmp(argv[1], opt) == 0) {
-                printUsage(argv[0]);
-                return true;
-            }
-        }
+        const char *helpArg = argv[1];
+        const bool isHelp = std::ranges::any_of(helpOptionsRange{},
+            [helpArg](const char *opt) { return strcmp(helpArg, opt) == 0; });
 
-        return false;
+        if (isHelp) printUsage();
+        return isHelp;
     }
 
     bool parse(int argc, char **argv) {
-        if (argv == nullptr) return false;
+        if (!argv) return false;
 
         if (argsCount(argc) < MIN_ARGS ||
             argsCount(argc) > MAX_ARGS) {
@@ -64,8 +66,8 @@ namespace ArgsParser {
             return false;
         }
 
-        point_r = PARSE_F(argv[3]);
-        point_i = PARSE_F(argv[4]);
+        const scalar_full_t pr = PARSE_F(argv[3]);
+        const scalar_full_t pi = PARSE_F(argv[4]);
 
         const float zoomScale = PARSE_H(argv[5]);
         int iterCount = 0;
@@ -98,9 +100,11 @@ namespace ArgsParser {
             colorMethod = DEFAULT_COLOR_METHOD.id;
         }
 
+        bool julia = false, inverse = false;
+
         if (argc > 9) {
             bool ok;
-            isJuliaSet = parseBool(argv[9], &ok);
+            julia = parseBool(argv[9], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nJulia set %s.\n", flagHelp);
@@ -110,7 +114,7 @@ namespace ArgsParser {
 
         if (argc > 10) {
             bool ok;
-            isInverse = parseBool(argv[10], &ok);
+            inverse = parseBool(argv[10], &ok);
 
             if (!ok) {
                 fprintf(stderr, "Invalid args.\nInverse %s.\n", flagHelp);
@@ -118,8 +122,12 @@ namespace ArgsParser {
             }
         }
 
-        seed_r = PARSE_NUM(11, SEED_R);
-        seed_i = PARSE_NUM(12, SEED_I);
+        setFractalType(julia, inverse);
+
+        const scalar_full_t sr = PARSE_NUM(11, SEED_R);
+        const scalar_full_t si = PARSE_NUM(12, SEED_I);
+
+        setZoomPoints(pr, pi, sr, si);
 
         const scalar_full_t pw = PARSE_NUM(13, FRACTAL_EXP);
 

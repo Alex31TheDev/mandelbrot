@@ -19,8 +19,10 @@ ArgsVec::~ArgsVec() {
     delete[] argv;
 }
 
-ArgsVec ArgsVec::fromParsed(char *progName,
-    std::vector<std::string> &&parsedArgs) {
+ArgsVec ArgsVec::fromParsed(
+    char *progName,
+    std::vector<std::string> &&parsedArgs
+) {
     const int count = static_cast<int>(parsedArgs.size() + 1);
     ArgsVec result(count);
 
@@ -68,8 +70,8 @@ namespace ParserUtil {
             str.remove_prefix(1);
         }
 
-        const bool fullHex = str.size() == 6;
-        const bool shortHex = str.size() == 3;
+        const bool fullHex = (str.size() == 6);
+        const bool shortHex = (str.size() == 3);
 
         uint8_t r, g, b;
         r = g = b = 0;
@@ -99,8 +101,7 @@ namespace ParserUtil {
         std::vector<std::string> args;
         std::string current;
 
-        bool inQuotes = false;
-        bool inEscape = false;
+        bool inQuotes = false, inEscape = false;
 
         for (const char c : cmd) {
             if (inEscape) {
@@ -120,10 +121,7 @@ namespace ParserUtil {
             }
         }
 
-        if (!current.empty()) {
-            args.push_back(current);
-        }
-
+        if (!current.empty()) args.push_back(current);
         return args;
     }
 }

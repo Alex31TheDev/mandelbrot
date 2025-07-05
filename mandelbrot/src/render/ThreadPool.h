@@ -31,7 +31,6 @@ namespace _ThreadPoolImpl {
 template <typename FunctionType = _ThreadPoolImpl::DefaultFuncType,
     typename ThreadType = std::jthread>
     requires _ThreadPoolImpl::VoidInvocable<FunctionType>
-
 class ThreadPool {
 public:
     template <typename InitFunction = std::function<void(size_t)>>
@@ -49,7 +48,7 @@ public:
     ThreadPool(ThreadPool &&) = default;
     ThreadPool &operator=(ThreadPool &&) = default;
 
-    [[nodiscard]] auto size() const { return _threads.size(); };
+    [[nodiscard]] size_t size() const { return _threads.size(); };
 
     template <typename Function, typename... Args,
         typename ReturnType = std::invoke_result_t<Function &&, Args &&...>>
@@ -70,19 +69,18 @@ private:
     template <typename Function, typename... Args, typename ReturnType>
     auto _makeTaskWithPromise(Function &&func, Args &&...args,
         std::shared_ptr<std::promise<ReturnType>> promise);
-
     template <typename Function, typename... Args>
-
     auto _makeDetachedTask(Function &&func, Args &&...args);
+
     template <typename Function>
     void _enqueueTask(Function &&f);
 
+    std::vector<ThreadType> _threads;
+
     struct _TaskItem {
-        ThreadSafeQueue<FunctionType> tasks{};
+        ThreadSafeQueue<FunctionType> tasks;
         std::binary_semaphore signal{ 0 };
     };
-
-    std::vector<ThreadType> _threads;
     std::deque<_TaskItem> _tasks;
 
     ThreadSafeQueue<size_t> _priorityQueue;

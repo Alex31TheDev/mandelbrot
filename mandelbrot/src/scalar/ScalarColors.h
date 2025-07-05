@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <string_view>
 
 #include "ScalarTypes.h"
@@ -15,6 +16,7 @@ struct ScalarPaletteColor : public ScalarColor {
 
     static ScalarColor fromHex(std::string_view) = delete;
 
-    static ScalarPaletteColor fromString
-    (std::string_view hex, std::string_view lengthStr);
+    static ScalarPaletteColor fromString(
+        std::string_view hex, const std::string &lengthStr
+    );
 };

@@ -55,7 +55,8 @@ namespace BufferUtil {
     }
 
     template <size_t ALIGNMENT>
-    void AlignedDeleter<ALIGNMENT>::operator()(uint8_t *ptr) noexcept {
+    void AlignedDeleter<ALIGNMENT>::operator()
+        (uint8_t *ptr) noexcept {
         bufferFree<ALIGNMENT>(ptr);
     }
 }

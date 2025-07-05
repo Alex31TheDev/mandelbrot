@@ -14,3 +14,9 @@
 #define _CONCAT8(a, b, c, d, e, f, g, h) _CONCAT2(_CONCAT7(a, b, c, d, e, f, g), h)
 #define _CONCAT9(a, b, c, d, e, f, g, h, i) _CONCAT2(_CONCAT8(a, b, c, d, e, f, g, h), i)
 #define _CONCAT10(a, b, c, d, e, f, g, h, i, j) _CONCAT2(_CONCAT9(a, b, c, d, e, f, g, h, i), j)
+
+#if defined(_MSC_VER)
+#define _PRAGMA(P) __pragma(P)
+#else
+#define _PRAGMA(P) _Pragma(#P)
+#endif

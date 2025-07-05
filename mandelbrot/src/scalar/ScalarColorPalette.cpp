@@ -6,6 +6,8 @@
 #include "ScalarTypes.h"
 #include "ScalarColors.h"
 
+#include "../util/InlineUtil.h"
+
 ScalarColorPalette::ScalarColorPalette(
     const std::vector<ScalarPaletteColor> &entries,
     scalar_half_t totalLength, scalar_half_t offset,
@@ -41,7 +43,10 @@ ScalarColorPalette::ScalarColorPalette(
 
     if (ISNOT0_H(lengthSum)) {
         const scalar_half_t invSum = RECIP_H(lengthSum);
-        for (auto &col : _colors) col.length *= invSum * _totalLength;
+
+        for (ScalarPaletteColor &col : _colors) {
+            col.length *= invSum * _totalLength;
+        }
     }
 
     _accum.resize(_numSegments + 1);
@@ -61,7 +66,9 @@ ScalarColorPalette::ScalarColorPalette(
     _epsilon = NEXTAFTER_H(_totalLength, 0);
 }
 
-ScalarColorPalette::_Segment
+#if USE_SCALAR_COLORING
+
+FORCE_INLINE ScalarColorPalette::_Segment
 ScalarColorPalette::_locate(scalar_half_t x) const {
     if (_numSegments == 0) return { 0, 0, ZERO_H };
 
@@ -110,3 +117,5 @@ void ScalarColorPalette::sample(
     outG = lerp(color1.G, color2.G, seg.u);
     outB = lerp(color1.B, color2.B, seg.u);
 }
+
+#endif

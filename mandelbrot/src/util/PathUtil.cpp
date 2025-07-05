@@ -8,6 +8,7 @@
 #include <string_view>
 #include <tuple>
 #include <chrono>
+
 using namespace std::chrono;
 
 static bool safeLocaltime(time_t time, tm &out) {
@@ -38,6 +39,25 @@ namespace PathUtil {
         }
 
         return std::make_tuple(name, ext);
+    }
+
+    std::string getAbsolutePath(const std::string &filePath) {
+#ifdef _WIN32
+        char absPath[_MAX_PATH] = { 0 };
+
+        if (_fullpath(absPath, filePath.c_str(), _MAX_PATH)) {
+            return std::string(absPath);
+        }
+#else
+        char *resolved = realpath(filePath.c_str(), nullptr);
+
+        if (resolved) {
+            std::string result(resolved);
+            free(resolved);
+            return std::string(result);
+        }
+#endif
+        return filePath;
     }
 
     std::string appendSeqnum(std::string_view filePath, int x) {
@@ -71,24 +91,5 @@ namespace PathUtil {
         result.append(buf);
         result.append(ext);
         return result;
-    }
-
-    std::string getAbsolutePath(const std::string &filePath) {
-#ifdef _WIN32
-        char absPath[_MAX_PATH] = { 0 };
-
-        if (_fullpath(absPath, filePath.c_str(), _MAX_PATH) != nullptr) {
-            return std::string(absPath);
-        }
-#else
-        char *resolved = realpath(filePath.c_str(), nullptr);
-
-        if (resolved != nullptr) {
-            std::string result(resolved);
-            free(resolved);
-            return std::string(result);
-        }
-#endif
-        return filePath;
     }
 }

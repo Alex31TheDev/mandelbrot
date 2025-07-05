@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <cmath>
 
+#include <array>
+#include <algorithm>
+
 #include "../util/MacroUtil.h"
 #include "../util/InlineUtil.h"
 
@@ -46,11 +49,11 @@ struct scalar_half_2_t {
 #define ONE_F SC_SYM_F(1.0)
 #define ONE_H SC_SYM_H(1.0)
 
-#define HALF_F SC_SYM_F(0.5)
-#define HALF_H SC_SYM_H(0.5)
+#define ONEHALF_F SC_SYM_F(0.5)
+#define ONEHALF_H SC_SYM_H(0.5)
 
-#define NEG_ONE_F SC_SYM_F(-1.0)
-#define NEG_ONE_H SC_SYM_H(-1.0)
+#define NEGONE_F SC_SYM_F(-1.0)
+#define NEGONE_H SC_SYM_H(-1.0)
 
 #define IS0_F(x) (CAST_F(x) == ZERO_F)
 #define IS0_H(x) (CAST_H(x) == ZERO_H)
@@ -61,11 +64,11 @@ struct scalar_half_2_t {
 #define ISPOS_F(x) (CAST_F(x) > ZERO_F)
 #define ISPOS_H(x) (CAST_H(x) > ZERO_H)
 
-#define ISPOS0_F(x) (CAST_F(x) >= ZERO_F)
-#define ISPOS0_H(x) (CAST_H(x) >= ZERO_H)
-
 #define ISNEG_F(x) (CAST_F(x) < ZERO_F)
 #define ISNEG_H(x) (CAST_H(x) < ZERO_H)
+
+#define ISPOS0_F(x) (CAST_F(x) >= ZERO_F)
+#define ISPOS0_H(x) (CAST_H(x) >= ZERO_H)
 
 #define ISNEG0_F(x) (CAST_F(x) <= ZERO_F)
 #define ISNEG0_H(x) (CAST_H(x) <= ZERO_H)
@@ -157,3 +160,23 @@ FORCE_INLINE scalar_half_2_t SINCOS_H(scalar_half_t x) {
 
 #define NEXTAFTER_F(a, b) SC_FUNC2_F(nextafter, a, b)
 #define NEXTAFTER_H(a, b) SC_FUNC2_H(nextafter, a, b)
+
+template <typename T, size_t N>
+consteval auto convertToFull(const std::array<T, N> &input) {
+    std::array<scalar_full_t, N> result{};
+
+    std::ranges::transform(input, result.begin(),
+        [](const T &val) { return CAST_F(val); });
+
+    return result;
+}
+
+template <typename T, size_t N>
+consteval auto convertToHalf(const std::array<T, N> &input) {
+    std::array<scalar_full_t, N> result{};
+
+    std::ranges::transform(input, result.begin(),
+        [](const T &val) { return CAST_H(val); });
+
+    return result;
+}

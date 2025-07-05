@@ -1,25 +1,26 @@
 #include <tuple>
+#include <algorithm>
 
-template <typename T, typename Lock>
+#define _CLASS_TEMPLATE \
+template <typename T, typename Lock> \
     requires _ThreadSafeQueueImpl::isLockable<Lock>
 
-void ThreadSafeQueue<T, Lock>::pushBack(T &&value) {
+#define _CLASS_NAME ThreadSafeQueue<T, Lock>
+
+_CLASS_TEMPLATE
+void _CLASS_NAME::pushBack(T &&value) {
     std::scoped_lock lock(_mutex);
     _data.push_back(std::forward<T>(value));
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-void ThreadSafeQueue<T, Lock>::pushFront(T &&value) {
+_CLASS_TEMPLATE
+void _CLASS_NAME::pushFront(T &&value) {
     std::scoped_lock lock(_mutex);
     _data.push_front(std::forward<T>(value));
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-std::optional<T> ThreadSafeQueue<T, Lock>::popFront() {
+_CLASS_TEMPLATE
+std::optional<T> _CLASS_NAME::popFront() {
     std::scoped_lock lock(_mutex);
     if (_data.empty()) return std::nullopt;
 
@@ -29,10 +30,8 @@ std::optional<T> ThreadSafeQueue<T, Lock>::popFront() {
     return front;
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-std::optional<T> ThreadSafeQueue<T, Lock>::popBack() {
+_CLASS_TEMPLATE
+std::optional<T> _CLASS_NAME::popBack() {
     std::scoped_lock lock(_mutex);
     if (_data.empty()) return std::nullopt;
 
@@ -42,10 +41,8 @@ std::optional<T> ThreadSafeQueue<T, Lock>::popBack() {
     return back;
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-std::optional<T> ThreadSafeQueue<T, Lock>::steal() {
+_CLASS_TEMPLATE
+std::optional<T> _CLASS_NAME::steal() {
     std::scoped_lock lock(_mutex);
     if (_data.empty()) return std::nullopt;
 
@@ -55,12 +52,10 @@ std::optional<T> ThreadSafeQueue<T, Lock>::steal() {
     return back;
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-void ThreadSafeQueue<T, Lock>::rotateToFront(const T &item) {
+_CLASS_TEMPLATE
+void _CLASS_NAME::rotateToFront(const T &item) {
     std::scoped_lock lock(_mutex);
-    auto iter = std::find(_data.begin(), _data.end(), item);
+    auto iter = std::ranges::find(_data, item);
 
     if (iter != _data.end()) {
         std::ignore = _data.erase(iter);
@@ -69,10 +64,8 @@ void ThreadSafeQueue<T, Lock>::rotateToFront(const T &item) {
     _data.push_front(item);
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-std::optional<T> ThreadSafeQueue<T, Lock>::copyFrontRotToBack() {
+_CLASS_TEMPLATE
+std::optional<T> _CLASS_NAME::copyFrontRotToBack() {
     std::scoped_lock lock(_mutex);
     if (_data.empty()) return std::nullopt;
 
@@ -83,11 +76,9 @@ std::optional<T> ThreadSafeQueue<T, Lock>::copyFrontRotToBack() {
     return front;
 }
 
-template <typename T, typename Lock>
-    requires _ThreadSafeQueueImpl::isLockable<Lock>
-
-typename ThreadSafeQueue<T, Lock>::SizeType
-ThreadSafeQueue<T, Lock>::clear() {
+_CLASS_TEMPLATE
+typename _CLASS_NAME::size_type
+_CLASS_NAME::clear() {
     std::scoped_lock lock(_mutex);
 
     auto size = _data.size();
@@ -95,3 +86,6 @@ ThreadSafeQueue<T, Lock>::clear() {
 
     return size;
 }
+
+#undef _CLASS_TEMPLATE
+#undef _CLASS_NAME

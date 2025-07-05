@@ -19,19 +19,26 @@ POP_DISABLE_WARNINGS
 
 #include "BmpWriter.h"
 
+#include "../util/fnv1a.h"
 #include "../util/BufferUtil.h"
 #include "../util/PathUtil.h"
-#include "../util/fnv1a.h"
+#include "../util/FormatUtil.h"
 
-size_t Image::calcBufferSize(int32_t width, int32_t height,
-    int32_t *strideWidth) {
-    int32_t wbytes;
-
-    if constexpr (ALIGNMENT == 0) wbytes = width * STRIDE;
-    else wbytes = width * STRIDE + SIMD_HALF_WIDTH;
+size_t Image::_calcBufferSize(
+    int32_t width, int32_t height,
+    int32_t *strideWidth, int tailBytes
+) {
+    int32_t wbytes = width * STRIDE + tailBytes;
 
     if (strideWidth) *strideWidth = wbytes;
     return static_cast<size_t>(wbytes) * height;
+}
+
+size_t Image::calcBufferSize(
+    int32_t width, int32_t height,
+    int32_t *strideWidth
+) {
+    return _calcBufferSize(width, height, strideWidth, TAIL_BYTES);
 }
 
 static void stbi_write_callback(void *context, void *data, int size) {
@@ -41,19 +48,28 @@ static void stbi_write_callback(void *context, void *data, int size) {
     fout->flush();
 }
 
-std::unique_ptr<Image> Image::create(int32_t width, int32_t height) {
-    std::unique_ptr<Image> image = std::make_unique<Image>();
+std::unique_ptr<Image> Image::create(
+    int32_t width, int32_t height,
+    bool simdSafe
+) {
+    auto image = std::unique_ptr<Image>(new Image(simdSafe));
 
     if (image->_allocate(width, height)) return image;
     else return nullptr;
+}
+
+Image::Image(bool simdSafe) {
+    if (simdSafe) _tailBytes = TAIL_BYTES;
 }
 
 void Image::clear() {
     if (_pixels) memset(pixels(), 0, _bufferSize);
 }
 
-bool Image::writeToStream(std::ostream &fout,
-    const std::string &type) const {
+bool Image::writeToStream(
+    std::ostream &fout,
+    const std::string &type
+) const {
     if (!_pixels) {
         fprintf(stderr, "Cannot write image. No pixel data allocated.\n");
         return false;
@@ -94,15 +110,17 @@ bool Image::writeToStream(std::ostream &fout,
             return false;
     }
 
-    if (result) return result;
-    else {
+    if (!result) {
         fprintf(stderr, "Failed to write %s data to stream\n", type.c_str());
-        return false;
     }
+
+    return result;
 }
 
-bool Image::saveToFile(const std::string &filePath, bool appendDate,
-    const std::string &type) const {
+bool Image::saveToFile(
+    const std::string &filePath, bool appendDate,
+    const std::string &type
+) const {
     if (!_pixels) {
         fprintf(stderr, "Cannot save image. No pixel data allocated.\n");
         return false;
@@ -142,9 +160,11 @@ bool Image::_allocate(int32_t width, int32_t height) {
         return false;
     }
 
-    const size_t originalSize = calcBufferSize(width, height, &_strideWidth);
+    const size_t originalSize = _calcBufferSize(width, height,
+        &_strideWidth, _tailBytes);
+
     printf("Memory required: %s\n",
-        BufferUtil::formatSize(originalSize).c_str());
+        FormatUtil::formatBufferSize(originalSize).c_str());
 
     uint8_t *ptr = BufferUtil::bufferAlloc<ALIGNMENT>
         (originalSize, &_bufferSize);

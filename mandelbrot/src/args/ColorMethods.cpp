@@ -3,30 +3,34 @@
 #include <cstdio>
 #include <cstring>
 
+#include <array>
+#include <algorithm>
+#include <sstream>
+
 namespace ColorMethods {
-    const ColorMethod colorMethods[] = {
+    DEFINE_RANGE_ARRAY(ColorMethod, colorMethods,
         { "iterations", 0 },
         { "smooth_iterations", 1 },
-        { "light", 2 },
-    };
-
-    const ColorMethod DEFAULT_COLOR_METHOD = colorMethods[1];
+        { "light", 2 }
+    );
 
     int parseColorMethod(const char *str) {
-        for (const ColorMethod &method : colorMethods) {
-            if (strcmp(str, method.name) == 0) return method.id;
-        }
+        colorMethodsRange range{};
 
-        fprintf(stderr, "Invalid colorMethod '%s'. Valid options: ", str);
+        const auto it = std::ranges::find_if(range,
+            [str](const ColorMethod &m) { return strcmp(str, m.name) == 0; });
+        if (it != range.end()) return it->id;
 
+        std::ostringstream methods;
         bool first = true;
 
-        for (const ColorMethod &method : colorMethods) {
-            fprintf(stderr, "%s%s", first ? "" : ", ", method.name);
+        for (const ColorMethod &m : range) {
+            methods << (first ? "" : ", ") << m.name;
             first = false;
         }
 
-        fprintf(stderr, "\n");
+        fprintf(stderr, "Invalid color method '%s'. Valid options:%s\n",
+            str, methods.str().c_str());
         return -1;
     }
 }

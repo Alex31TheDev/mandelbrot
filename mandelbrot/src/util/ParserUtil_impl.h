@@ -4,7 +4,8 @@
 #include <limits>
 
 namespace ParserUtil {
-    template<typename T, int base> requires std::is_arithmetic_v<T>
+    template<typename T, int base>
+        requires std::is_arithmetic_v<T>
     T parseNumber(const std::string &input, bool *ok, const T defaultValue) {
         if constexpr (std::is_floating_point_v<T>) {
             static_assert(base == 10,
@@ -63,6 +64,7 @@ namespace ParserUtil {
         const T defaultValue) {
         const std::string input = (index < argc) ?
             std::string(argv[index]) : "";
+
         return parseNumber<T, base>(input, ok, defaultValue);
     }
 }

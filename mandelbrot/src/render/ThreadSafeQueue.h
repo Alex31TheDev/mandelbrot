@@ -17,11 +17,10 @@ namespace _ThreadSafeQueueImpl {
 
 template <typename T, typename Lock = std::mutex>
     requires _ThreadSafeQueueImpl::isLockable<Lock>
-
 class ThreadSafeQueue {
 public:
-    using ValueType = T;
-    using SizeType = typename std::deque<T>::size_type;
+    using value_type = T;
+    using size_type = typename std::deque<T>::size_type;
 
     ThreadSafeQueue() = default;
 
@@ -40,7 +39,7 @@ public:
     void rotateToFront(const T &item);
     [[nodiscard]] std::optional<T> copyFrontRotToBack();
 
-    SizeType clear();
+    size_type clear();
 
 private:
     std::deque<T> _data;

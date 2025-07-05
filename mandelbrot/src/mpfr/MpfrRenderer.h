@@ -4,28 +4,26 @@
 
 #include <cstdint>
 
-#include "mpreal.h"
+#include "MpfrTypes.h"
 
 #include "../util/InlineUtil.h"
 
 namespace MPFRRenderer {
-    using namespace mpfr;
-
-    void initCoords_mp(mpreal &cr, mpreal &ci,
-        mpreal &zr, mpreal &zi,
-        mpreal &dr, mpreal &di);
-    int iterateFractalMPFR(const mpreal &cr, const mpreal &ci,
-        mpreal &zr, mpreal &zi,
-        mpreal &dr, mpreal &di,
-        mpreal &mag);
+    void initCoordsMPFR(mpfr_number_t &cr, mpfr_number_t &ci,
+        mpfr_number_t &zr, mpfr_number_t &zi,
+        mpfr_number_t &dr, mpfr_number_t &di);
+    int iterateFractalMPFR(mpfr_param_t cr, mpfr_param_t ci,
+        mpfr_number_t &zr, mpfr_number_t &zi,
+        mpfr_number_t &dr, mpfr_number_t &di,
+        mpfr_number_t &mag);
 
     void colorPixelMPFR(uint8_t *pixels, size_t &pos,
-        int i, const mpreal &mag,
-        const mpreal &zr, const mpreal &zi,
-        const mpreal &dr, const mpreal &di);
+        int i, mpfr_param_t mag,
+        mpfr_param_t zr, mpfr_param_t zi,
+        mpfr_param_t dr, mpfr_param_t di);
 
     void renderPixelMPFR(uint8_t *pixels, size_t &pos,
-        int x, mpreal ci);
+        int x, mpfr_number_t ci, uint64_t *totalIterCount = nullptr);
 }
 
 #endif

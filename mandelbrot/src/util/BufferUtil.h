@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 namespace BufferUtil {
     template<typename T>
@@ -17,8 +16,6 @@ namespace BufferUtil {
     struct AlignedDeleter {
         void operator()(uint8_t *ptr) noexcept;
     };
-
-    std::string formatSize(size_t size);
 }
 
 #include "BufferUtil_impl.h"

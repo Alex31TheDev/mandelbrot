@@ -2,4 +2,5 @@
 
 #include "../image/Image.h"
 
-void renderImage(Image *image);
+void renderImage(Image *image,
+    bool trackProgress = true, bool trackIterations = false);

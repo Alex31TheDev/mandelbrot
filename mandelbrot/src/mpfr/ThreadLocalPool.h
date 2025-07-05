@@ -8,6 +8,8 @@ public:
     T &getNextItem();
 
 private:
+    ThreadLocalPool() = default;
+
     static T(&_getThreadPool())[PoolSize];
     static size_t &_getThreadIndex();
 };

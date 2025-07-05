@@ -13,7 +13,6 @@ struct BmpHeader {
     uint16_t reserved2;
     uint32_t offset;
 };
-
 struct DibHeader {
     uint32_t size;
     int32_t width;

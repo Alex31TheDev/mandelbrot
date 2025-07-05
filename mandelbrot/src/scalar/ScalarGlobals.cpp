@@ -9,14 +9,14 @@ using namespace RenderGlobals;
 namespace ScalarGlobals {
     int count, colorMethod;
 
-    bool isJuliaSet = false, isInverse = false;
+    bool isJuliaSet, isInverse;
+    bool normalSeed;
     bool invalidPower, circlePower, normalPower, wholePower;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     scalar_full_t realScale, imagScale;
 
-    scalar_full_t point_r = DEFAULT_POINT_R, point_i = DEFAULT_POINT_I;
-    scalar_full_t seed_r = DEFAULT_SEED_R, seed_i = DEFAULT_SEED_I;
+    scalar_full_t point_r, point_i, seed_r, seed_i;
     scalar_full_t N;
 
     scalar_half_t zoom, aspect;
@@ -37,11 +37,8 @@ namespace ScalarGlobals {
     }
 
     bool setZoomGlobals(int iterCount, scalar_half_t zoomScale) {
-        if (iterCount < MIN_ITERATIONS) {
-            count = MIN_ITERATIONS;
-        } else {
-            count = iterCount;
-        }
+        if (iterCount < 1) count = MIN_ITERATIONS;
+        else count = iterCount;
 
         if (zoomScale < SC_SYM_H(-3.25)) return false;
         zoom = zoomScale;
@@ -60,6 +57,21 @@ namespace ScalarGlobals {
         return true;
     }
 
+    bool setZoomPoints(
+        scalar_full_t pr, scalar_full_t pi,
+        scalar_full_t sr, scalar_full_t si
+    ) {
+        point_r = pr;
+        point_i = pi;
+
+        seed_r = sr;
+        seed_i = si;
+
+        normalSeed = IS0_F(seed_r) && IS0_F(seed_i);
+
+        return true;
+    }
+
     bool setFractalExponent(scalar_full_t pw) {
         if (pw <= ONE_F) return false;
 
@@ -74,29 +86,42 @@ namespace ScalarGlobals {
         return true;
     }
 
-    bool setColorGlobals(scalar_half_t R, scalar_half_t G, scalar_half_t B,
-        scalar_half_t mult) {
-        cosPhase = DEFAULT_COS_PHASE;
-        phase_r = cosPhase + DEFAULT_PHASE_R;
-        phase_g = cosPhase + DEFAULT_PHASE_G;
-        phase_b = cosPhase + DEFAULT_PHASE_R;
-
-        if (ABS_H(mult) <= SC_SYM_H(0.0001)) return false;
-
-        freq_r = R * mult;
-        freq_g = G * mult;
-        freq_b = B * mult;
-        freqMult = mult;
+    bool setFractalType(bool julia, bool inverse) {
+        isJuliaSet = julia;
+        isInverse = inverse;
 
         return true;
     }
 
-    bool setLightGlobals(scalar_half_t real, scalar_half_t imag) {
-        const scalar_half_t mag = SQRT_H(real * real + imag * imag);
+    bool setColorGlobals(
+        scalar_half_t freqR, scalar_half_t freqG, scalar_half_t freqB,
+        scalar_half_t totalMult,
+        scalar_half_t phaseR, scalar_half_t phaseG, scalar_half_t phaseB,
+        scalar_half_t totalPhase
+    ) {
+        if (ABS_H(totalMult) <= SC_SYM_H(0.0001)) {
+            return false;
+        }
+
+        freqMult = totalMult;
+        freq_r = freqR * freqMult;
+        freq_g = freqG * freqMult;
+        freq_b = freqB * freqMult;
+
+        cosPhase = totalPhase;
+        phase_r = phaseR + cosPhase;
+        phase_g = phaseG + cosPhase;
+        phase_b = phaseB + cosPhase;
+
+        return true;
+    }
+
+    bool setLightGlobals(scalar_half_t lr, scalar_half_t li) {
+        const scalar_half_t mag = SQRT_H(lr * lr + li * li);
         if (ISNEG0_H(mag)) return false;
 
-        light_r = real / mag;
-        light_i = imag / mag;
+        light_r = li / mag;
+        light_i = li / mag;
         light_h = mag;
 
         return true;

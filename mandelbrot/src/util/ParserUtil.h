@@ -24,25 +24,29 @@ public:
     ArgsVec &operator=(ArgsVec &&) = default;
 
 private:
-    ArgsVec(int count);
+    explicit ArgsVec(int count);
 };
 
 namespace ParserUtil {
     bool insensitiveCompare(std::string_view str, std::string_view target);
     bool parseBool(std::string_view input, bool *ok = nullptr);
 
-    template<typename T, int base = 10> requires std::is_arithmetic_v<T>
+    template<typename T, int base = 10>
+        requires std::is_arithmetic_v<T>
     T parseNumber(const std::string &input, bool *ok,
         const T defaultValue = T());
-    template<typename T> requires std::is_arithmetic_v<T>
+    template<typename T>
+        requires std::is_arithmetic_v<T>
     T parseNumber(const std::string &input, const T defaultValue = T()) {
         return parseNumber<T, 10>(input, nullptr, defaultValue);
     }
 
-    template<typename T, int base = 10> requires std::is_arithmetic_v<T>
+    template<typename T, int base = 10>
+        requires std::is_arithmetic_v<T>
     T parseNumber(int argc, char *argv[], int index, bool *ok,
         const T defaultValue = T());
-    template<typename T> requires std::is_arithmetic_v<T>
+    template<typename T>
+        requires std::is_arithmetic_v<T>
     T parseNumber(int argc, char *argv[], int index,
         const T defaultValue = T()) {
         return parseNumber<T, 10>(argc, argv, index, nullptr, defaultValue);
