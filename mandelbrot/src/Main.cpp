@@ -13,34 +13,22 @@
 
 #include "render/RenderGlobals.h"
 #include "mpfr/MPFRGlobals.h"
-#include "util/fnv1a.h"
-using namespace fnv1a;
 
 #include "image/Image.h"
 #include "render/RenderImage.h"
 
-#ifndef OUT_FILENAME
-#define OUT_FILENAME "mandelbrot"
-#endif
-#ifndef OUT_FILETYPE
-#define OUT_FILETYPE "png"
-#endif
-
-static_assert(hash_32(OUT_FILETYPE) == "png"_hash_32 ||
-    hash_32(OUT_FILETYPE) == "jpg"_hash_32 ||
-    hash_32(OUT_FILETYPE) == "bmp"_hash_32,
-    "OUT_FILETYPE must be one of: \"png\", \"jpg\", \"bmp\"");
-
-static const char *fullname = OUT_FILENAME "." OUT_FILETYPE;
+#include "fullname.h"
 
 static bool initializeImage(std::unique_ptr<Image> &image) {
-    image = Image::create(RenderGlobals::width, RenderGlobals::height);
+    image = Image::create(RenderGlobals::width, RenderGlobals::height,
+        RenderGlobals::useThreads);
+
     return image != nullptr;
 }
 
 static bool saveImage(const Image *image,
     const std::string &filename, int num = -1) {
-    const bool appendDate = num < 0;
+    const bool appendDate = (num < 0);
 
     const std::string outName = appendDate
         ? filename
@@ -55,7 +43,7 @@ static int runOnce(int argc, char **argv) {
     std::unique_ptr<Image> image;
     if (!initializeImage(image)) return 1;
 
-    renderImage(image.get());
+    renderImage(image.get(), true, true);
 
     return !saveImage(image.get(), fullname, 1);
 }
@@ -98,7 +86,7 @@ static int runRepl(int argc, char **argv) {
             if (!initializeImage(image)) continue;
         } else if (image) image->clear();
 
-        renderImage(image.get());
+        renderImage(image.get(), true, true);
 
         if (saveImage(image.get(), fullname, fileCounter)) {
             lastWidth = RenderGlobals::width;

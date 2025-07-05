@@ -1,46 +1,42 @@
 #include "TimeUtil.h"
 
 #include <cstdint>
-#include <cmath>
-
-#include <string>
 #include <sstream>
-#include <iomanip>
-#include <algorithm>
+#include <string>
 
 static const char *units[] = { "ms", "s", "min", "h", "d" };
 constexpr int unitCount = sizeof(units) / sizeof(units[0]);
 
-static const double factors[] = { 1000.0, 60.0, 60.0, 24.0 };
+static const int64_t factors[] = { 1000i64, 60i64, 60i64, 24i64 };
 constexpr int maxSteps = sizeof(factors) / sizeof(factors[0]);
 
 namespace TimeUtil {
     std::string formatTime(int64_t millis) {
         std::ostringstream oss;
-        oss << std::fixed;
 
         if (millis <= 0) {
             oss << millis << " " << units[0];
             return oss.str();
         }
 
+        int64_t remainder = 0;
         int unitIdx = 0;
-        double count = static_cast<double>(millis);
 
-        while (unitIdx < maxSteps && count >= factors[unitIdx]) {
-            count /= factors[unitIdx];
+        while (unitIdx < maxSteps && millis >= factors[unitIdx]) {
+            remainder = millis % factors[unitIdx];
+            millis /= factors[unitIdx];
             unitIdx++;
         }
 
-        unitIdx = std::min(unitIdx, unitCount - 1);
+        unitIdx = unitIdx < unitCount ? unitIdx : unitCount - 1;
 
-        if (count == std::floor(count)) {
-            oss << std::setprecision(0);
-        } else {
-            oss << std::setprecision(1);
+        oss << millis;
+        if (remainder != 0 && unitIdx > 0) {
+            const int64_t decimal = (remainder * 10) / factors[unitIdx - 1];
+            if (decimal != 0) oss << "." << decimal;
         }
 
-        oss << count << " " << units[unitIdx];
+        oss << " " << units[unitIdx];
         return oss.str();
     }
 }

@@ -3,23 +3,36 @@
 #include <chrono>
 #include <atomic>
 #include <mutex>
+#include <variant>
 
 class RenderProgress {
 public:
-    RenderProgress(int totalWork);
+    explicit RenderProgress(int totalWork, bool threadSafe,
+        bool formatTime = true);
+
     void update(int processed = 1);
-    void complete(bool formatTime = false);
+    void complete();
 
 private:
     int _totalWork;
+    bool _threadSafe, _formatTime;
+
     std::chrono::time_point<std::chrono::steady_clock> _startTime;
 
-    std::atomic<int> _completedWork{ 0 };
-    std::atomic<int> _lastPrinted{ -1 };
+    struct _PlainState {
+        int completedWork = 0;
+        int lastPrinted = -1;
+    };
+    struct _AtomicState {
+        std::atomic<int> completedWork{ 0 };
+        std::atomic<int> lastPrinted{ -1 };
+    };
+
+    std::variant<_PlainState, _AtomicState> _state;
 
     std::mutex _printfMutex;
 
     void _printProgress(int perc);
     template <typename T>
-    void _printElapsed(T elapsed, bool format);
+    void _printElapsed(T elapsed);
 };

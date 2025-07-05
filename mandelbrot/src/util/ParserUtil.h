@@ -24,7 +24,7 @@ public:
     ArgsVec &operator=(ArgsVec &&) = default;
 
 private:
-    ArgsVec(int count);
+    explicit ArgsVec(int count);
 };
 
 namespace ParserUtil {

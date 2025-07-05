@@ -8,6 +8,7 @@
 #include <string_view>
 #include <tuple>
 #include <chrono>
+
 using namespace std::chrono;
 
 static bool safeLocaltime(time_t time, tm &out) {
@@ -77,13 +78,13 @@ namespace PathUtil {
 #ifdef _WIN32
         char absPath[_MAX_PATH] = { 0 };
 
-        if (_fullpath(absPath, filePath.c_str(), _MAX_PATH) != nullptr) {
+        if (_fullpath(absPath, filePath.c_str(), _MAX_PATH)) {
             return std::string(absPath);
         }
 #else
         char *resolved = realpath(filePath.c_str(), nullptr);
 
-        if (resolved != nullptr) {
+        if (resolved) {
             std::string result(resolved);
             free(resolved);
             return std::string(result);

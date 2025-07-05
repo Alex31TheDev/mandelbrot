@@ -20,4 +20,10 @@
 #define USE_SLEEF
 #endif
 
+#if AVX2 || AVX512
+#define VEC_FUSED_OPS 1
+#elif SSE
+#define VEC_FUSED_OPS 0
+#endif
+
 #define USE_VECTOR_STORE
