@@ -19,8 +19,10 @@ ArgsVec::~ArgsVec() {
     delete[] argv;
 }
 
-ArgsVec ArgsVec::fromParsed(char *progName,
-    std::vector<std::string> &&parsedArgs) {
+ArgsVec ArgsVec::fromParsed(
+    char *progName,
+    std::vector<std::string> &&parsedArgs
+) {
     const int count = static_cast<int>(parsedArgs.size() + 1);
     ArgsVec result(count);
 

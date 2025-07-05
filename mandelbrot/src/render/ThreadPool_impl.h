@@ -61,7 +61,8 @@ template <typename FunctionType, typename ThreadType>
 
 template <typename Function, typename... Args>
     requires _ThreadPoolImpl::InvocableWith<Function, Args...>
-void ThreadPool<FunctionType, ThreadType>::enqueueDetach(Function &&func, Args &&...args) {
+void ThreadPool<FunctionType, ThreadType>::
+enqueueDetach(Function &&func, Args &&...args) {
     auto task = _makeDetachedTask(std::forward<Function>(func),
         std::forward<Args>(args)...);
 
@@ -97,7 +98,8 @@ template <typename FunctionType, typename ThreadType>
     requires _ThreadPoolImpl::VoidInvocable<FunctionType>
 
 template <typename InitFunction>
-auto ThreadPool<FunctionType, ThreadType>::_threadMain(InitFunction init, size_t id) {
+auto ThreadPool<FunctionType, ThreadType>::
+_threadMain(InitFunction init, size_t id) {
     return [this, id, init](const std::stop_token &stopToken) {
         try {
             std::invoke(init, id);
