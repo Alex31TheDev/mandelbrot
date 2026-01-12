@@ -2,6 +2,9 @@
 
 #define _EVAL(x) x
 
+#define _STRING(x) #x
+#define _STRING_EVAL(x) _STRING(x)
+
 #define _PASTE(a, b) a ## b
 #define _EXPAND_AND_PASTE(a, b) _PASTE(a, b)
 

@@ -14,8 +14,8 @@ using namespace ScalarGlobals;
 #ifdef USE_SCALAR
 #include "ScalarCoords.h"
 
-#define FORMULA_SCALAR
-#include "../formula/FractalFormulas.h"
+#define _FORMULA_SCALAR
+#include "../formula/fractals/mandelbrot.h"
 
 FORCE_INLINE void complexInverse(
     scalar_full_t &cr, scalar_full_t &ci
@@ -59,34 +59,26 @@ FORCE_INLINE int _iterateFractal(
     mag = ONE_F;
     int i = 0;
 
-    for (; i < count; i++) {
-        const scalar_full_t zr2 = zr * zr;
-        const scalar_full_t zi2 = zi * zi;
-        mag = zr2 + zi2;
+    if (invalidPower) {
+        zr = cr;
+        zi = ci;
+        dr = di = ZERO_F;
+        mag = zr * zr + zi * zi;
 
-        if (mag > BAILOUT) break;
-
-        switch (colorMethod) {
-            case 2:
-                derivative(
-                    zr, zi,
-                    dr, di,
-                    mag,
-                    dr, di
-                );
-                break;
-
-            default:
-                break;
-        }
-
-        formula(
-            cr, ci,
-            zr, zi,
-            mag,
-            zr, zi
-        );
+        i = mag > BAILOUT ? 0 : count;
     }
+
+#define _FORMULA_TYPE 0
+#include "loop/OuterLoop.h"
+#undef _FORMULA_TYPE
+
+#define _FORMULA_TYPE 1
+#include "loop/OuterLoop.h"
+#undef _FORMULA_TYPE
+
+#define _FORMULA_TYPE 2
+#include "loop/OuterLoop.h"
+#undef _FORMULA_TYPE
 
     return i;
 }
@@ -109,22 +101,17 @@ FORCE_INLINE scalar_half_t getSmoothIterVal(int i, scalar_half_t mag) {
     return i - m;
 }
 
-FORCE_INLINE scalar_half_t normCos(scalar_half_t x) {
-    return (COS_H(x) + ONE_H) * ONEHALF_H;
-}
+#define normCos(x) \
+    ((COS_H(x) + ONE_H) * ONEHALF_H);
 
 FORCE_INLINE void getPixelColor(
     scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
 ) {
 #if false
-    const scalar_half_t R_x = val * freq_r + phase_r;
-    const scalar_half_t G_x = val * freq_g + phase_g;
-    const scalar_half_t B_x = val * freq_b + phase_b;
-
-    outR = normCos(R_x * 10);
-    outG = normCos(G_x * 10);
-    outB = normCos(B_x * 10);
+    outR = normCos(val * freq_r + phase_r);
+    outG = normCos(val * freq_g + phase_g);
+    outB = normCos(val * freq_b + phase_b);
 #else
     palette.sample(val, outR, outG, outB);
 #endif
@@ -154,11 +141,8 @@ FORCE_INLINE scalar_half_t getLightVal(
 
 #endif
 
-FORCE_INLINE uint8_t _colorToInt(scalar_half_t val) {
-    scalar_half_t newVal = val * SC_SYM_H(255.0);
-    newVal = CLAMP_H(newVal, 0, 255);
-    return CAST_INT_U(newVal, 8);
-}
+#define _colorToInt(val) \
+    CAST_INT_U(CLAMP_H(val * SC_SYM_H(255.0), 0, 255), 8);
 
 FORCE_INLINE void _setPixel(
     uint8_t *pixels, size_t &pos,
@@ -302,7 +286,7 @@ namespace ScalarRenderer {
         );
 
         if (totalIterCount) {
-            *totalIterCount = static_cast<uint64_t>(i);
+            *totalIterCount = static_cast<uint64_t>(i) + 1;
         }
     }
 #endif

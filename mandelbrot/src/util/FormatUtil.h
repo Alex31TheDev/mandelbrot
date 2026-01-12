@@ -10,7 +10,7 @@ namespace FormatUtil {
     std::string formatNumber(T x);
 
     std::string formatBufferSize(size_t size);
-    std::string formatDuration(int64_t millis, int decimals = 1);
+    std::string formatDuration(int64_t millis);
 }
 
 #include "FormatUtil_impl.h"

@@ -150,7 +150,7 @@ private:
     static constexpr size_type MAX_CAPACITY =
         std::numeric_limits<difference_type>::max();
 
-    [[no_unique_address]] allocator_type _alloc{};
+    allocator_type _alloc{};
     pointer _data = nullptr;
 
     size_type _reserved = 0, _capacity = MAX_CAPACITY;

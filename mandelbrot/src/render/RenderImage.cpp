@@ -49,7 +49,7 @@ constexpr auto renderPixel = &MPFRRenderer::renderPixelMPFR;
 
 const ProgressConfig progressConfig = {
     .progressName = "Rendering",
-    .opsName = "rows"
+    .opsName = "pixels"
 };
 
 constexpr int MIN_THREADING_HEIGHT = 50;
@@ -58,8 +58,8 @@ constexpr int MAX_TASK_COUNT = 4096;
 inline std::unique_ptr<ProgressTracker>
 createProgressTracker(bool trackProgress) {
     if (trackProgress) {
-        return std::make_unique<ProgressTracker>(height, useThreads,
-            progressConfig);
+        return std::make_unique<ProgressTracker>(width * height,
+            useThreads, progressConfig);
     } else return nullptr;
 }
 
@@ -104,7 +104,7 @@ static void renderStrip(
 #endif
 
         pos += image->tailBytes();
-        if (progress) progress->update();
+        if (progress) progress->update(width);
     }
 
     if (totalIterCount) *totalIterCount = totalCount;

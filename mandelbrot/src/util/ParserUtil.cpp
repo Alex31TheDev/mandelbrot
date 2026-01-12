@@ -26,10 +26,10 @@ ArgsVec ArgsVec::fromParsed(
     const int count = static_cast<int>(parsedArgs.size() + 1);
     ArgsVec result(count);
 
-    result.argv[0] = strdup(progName);
+    result.argv[0] = _strdup(progName);
 
     for (size_t i = 0; i < parsedArgs.size(); i++) {
-        result.argv[i + 1] = strdup(parsedArgs[i].c_str());
+        result.argv[i + 1] = _strdup(parsedArgs[i].c_str());
     }
 
     return result;

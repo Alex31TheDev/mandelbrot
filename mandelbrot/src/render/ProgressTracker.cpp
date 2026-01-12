@@ -19,7 +19,7 @@ using namespace std::chrono;
 #define CLEAR_LINE "\r\x1b[K"
 
 ProgressTracker::ProgressTracker(
-    int totalWork, bool threadSafe,
+    WU totalWork, bool threadSafe,
     const ProgressConfig &config
 )
     : _totalWork(totalWork), _threadSafe(threadSafe),
@@ -46,11 +46,11 @@ ProgressTracker::SU ProgressTracker::elapsed() const {
     }
 }
 
-int ProgressTracker::completedWork() const {
+ProgressTracker::WU ProgressTracker::completedWork() const {
     if (_completed) return _totalWork;
 
     return std::visit(
-        [&](auto &&state) -> int {
+        [&](auto &&state) -> WU {
             using T = std::decay_t<decltype(state)>;
 
             if constexpr (std::is_same_v<T, _PlainState>) {
@@ -63,7 +63,7 @@ int ProgressTracker::completedWork() const {
 }
 
 double ProgressTracker::percentage() const {
-    return (completedWork() * 100) / static_cast<double>(_totalWork);
+    return (completedWork() * WU(100)) / static_cast<double>(_totalWork);
 }
 
 double ProgressTracker::opsPerSecond() const {
@@ -76,8 +76,8 @@ double ProgressTracker::opsPerSecond() const {
     auto calc = [](const auto &history) -> double {
         if (history.size() < OPS_WINDOW_MIN_SIZE) return 0.0;
 
-        const int totalOps = std::accumulate(history.begin(), history.end(), 0,
-            [](int sum, const _OpsEntry &entry) { return sum + entry.count; });
+        const WU totalOps = std::accumulate(history.begin(), history.end(), WU(0),
+            [](WU sum, const _OpsEntry &entry) { return sum + entry.count; });
 
         const HU totalTime = std::accumulate(history.begin(), history.end(), HU(0),
             [](HU sum, const _OpsEntry &entry) { return sum + entry.time; });
@@ -132,8 +132,9 @@ void ProgressTracker::_printProgress(int perc) {
     );
 }
 
-std::tuple<int, int> ProgressTracker::_updateWork(int processed) {
-    int current = 0, last = 0;
+std::tuple<int, int> ProgressTracker::_updateWork(WU processed) {
+    WU current = 0;
+    int last = 0;
 
     std::visit(
         [&](auto &&state) {
@@ -150,11 +151,11 @@ std::tuple<int, int> ProgressTracker::_updateWork(int processed) {
         }, _state
     );
 
-    const int perc = (current * 100) / _totalWork;
+    const int perc = (current * WU(100)) / _totalWork;
     return std::make_tuple(perc, last);
 }
 
-void ProgressTracker::_updateOpsHistory(int processed) {
+void ProgressTracker::_updateOpsHistory(WU processed) {
     auto update = [&](auto &history, HU elapsed) {
         if (history.size() >= OPS_WINDOW_MAX_SIZE) history.pop();
         history.push({ processed, elapsed });
@@ -187,7 +188,7 @@ void ProgressTracker::_updateOpsHistory(int processed) {
     );
 }
 
-void ProgressTracker::update(int processed, bool printUpdate) {
+void ProgressTracker::update(WU processed, bool printUpdate) {
     const auto [perc, last] = _updateWork(processed);
     _updateOpsHistory(processed);
 

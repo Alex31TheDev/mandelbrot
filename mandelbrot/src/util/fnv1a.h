@@ -55,13 +55,13 @@ namespace fnv1a {
         return hash_64(std::string_view(str));
     }
 
-    constexpr uint32_t operator""
-        _hash_32(const char *str, size_t len) {
+    constexpr uint32_t operator""_hash_32
+    (const char *str, size_t len) {
         return hash_32(std::string_view(str, len));
     }
 
-    constexpr uint64_t operator""
-        _hash_64(const char *str, size_t len) {
+    constexpr uint64_t operator""_hash_64
+    (const char *str, size_t len) {
         return hash_64(std::string_view(str, len));
     }
 }

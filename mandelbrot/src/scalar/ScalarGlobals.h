@@ -41,7 +41,7 @@ namespace ScalarGlobals {
 
     extern bool isJuliaSet, isInverse;
     extern bool normalSeed;
-    extern bool invalidPower, circlePower, normalPower, wholePower;
+    extern bool invalidPower, normalPower, wholePower, fractionalPower;
 
     extern scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     extern scalar_full_t realScale, imagScale;

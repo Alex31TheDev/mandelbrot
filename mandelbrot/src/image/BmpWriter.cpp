@@ -9,8 +9,8 @@
 struct BmpHeader {
     uint8_t type[2];
     uint32_t size;
-    uint16_t reserved1;
-    uint16_t reserved2;
+    uint16_t reserved1 = 0;
+    uint16_t reserved2 = 0;
     uint32_t offset;
 };
 struct DibHeader {
@@ -19,12 +19,12 @@ struct DibHeader {
     int32_t height;
     uint16_t planes;
     uint16_t bitsPerPixel;
-    uint32_t compression;
+    uint32_t compression = 0;
     uint32_t imageSize;
-    int32_t xPixelsPerMeter;
-    int32_t yPixelsPerMeter;
-    uint32_t colorsUsed;
-    uint32_t importantColors;
+    int32_t xPixelsPerMeter = 0;
+    int32_t yPixelsPerMeter = 0;
+    uint32_t colorsUsed = 0;
+    uint32_t importantColors = 0;
 };
 #pragma pack(pop)
 
@@ -84,7 +84,8 @@ bool writeBmpStream(
         int32_t pixelsRemaining = width;
 
         while (pixelsRemaining > 0) {
-            const size_t chunkSize = (pixelsRemaining > MAX_BMP_CHUNK_SIZE)
+            const size_t chunkSize =
+                (pixelsRemaining > static_cast<int32_t>(MAX_BMP_CHUNK_SIZE))
                 ? MAX_BMP_CHUNK_SIZE : pixelsRemaining;
             const uint8_t *src = row + (width - pixelsRemaining) * stride;
 

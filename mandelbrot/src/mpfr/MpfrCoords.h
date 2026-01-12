@@ -2,7 +2,7 @@
 #ifdef USE_MPFR
 #include "CommonDefs.h"
 
-#include "MpfrTypes.h"
+#include "MPFRTypes.h"
 #include "MPFRGlobals.h"
 
 #include "../util/InlineUtil.h"

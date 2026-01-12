@@ -705,7 +705,7 @@ FORCE_INLINE __m128 _mfrombits_ps128_impl(int mask) {
 FORCE_INLINE __m128d _mfrombits_pd128_impl(int mask) {
     const __m128i mask_vec = _mm_set1_epi64x(mask);
 
-    const __m128i bit_pos = _mm_setr_epi64x(1, 2);
+    const __m128i bit_pos = _mm_set_epi64x(2, 1);
     const __m128i mask_bits = _mm_and_si128(mask_vec, bit_pos);
 
     const __m128i cmp_res = _mm_cmpeq_epi64(mask_bits, _mm_setzero_si128());
@@ -755,24 +755,7 @@ FORCE_INLINE __m256d _mfrombits_pd256_impl(int mask) {
 #define SIMD_MASK_NONZERO_F(x) (x != SIMD_ZERO_LANES_F)
 #define SIMD_MASK_NONZERO_H(x) (x != SIMD_ZERO_LANES_H)
 
-#elif AVX2
-
-#define _SIMD_TESTZ_F(a, b) SIMD_FUNC_DEC_F(testz, a, b)
-#define _SIMD_TESTZ_H(a, b) SIMD_FUNC_DEC_H(testz, a, b)
-
-#define _SIMD_TESTC_F(a, b) SIMD_FUNC_DEC_F(testc, a, b)
-#define _SIMD_TESTC_H(a, b) SIMD_FUNC_DEC_H(testc, a, b)
-
-#define SIMD_MASK_ALLZERO_F(x) (_SIMD_TESTZ_F(x, x) == 1)
-#define SIMD_MASK_ALLZERO_H(x) (_SIMD_TESTZ_H(x, x) == 1)
-
-#define SIMD_MASK_ALLONES_F(x) (_SIMD_TESTC_F(x, SIMD_INIT_ONES_MASK_F) != 0)
-#define SIMD_MASK_ALLONES_H(x) (_SIMD_TESTC_H(x, SIMD_INIT_ONES_MASK_H) != 0)
-
-#define SIMD_MASK_NONZERO_F(x) (_SIMD_TESTZ_F(x, x) != 0)
-#define SIMD_MASK_NONZERO_H(x) (_SIMD_TESTZ_H(x, x) != 0)
-
-#elif SSE
+#elif SSE || AVX2
 
 #define SIMD_MASK_ALLZERO_F(x) (SIMD_MASK_TOBITS_F(x) == SIMD_ZERO_LANES_F)
 #define SIMD_MASK_ALLZERO_H(x) (SIMD_MASK_TOBITS_H(x) == SIMD_ZERO_LANES_H)
@@ -1159,11 +1142,33 @@ FORCE_INLINE __m512d _floor_pd512_impl(__m512d x) {
 #endif
 
 #if AVX512
-#define SIMD_BLEND_INT8_F(a, b, x) SIMD_FUNC_INT_F(mask_blend, 8, x, a, b)
-#define SIMD_BLEND_INT8_H(a, b, x) SIMD_FUNC_INT_H(mask_blend, 8, x, a, b)
+
+#define SIMD_BLEND_INT32_F(a, b, x) SIMD_FUNC_INT_F(mask_blend, 32, x, a, b)
+#define SIMD_BLEND_INT32_H(a, b, x) SIMD_FUNC_INT_H(mask_blend, 32, x, a, b)
+
+#define SIMD_BLEND_INT64_F(a, b, x) SIMD_FUNC_INT_F(mask_blend, 64, x, a, b)
+#define SIMD_BLEND_INT64_H(a, b, x) SIMD_FUNC_INT_H(mask_blend, 64, x, a, b)
+
 #else
-#define SIMD_BLEND_INT8_F(a, b, x) SIMD_FUNC_INT_F(blendv, 8, a, b, x)
-#define SIMD_BLEND_INT8_H(a, b, x) SIMD_FUNC_INT_H(blendv, 8, a, b, x)
+
+#define SIMD_BLEND_INT32_F(a, b, x) SIMD_FUNC_INT_F(blendv, 8, a, b, x)
+#define SIMD_BLEND_INT32_H(a, b, x) SIMD_FUNC_INT_H(blendv, 8, a, b, x)
+
+#define SIMD_BLEND_INT64_F SIMD_BLEND_INT32_F
+#define SIMD_BLEND_INT64_H SIMD_BLEND_INT32_H
+
+#endif
+
+#if SIMD_FULL_SIZE == 32
+#define SIMD_BLEND_INT_F SIMD_BLEND_INT32_F
+#elif SIMD_FULL_SIZE == 64
+#define SIMD_BLEND_INT_F SIMD_BLEND_INT64_F
+#endif
+
+#if SIMD_HALF_SIZE == 32
+#define SIMD_BLEND_INT_H SIMD_BLEND_INT32_H
+#elif SIMD_HALF_SIZE == 64
+#define SIMD_BLEND_INT_H SIMD_BLEND_INT64_H
 #endif
 
 #if AVX512
@@ -1187,9 +1192,9 @@ FORCE_INLINE __m512d _floor_pd512_impl(__m512d x) {
     SIMD_FUNC_INT_H(mask_add, 32, a, mask, a, b)
 
 #if SIMD_FULL_SIZE == 32
-#define SIMD_ADD_INT_MASK_F SIMD_ADD_INT64_MASK_H
+#define SIMD_ADD_INT_MASK_F SIMD_ADD_INT64_MASK_F
 #elif SIMD_FULL_SIZE == 64
-#define SIMD_ADD_INT_MASK_F SIMD_ADD_INT64_MASK_H
+#define SIMD_ADD_INT_MASK_F SIMD_ADD_INT64_MASK_F
 #endif
 
 #if SIMD_HALF_SIZE == 32
@@ -1303,12 +1308,12 @@ FORCE_INLINE simd_half_2_t SIMD_SINCOS_H(simd_half_t x) {
 #define _SIMD_SINCOS_H_IMPL(ptr, x) SIMD_FUNC_DEC_H(sincos, ptr, x)
 
 FORCE_INLINE simd_full_2_t SIMD_SINCOS_F(simd_full_t x) {
-    simd_full_2_t out;
+    simd_full_2_t out{};
     out.x = _SIMD_SINCOS_F_IMPL(&out.y, x);
     return out;
 }
 FORCE_INLINE simd_half_2_t SIMD_SINCOS_H(simd_half_t x) {
-    simd_half_2_t out;
+    simd_half_2_t out{};
     out.x = _SIMD_SINCOS_H_IMPL(&out.y, x);
     return out;
 }
@@ -1323,7 +1328,7 @@ FORCE_INLINE simd_half_2_t SIMD_SINCOS_H(simd_half_t x) {
 #define _SIMD_GATHER_SCALE_H 4
 #endif
 
-#if AVX2 || AVX512
+#if AVX512 || AVX2
 
 #if SIMD_FULL_ARCH_WIDTH == 512
 

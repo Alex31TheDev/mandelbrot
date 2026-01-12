@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include "MpfrTypes.h"
+#include "MPFRTypes.h"
 
 #include "../util/InlineUtil.h"
 

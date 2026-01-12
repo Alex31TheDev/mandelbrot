@@ -41,7 +41,7 @@ namespace FormatUtil {
         return oss.str();
     }
 
-    std::string formatDuration(int64_t millis, int decimals) {
+    std::string formatDuration(int64_t millis) {
         std::ostringstream oss;
 
         if (millis <= 0) {

@@ -11,7 +11,7 @@ namespace ScalarGlobals {
 
     bool isJuliaSet, isInverse;
     bool normalSeed;
-    bool invalidPower, circlePower, normalPower, wholePower;
+    bool invalidPower, normalPower, wholePower, fractionalPower;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     scalar_full_t realScale, imagScale;
@@ -40,9 +40,7 @@ namespace ScalarGlobals {
         if (iterCount < 1) count = MIN_ITERATIONS;
         else count = iterCount;
 
-        if (zoomScale < SC_SYM_H(-3.25)) return false;
         zoom = zoomScale;
-
         const scalar_full_t zoomPow = POW_F(10, zoom);
 
         realScale = RECIP_F(zoomPow);
@@ -54,7 +52,7 @@ namespace ScalarGlobals {
         }
 
         invCount = RECIP_H(count);
-        return true;
+        return zoomScale > SC_SYM_H(-3.25);
     }
 
     bool setZoomPoints(
@@ -73,17 +71,15 @@ namespace ScalarGlobals {
     }
 
     bool setFractalExponent(scalar_full_t pw) {
-        if (pw <= ONE_F) return false;
-
         N = pw;
+        invLnPow = RECIP_H(LOG_H(N));
 
-        invalidPower = IS0_F(N);
-        circlePower = N == SC_SYM_F(1.0);
+        invalidPower = N <= ONE_F;
         normalPower = N == SC_SYM_F(2.0);
         wholePower = ISWHOLE_F(N);
+        fractionalPower = !wholePower;
 
-        invLnPow = RECIP_H(LOG_H(pw));
-        return true;
+        return !invalidPower;
     }
 
     bool setFractalType(bool julia, bool inverse) {

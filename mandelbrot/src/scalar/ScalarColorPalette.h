@@ -10,27 +10,6 @@ class VectorColorPalette;
 
 class ScalarColorPalette {
 public:
-#if USE_SCALAR_COLORING
-
-    static inline scalar_half_t lerp(
-        scalar_half_t a, scalar_half_t b, scalar_half_t t
-    ) {
-        return a + (b - a) * t;
-    }
-
-    static inline ScalarColor lerp(
-        const ScalarColor &a, const ScalarColor &b,
-        scalar_half_t t
-    ) {
-        return {
-            lerp(a.R, b.R, t),
-            lerp(a.G, b.G, t),
-            lerp(a.B, b.B, t)
-        };
-    }
-
-#endif
-
     explicit ScalarColorPalette(const std::vector<ScalarPaletteColor> &entries,
         scalar_half_t totalLength = ONE_H, scalar_half_t offset = ZERO_H,
         bool blendEnds = true);

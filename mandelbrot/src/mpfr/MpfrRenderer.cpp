@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "../scalar/ScalarTypes.h"
-#include "MpfrTypes.h"
+#include "MPFRTypes.h"
 
 #include "MPFRGlobals.h"
 #include "../scalar/ScalarGlobals.h"
@@ -16,7 +16,7 @@ using namespace ScalarGlobals;
 #include "../scalar/ScalarRenderer.h"
 
 #define FORMULA_MPFR
-#include "../formula/FractalFormulas.h"
+#include "../formula/fractals/mandelbrot.h"
 
 #include "../util/InlineUtil.h"
 
@@ -62,31 +62,26 @@ FORCE_INLINE int _iterateFractal_mp(
     mag = 0.0;
     int i = 0;
 
-    for (; i < count; i++) {
-        const mpfr_number_t zr2 = zr * zr;
-        const mpfr_number_t zi2 = zi * zi;
-        mag = zr2 + zi2;
+    if (invalidPower) {
+        zr = cr;
+        zi = ci;
+        dr = di = 0.0;
+        mag = zr * zr + zi * zi;
 
-        if (mag > bailout_mp) break;
-
-        switch (colorMethod) {
-            case 2:
-                derivative(
-                    zr, zi,
-                    dr, di,
-                    mag,
-                    dr, di
-                );
-                break;
-        }
-
-        formula(
-            cr, ci,
-            zr, zi,
-            mag,
-            zr, zi
-        );
+        i = mag > bailout_mp ? 0 : count;
     }
+
+#define _FORMULA_TYPE 0
+#include "loop/OuterLoop.h"
+#undef _FORMULA_TYPE
+
+#define _FORMULA_TYPE 1
+#include "loop/OuterLoop.h"
+#undef _FORMULA_TYPE
+
+#define _FORMULA_TYPE 2
+#include "loop/OuterLoop.h"
+#undef _FORMULA_TYPE
 
     return i;
 }

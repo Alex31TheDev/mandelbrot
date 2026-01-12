@@ -72,7 +72,7 @@ VectorColorPalette::_locate_vec(simd_half_t x) const {
     if (_blendEnds) {
         const simd_half_int_mask_t wrapMask =
             SIMD_CMP_INT_GT_H(next, _n_min1_vec);
-        next = SIMD_BLEND_INT8_H(next, SIMD_ZERO_HI, wrapMask);
+        next = SIMD_BLEND_INT_H(next, SIMD_ZERO_HI, wrapMask);
     }
 
     return { idx, next, u };
@@ -106,7 +106,7 @@ VectorColorPalette::sampleSIMD(simd_half_t x) const {
         SIMD_GATHER_H(B, seg.next),
     };
 
-    return lerp_vec(color1, color2, seg.u);
+    return colorLerp_vec(color1, color2, seg.u);
 }
 
 void VECTOR_CALL VectorColorPalette::sampleSIMD(

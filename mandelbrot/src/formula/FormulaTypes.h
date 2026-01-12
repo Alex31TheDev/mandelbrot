@@ -1,8 +1,11 @@
 #pragma once
 
+#define FORMULA_FUNC(name) _CONCAT3(formula_, name, Power)
+#define DERIVATIVE_FUNC(name) _CONCAT3(derivative_, name, Power)
+
 #define _USE_FUSED_OPS 0
 
-#if defined(FORMULA_SCALAR)
+#if defined(_FORMULA_SCALAR)
 #include "../scalar/ScalarTypes.h"
 
 typedef scalar_full_t number_t;
@@ -41,7 +44,7 @@ typedef scalar_full_t number_param_t;
 #define NUM_ATAN2 ATAN2_F
 #define NUM_SINCOS SINCOS_F
 
-#elif defined(FORMULA_VECTOR)
+#elif defined(_FORMULA_VECTOR)
 #include "../vector/VectorTypes.h"
 
 #undef _USE_FUSED_OPS
@@ -84,7 +87,7 @@ typedef simd_full_t number_param_t;
 #define NUM_SINCOS SIMD_SINCOS_F
 
 #elif defined(FORMULA_MPFR)
-#include "../mpfr/MpfrTypes.h"
+#include "../mpfr/MPFRTypes.h"
 
 typedef mpfr_number_t number_t;
 typedef mpfr_num_2_t number_2_t;
@@ -125,6 +128,9 @@ typedef mpfr_param_t number_param_t;
 #else
 #error "Must define a formula type."
 #endif
+
+#include "../scalar/ScalarGlobals.h"
+#define N_VAR NUM_VAR(ScalarGlobals::N)
 
 constexpr int OP_CONST = 0;
 constexpr int OP_VAR = 0;
@@ -178,3 +184,20 @@ constexpr int OP_COS = 1;
 constexpr int OP_ATAN2 = 1;
 
 #undef _USE_FUSED_OPS
+
+#include "../util/InlineUtil.h"
+
+#define _FORMULA_TYPEOPS_FUNC(body) \
+    FORCE_INLINE int formulaOps() { \
+        using namespace ScalarGlobals; \
+        int count = 0; \
+        body; \
+        return count; \
+    }
+
+#define _DERIVATIVE_OPS_FUNC(body) \
+    FORCE_INLINE int derivativeOps() { \
+        int count = 0; \
+        body; \
+        return count; \
+    }

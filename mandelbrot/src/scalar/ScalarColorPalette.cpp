@@ -81,7 +81,9 @@ ScalarColorPalette::_locate(scalar_half_t x) const {
     while (idx + 1 < _numSegments && _accum[idx + 1] <= t) idx++;
 
     const scalar_half_t u = (t - _accum[idx]) * _inv[idx];
-    const size_t next = _blendEnds ? (idx + 1) % _colors.size() : idx + 1;
+
+    size_t next = idx + 1;
+    if (_blendEnds) next %= _colors.size();
 
     return { idx, next, u };
 }
@@ -96,7 +98,7 @@ ScalarColor ScalarColorPalette::sample(scalar_half_t x) const {
     const ScalarColor &color1 = _colors[seg.idx];
     const ScalarColor &color2 = _colors[seg.next];
 
-    return lerp(color1, color2, seg.u);
+    return colorLerp(color1, color2, seg.u);
 }
 
 void ScalarColorPalette::sample(

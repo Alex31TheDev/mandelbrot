@@ -18,11 +18,13 @@ struct ProgressConfig {
 
 class ProgressTracker {
 public:
+    typedef uint64_t WU;
+
     typedef std::chrono::steady_clock::time_point STP;
     typedef std::chrono::milliseconds SU;
     static constexpr double SHORT_UNIT_SCALE = 1.0e3;
 
-    explicit ProgressTracker(int totalWork, bool threadSafe,
+    explicit ProgressTracker(WU totalWork, bool threadSafe,
         const ProgressConfig &config = ProgressConfig());
 
     [[nodiscard]] bool completed() const { return _completed; }
@@ -35,13 +37,13 @@ public:
         return static_cast<int64_t>(elapsed().count());
     };
 
-    [[nodiscard]] int totalWork() const { return _totalWork; }
-    [[nodiscard]] int completedWork() const;
+    [[nodiscard]] WU totalWork() const { return _totalWork; }
+    [[nodiscard]] WU completedWork() const;
 
     [[nodiscard]] double percentage() const;
     [[nodiscard]] double opsPerSecond() const;
 
-    void update(int processed = 1, bool printUpdate = true);
+    void update(WU processed = 1, bool printUpdate = true);
     void complete(bool printUpdate = true);
 
 private:
@@ -54,7 +56,7 @@ private:
 
     static constexpr int SHORT_TIME_REMAINING = 30;
 
-    int _totalWork;
+    WU _totalWork;
     bool _threadSafe;
     ProgressConfig _config;
 
@@ -62,13 +64,13 @@ private:
     STP _startTime, _endTime = STP::min();
 
     struct _PlainState {
-        int completedWork = 0;
+        WU completedWork = 0;
         int lastPrinted = -1;
 
         HTP lastUpdateTime;
     };
     struct _AtomicState {
-        std::atomic_int completedWork{ 0 };
+        std::atomic<WU> completedWork{ 0 };
         std::atomic_int lastPrinted{ -1 };
 
         std::atomic<HTP> lastUpdateTime;
@@ -79,13 +81,13 @@ private:
     std::variant<_PlainState, _AtomicState> _state;
 
     struct _OpsEntry {
-        int count;
+        WU count;
         HU time;
     };
     cqueue<_OpsEntry> _opsHistory;
 
-    std::tuple<int, int> _updateWork(int processed);
-    void _updateOpsHistory(int processed);
+    std::tuple<int, int> _updateWork(WU processed);
+    void _updateOpsHistory(WU processed);
 
     void _printProgress(int perc);
     void _printElapsed(SU time);

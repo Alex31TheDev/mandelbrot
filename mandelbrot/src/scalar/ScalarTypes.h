@@ -136,24 +136,16 @@ struct scalar_half_2_t {
 FORCE_INLINE scalar_full_2_t SINCOS_F(scalar_full_t x) {
     scalar_full_2_t out{};
 
-#if defined(__GNUC__) || defined(__clang__)
-    SC_SYM_F(sincos)(CAST_F(x), &out.x, &out.y);
-#else
     out.x = SIN_F(x);
     out.y = COS_F(x);
-#endif
 
     return out;
 }
 FORCE_INLINE scalar_half_2_t SINCOS_H(scalar_half_t x) {
     scalar_half_2_t out{};
 
-#if defined(__GNUC__) || defined(__clang__)
-    SC_SYM_H(sincos)(CAST_H(x), &out.x, &out.y);
-#else
     out.x = SIN_H(x);
     out.y = COS_H(x);
-#endif
 
     return out;
 }

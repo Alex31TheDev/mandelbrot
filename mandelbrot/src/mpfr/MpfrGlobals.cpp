@@ -2,7 +2,7 @@
 #include "CommonDefs.h"
 #include "MPFRGlobals.h"
 
-#include "MpfrTypes.h"
+#include "MPFRTypes.h"
 
 #include "../scalar/ScalarGlobals.h"
 #include "../render/RenderGlobals.h"
