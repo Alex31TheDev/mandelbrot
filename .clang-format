@@ -1,0 +1,41 @@
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: Latest
+
+# Line width
+ColumnLimit: 80
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: All
+
+# Wrapping
+ReflowComments: false
+AlignAfterOpenBracket: BlockIndent
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+IndentCaseLabels: true
+
+# Short forms
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+
+# Calls / templates
+BinPackArguments: false
+ExperimentalAutoDetectBinPacking: true
+BreakTemplateDeclarations: Yes
+SpaceAfterTemplateKeyword: false
+BreakBeforeTernaryOperators: true
+PenaltyBreakAssignment: 1000
+PenaltyBreakBeforeFirstCallParameter: 0
+PenaltyReturnTypeOnItsOwnLine: 0
+WhitespaceSensitiveMacros:
+  - DEFINE_RANGE_ARRAY
+
+# Includes / namespaces
+FixNamespaceComments: false
+SortIncludes: Never
