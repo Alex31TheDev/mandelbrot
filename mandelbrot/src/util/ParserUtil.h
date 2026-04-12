@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 #include <tuple>
+#include <optional>
+#include <functional>
 #include <type_traits>
 
 class ArgsVec {
@@ -29,33 +31,36 @@ private:
 
 namespace ParserUtil {
     bool insensitiveCompare(std::string_view str, std::string_view target);
-    bool parseBool(std::string_view input, bool *ok = nullptr);
+    bool parseBool(std::string_view input,
+        std::optional<std::reference_wrapper<bool>> ok = std::nullopt);
 
     template<typename T, int base = 10>
         requires std::is_arithmetic_v<T>
-    T parseNumber(const std::string &input, bool *ok,
+    T parseNumber(const std::string &input,
+        std::optional<std::reference_wrapper<bool>> ok,
         const T defaultValue = T());
     template<typename T>
         requires std::is_arithmetic_v<T>
     T parseNumber(const std::string &input, const T defaultValue = T()) {
-        return parseNumber<T, 10>(input, nullptr, defaultValue);
+        return parseNumber<T, 10>(input, std::nullopt, defaultValue);
     }
 
     template<typename T, int base = 10>
         requires std::is_arithmetic_v<T>
-    T parseNumber(int argc, char *argv[], int index, bool *ok,
+    T parseNumber(int argc, char *argv[], int index,
+        std::optional<std::reference_wrapper<bool>> ok,
         const T defaultValue = T());
     template<typename T>
         requires std::is_arithmetic_v<T>
     T parseNumber(int argc, char *argv[], int index,
         const T defaultValue = T()) {
-        return parseNumber<T, 10>(argc, argv, index, nullptr, defaultValue);
+        return parseNumber<T, 10>(argc, argv, index, std::nullopt, defaultValue);
     }
 
-    std::tuple<uint8_t, uint8_t, uint8_t>
-        parseHexString(std::string_view str, bool *ok = nullptr);
+    std::tuple<uint8_t, uint8_t, uint8_t> parseHexString(std::string_view str,
+        std::optional<std::reference_wrapper<bool>> ok = std::nullopt);
 
-    std::vector<std::string> parseCommandLine(const std::string &cmd);
+    std::vector<std::string> parseCommandLine(std::string_view cmd);
 }
 
 #include "ParserUtil_impl.h"

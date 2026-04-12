@@ -54,7 +54,7 @@ namespace PathUtil {
         if (resolved) {
             std::string result(resolved);
             free(resolved);
-            return std::string(result);
+            return result;
         }
 #endif
         return filePath;

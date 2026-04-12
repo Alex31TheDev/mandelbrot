@@ -3,6 +3,8 @@
 #include <cstdint>
 
 #include <string>
+#include <optional>
+#include <functional>
 #include <memory>
 #include <iostream>
 
@@ -25,7 +27,7 @@ public:
 #endif
 
     static size_t calcBufferSize(int32_t width, int32_t height,
-        int32_t *strideWidth = nullptr);
+        std::optional<std::reference_wrapper<int32_t>> strideWidth = std::nullopt);
     static std::unique_ptr<Image> create(int32_t width, int32_t height,
         bool simdSafe = true);
 
@@ -55,7 +57,8 @@ public:
 
 private:
     static size_t _calcBufferSize(int32_t width, int32_t height,
-        int32_t *strideWidth, int32_t tailBytes);
+        std::optional<std::reference_wrapper<int32_t>> strideWidth,
+        int32_t tailBytes);
 
     explicit Image(bool simdSafe);
 

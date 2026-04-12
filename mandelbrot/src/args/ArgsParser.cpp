@@ -50,10 +50,10 @@ struct ParsedArgs {
 static void addArgumentString(
     argparse::ArgumentParser &parser,
     const char *name, std::string &value,
-    const char *defaultValue = nullptr
+    std::optional<std::string_view> defaultValue = std::nullopt
 ) {
     auto &arg = parser.add_argument(name);
-    if (defaultValue) arg.default_value(defaultValue);
+    if (defaultValue) arg.default_value(*defaultValue);
     arg.store_into(value);
 }
 
@@ -62,10 +62,10 @@ static void addArgumentChoices(
     argparse::ArgumentParser &parser,
     Range range,
     const char *name, std::string &value,
-    const char *defaultValue = nullptr
+    std::optional<std::string_view> defaultValue = std::nullopt
 ) {
     auto &arg = parser.add_argument(name);
-    if (defaultValue) arg.default_value(defaultValue);
+    if (defaultValue) arg.default_value(*defaultValue);
 
     for (const auto &item : range)
         arg.add_choice(std::invoke(param, item));

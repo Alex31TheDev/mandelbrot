@@ -46,7 +46,8 @@ namespace ParserUtil {
         return true;
     };
 
-    bool parseBool(std::string_view input, bool *ok) {
+    bool parseBool(std::string_view input,
+        std::optional<std::reference_wrapper<bool>> ok) {
         bool valid = false;
         bool result = false;
 
@@ -60,12 +61,13 @@ namespace ParserUtil {
             }
         }
 
-        if (ok) *ok = valid;
+        if (ok) ok->get() = valid;
         return result;
     }
 
     std::tuple<uint8_t, uint8_t, uint8_t>
-        parseHexString(std::string_view str, bool *ok) {
+        parseHexString(std::string_view str,
+            std::optional<std::reference_wrapper<bool>> ok) {
         if (!str.empty() && str[0] == '#') {
             str.remove_prefix(1);
         }
@@ -77,7 +79,7 @@ namespace ParserUtil {
         r = g = b = 0;
 
         if (!fullHex && !shortHex) {
-            if (ok) *ok = false;
+            if (ok) ok->get() = false;
             return std::make_tuple(r, g, b);
         }
 
@@ -97,7 +99,7 @@ namespace ParserUtil {
         return std::make_tuple(r, g, b);
     }
 
-    std::vector<std::string> parseCommandLine(const std::string &cmd) {
+    std::vector<std::string> parseCommandLine(std::string_view cmd) {
         std::vector<std::string> args;
         std::string current;
 

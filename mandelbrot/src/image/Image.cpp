@@ -26,17 +26,18 @@ POP_DISABLE_WARNINGS
 
 size_t Image::_calcBufferSize(
     int32_t width, int32_t height,
-    int32_t *strideWidth, int tailBytes
+    std::optional<std::reference_wrapper<int32_t>> strideWidth,
+    int tailBytes
 ) {
     int32_t wbytes = width * STRIDE + tailBytes;
 
-    if (strideWidth) *strideWidth = wbytes;
+    if (strideWidth) strideWidth->get() = wbytes;
     return static_cast<size_t>(wbytes) * height;
 }
 
 size_t Image::calcBufferSize(
     int32_t width, int32_t height,
-    int32_t *strideWidth
+    std::optional<std::reference_wrapper<int32_t>> strideWidth
 ) {
     return _calcBufferSize(width, height, strideWidth, TAIL_BYTES);
 }
@@ -161,13 +162,13 @@ bool Image::_allocate(int32_t width, int32_t height) {
     }
 
     const size_t originalSize = _calcBufferSize(width, height,
-        &_strideWidth, _tailBytes);
+        _strideWidth, _tailBytes);
 
     printf("Memory required: %s\n",
         FormatUtil::formatBufferSize(originalSize).c_str());
 
     uint8_t *ptr = BufferUtil::bufferAlloc<ALIGNMENT>
-        (originalSize, &_bufferSize);
+        (originalSize, _bufferSize);
 
     if (!ptr) {
         fprintf(stderr, "Failed to allocate pixel buffer. (%zu bytes)\n",

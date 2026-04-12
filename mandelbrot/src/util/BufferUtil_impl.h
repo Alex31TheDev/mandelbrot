@@ -17,14 +17,15 @@ namespace BufferUtil {
     }
 
     template <size_t ALIGNMENT>
-    uint8_t *bufferAlloc(size_t bufferSize, size_t *alignedSize) {
+    uint8_t *bufferAlloc(size_t bufferSize,
+        std::optional<std::reference_wrapper<size_t>> alignedSize) {
         size_t newSize;
         void *ptr = nullptr;
 
         if constexpr (ALIGNMENT > 8) {
             newSize = bufferSize % ALIGNMENT == 0
                 ? bufferSize : alignTo(bufferSize, ALIGNMENT);
-            if (alignedSize) *alignedSize = newSize;
+            if (alignedSize) alignedSize->get() = newSize;
 
 #ifdef _WIN32
             ptr = _aligned_malloc(newSize, ALIGNMENT);
@@ -35,7 +36,7 @@ namespace BufferUtil {
 #endif
         } else {
             newSize = bufferSize;
-            if (alignedSize) *alignedSize = newSize;
+            if (alignedSize) alignedSize->get() = newSize;
 
             ptr = malloc(bufferSize);
         }
