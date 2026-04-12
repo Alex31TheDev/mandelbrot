@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "../util/RangeUtil.h"
 
 namespace ColorMethods {
@@ -11,5 +13,5 @@ namespace ColorMethods {
     DECLARE_RANGE_ARRAY(ColorMethod, colorMethods);
     const ColorMethod DEFAULT_COLOR_METHOD = colorMethods[1];
 
-    int parseColorMethod(const char *str);
+    int parseColorMethod(std::string_view str);
 }

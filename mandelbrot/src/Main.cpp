@@ -1,10 +1,11 @@
-#include <cstring>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
-#include "args/Usage.h"
 #include "args/ArgsParser.h"
+#include "args/ArgsUsage.h"
 
 #include "util/ParserUtil.h"
 #include "util/PathUtil.h"
@@ -25,12 +26,14 @@ static bool initializeImage(std::unique_ptr<Image> &image) {
 }
 
 static bool saveImage(const Image *image,
-    const std::string &filename, int num = -1) {
-    const bool appendDate = (num < 0);
+    const std::string &filename,
+    std::optional<int> num = std::nullopt
+) {
+    const bool appendDate = !num;
 
     const std::string outName = appendDate
         ? filename
-        : PathUtil::appendSeqnum(filename, num);
+        : PathUtil::appendSeqnum(filename, *num);
 
     return image->saveToFile(outName, appendDate, OUT_FILETYPE);
 }
@@ -68,8 +71,8 @@ static int runRepl(int argc, char **argv) {
             ParserUtil::parseCommandLine(line)
         );
 
-        if (argsCount(parsedArgs.argc) == 1 &&
-            strcmp(parsedArgs.argv[1], exitOption) == 0) {
+        if (ArgsUsage::argsCount(parsedArgs.argc) == 1 &&
+            std::string_view(parsedArgs.argv[1]) == ArgsUsage::exitOption) {
             running = false;
             continue;
         }
@@ -101,8 +104,8 @@ int main(int argc, char **argv) {
 
     MPFRGlobals::initMPFR();
 
-    if (argsCount(argc) == 1 &&
-        strcmp(argv[1], replOption) == 0) {
+    if (ArgsUsage::argsCount(argc) == 1 &&
+        std::string_view(argv[1]) == ArgsUsage::replOption) {
         return runRepl(argc, argv);
     } else {
         return runOnce(argc, argv);

@@ -819,8 +819,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\args\argparse.h" />
+    <ClInclude Include="src\args\argparse.hpp" />
     <ClInclude Include="src\args\ArgsParser.h" />
-    <ClInclude Include="src\args\ColorMethods.h" />
+    <ClInclude Include="src\args\ArgsUsage.h" />
     <ClInclude Include="src\formula\DefineFormulas.h" />
     <ClInclude Include="src\formula\fractals\mandelbrot.h" />
     <ClInclude Include="src\fullname.h" />
@@ -853,12 +854,12 @@
     <ClInclude Include="src\util\fnv1a.h" />
     <ClInclude Include="src\util\ParserUtil.h" />
     <ClInclude Include="src\util\PathUtil.h" />
-    <ClInclude Include="src\args\Usage.h" />
     <ClInclude Include="src\formula\FormulaTypes.h" />
     <ClInclude Include="src\mpfr\MPFRCoords.h" />
     <ClInclude Include="src\mpfr\MPFRGlobals.h" />
     <ClInclude Include="src\mpfr\MPFRRenderer.h" />
     <ClInclude Include="src\mpfr\mpreal.h" />
+    <ClInclude Include="src\options\ColorMethods.h" />
     <ClInclude Include="src\util\InlineUtil.h" />
     <ClInclude Include="src\util\MacroUtil.h" />
     <ClInclude Include="src\render\ProgressTracker.h" />
@@ -885,8 +886,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\args\ArgsParser.cpp" />
-    <ClCompile Include="src\args\ColorMethods.cpp" />
-    <ClCompile Include="src\args\Usage.cpp" />
+    <ClCompile Include="src\args\ArgsUsage.cpp" />
     <ClCompile Include="src\formula\UndefFormulas.h" />
     <ClCompile Include="src\image\BmpWriter.cpp" />
     <ClCompile Include="src\render\RenderGlobals.cpp" />
@@ -896,6 +896,7 @@
     <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\mpfr\MPFRGlobals.cpp" />
     <ClCompile Include="src\mpfr\MPFRRenderer.cpp" />
+    <ClCompile Include="src\options\ColorMethods.cpp" />
     <ClCompile Include="src\render\RenderImage.cpp" />
     <ClCompile Include="src\render\ProgressTracker.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />

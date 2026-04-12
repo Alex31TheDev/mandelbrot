@@ -1,13 +1,18 @@
 #include "ArgsParser.h"
 
 #include <cstdio>
-#include <cstring>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <string>
+#include <stdexcept>
 
-#include <tuple>
-#include <algorithm>
+#include "argparse.hpp"
 
-#include "Usage.h"
-#include "ColorMethods.h"
+#include "ArgsUsage.h"
+#include "../options/ColorMethods.h"
+using namespace ArgsUsage;
 using namespace ColorMethods;
 
 #include "../scalar/ScalarTypes.h"
@@ -22,116 +27,203 @@ using namespace ScalarGlobals;
 #include "../util/ParserUtil.h"
 using namespace ParserUtil;
 
-#define PARSE_NUM(idx, default) \
-    parseNumber(argc, argv, idx, DEFAULT_ ## default)
+struct ParsedArgs {
+    int width = 0;
+    int height = 0;
+    scalar_full_t point_r = ZERO_F;
+    scalar_full_t point_i = ZERO_F;
+    scalar_half_t zoom = ZERO_H;
+    std::string count = "auto";
+    bool useThreads = false;
+    std::string colorMethod = DEFAULT_COLOR_METHOD.name;
+    bool isJuliaSet = false;
+    bool isInverse = false;
+    scalar_full_t seed_r = DEFAULT_SEED_R;
+    scalar_full_t seed_i = DEFAULT_SEED_I;
+    scalar_full_t N = DEFAULT_FRACTAL_EXP;
+    scalar_half_t colorArg1 = ZERO_H;
+    scalar_half_t colorArg2 = ZERO_H;
+    scalar_half_t colorArg3 = ZERO_H;
+    scalar_half_t colorArg4 = ZERO_H;
+};
 
-static const char *flagHelp = "flag must be \"true\" or \"false\"";
+static void addArgumentString(
+    argparse::ArgumentParser &parser,
+    const char *name, std::string &value,
+    const char *defaultValue = nullptr
+) {
+    auto &arg = parser.add_argument(name);
+    if (defaultValue) arg.default_value(defaultValue);
+    arg.store_into(value);
+}
+
+template<auto param, typename Range>
+static void addArgumentChoices(
+    argparse::ArgumentParser &parser,
+    Range range,
+    const char *name, std::string &value,
+    const char *defaultValue = nullptr
+) {
+    auto &arg = parser.add_argument(name);
+    if (defaultValue) arg.default_value(defaultValue);
+
+    for (const auto &item : range)
+        arg.add_choice(std::invoke(param, item));
+
+    arg.choices().store_into(value);
+}
+
+static void addArgument_INT32(
+    argparse::ArgumentParser &parser,
+    const char *name, int &value,
+    std::optional<int> defaultValue = std::nullopt
+) {
+    auto &arg = parser.add_argument(name);
+    if (defaultValue) arg.default_value(*defaultValue);
+
+    arg.action([&value](const std::string &str) {
+        value = PARSE_INT32(str.c_str()); });
+}
+
+static void addArgument_F(
+    argparse::ArgumentParser &parser,
+    const char *name, scalar_full_t &value,
+    std::optional<scalar_full_t> defaultValue = std::nullopt
+) {
+    auto &arg = parser.add_argument(name);
+    if (defaultValue) arg.default_value(*defaultValue);
+
+    arg.action([&value](const std::string &str) {
+        value = PARSE_F(str.c_str()); });
+}
+
+static void addArgument_H(
+    argparse::ArgumentParser &parser,
+    const char *name, scalar_half_t &value,
+    std::optional<scalar_half_t> defaultValue = std::nullopt
+) {
+    auto &arg = parser.add_argument(name);
+    if (defaultValue) arg.default_value(*defaultValue);
+
+    arg.action([&value](const std::string &str) {
+        value = PARSE_H(str.c_str()); });
+}
+
+static void addArgumentBool(
+    argparse::ArgumentParser &parser,
+    const char *name, bool &value,
+    std::optional<bool> defaultValue = std::nullopt
+) {
+    auto &arg = parser.add_argument(name);
+    if (defaultValue) arg.default_value(*defaultValue);
+
+    arg.action([&value](std::string_view str) {
+        bool ok;
+        value = parseBool(str, std::ref(ok));
+        if (!ok) throw std::runtime_error(flagHelp);
+        });
+}
+
+static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) {
+    parser.add_description(modeHelp);
+
+    addArgument_INT32(parser, "width", args.width);
+    addArgument_INT32(parser, "height", args.height);
+    addArgument_F(parser, "point_r", args.point_r);
+    addArgument_F(parser, "point_i", args.point_i);
+    addArgument_H(parser, "zoom", args.zoom);
+
+    addArgumentString(parser, "count", args.count, "auto");
+    addArgumentBool(parser, "useThreads", args.useThreads, false);
+    addArgumentChoices<&ColorMethod::name>(
+        parser, colorMethodsRange{},
+        "colorMethod", args.colorMethod,
+        DEFAULT_COLOR_METHOD.name
+    );
+
+    addArgumentBool(parser, "isJuliaSet", args.isJuliaSet, false);
+    addArgumentBool(parser, "isInverse", args.isInverse, false);
+
+    addArgument_F(parser, "seed_r", args.seed_r, DEFAULT_SEED_R);
+    addArgument_F(parser, "seed_i", args.seed_i, DEFAULT_SEED_I);
+    addArgument_F(parser, "N", args.N, DEFAULT_FRACTAL_EXP);
+    addArgument_H(parser, "color1", args.colorArg1, ZERO_H);
+    addArgument_H(parser, "color2", args.colorArg2, ZERO_H);
+    addArgument_H(parser, "color3", args.colorArg3, ZERO_H);
+    addArgument_H(parser, "color4", args.colorArg4, ZERO_H);
+}
+
+static std::unique_ptr<argparse::ArgumentParser> makeParser(
+    const char *progName, ParsedArgs &args
+) {
+    auto parser = std::make_unique<argparse::ArgumentParser>(
+        progName ? progName : "mandelbrot",
+        "",
+        argparse::default_arguments::none,
+        false
+    );
+
+    configureParser(*parser, args);
+    return parser;
+}
 
 namespace ArgsParser {
     bool checkHelp(int argc, char **argv) {
         if (!argv) return false;
-        const char *progPath = argv[0];
+        if (printDetailedHelp(argc, argv)) return true;
 
-        if (argsCount(argc) < 1) {
-            printUsage(progPath);
+        ParsedArgs args;
+        const auto parser = makeParser(argv[0], args);
+
+        if (argsCount(argc) < 1 || isHelpArg(argv[1])) {
+            std::cout << parser->help().str();
             return true;
-        } else if (argsCount(argc) != 1) {
-            return false;
         }
 
-        const char *helpArg = argv[1];
-        const bool isHelp = std::ranges::any_of(helpOptionsRange{},
-            [helpArg](const char *opt) { return strcmp(helpArg, opt) == 0; });
-
-        if (isHelp) printUsage();
-        return isHelp;
+        return false;
     }
 
     bool parse(int argc, char **argv) {
         if (!argv) return false;
 
-        if (argsCount(argc) < MIN_ARGS ||
-            argsCount(argc) > MAX_ARGS) {
-            printUsage(argv[0], true);
+        ParsedArgs args;
+        const auto parser = makeParser(argv[0], args);
+
+        try {
+            parser->parse_args(argc, argv);
+        } catch (const std::exception &err) {
+            fprintf(stderr, "%s\n", err.what());
             return false;
         }
 
-        const int img_w = PARSE_INT32(argv[1]);
-        const int img_h = PARSE_INT32(argv[2]);
-
-        if (setImageGlobals(img_w, img_h)) {
+        if (setImageGlobals(args.width, args.height)) {
             initImageValues();
         } else {
             fprintf(stderr, "Invalid args.\nWidth and height must be > 0.\n");
             return false;
         }
 
-        const scalar_full_t pr = PARSE_F(argv[3]);
-        const scalar_full_t pi = PARSE_F(argv[4]);
-
-        const float zoomScale = PARSE_H(argv[5]);
         int iterCount = 0;
 
-        if (argc > 6 && strcmp(argv[6], "auto") != 0) {
-            iterCount = PARSE_INT32(argv[6]);
+        if (args.count != "auto") {
+            iterCount = PARSE_INT32(args.count.c_str());
         }
 
-        if (!setZoomGlobals(iterCount, zoomScale)) {
+        if (!setZoomGlobals(iterCount, args.zoom)) {
             fprintf(stderr, "Invalid args.\nScale must be > -3.25.\n");
             return false;
         }
 
-        if (argc > 7) {
-            bool ok;
-            useThreads = parseBool(argv[7], &ok);
+        useThreads = args.useThreads;
 
-            if (!ok) {
-                fprintf(stderr, "Invalid args.\nThreads %s.\n", flagHelp);
-                return false;
-            }
-        }
+        colorMethod = parseColorMethod(args.colorMethod);
+        if (colorMethod < 0) return false;
 
-        if (argc > 8) {
-            const int method = parseColorMethod(argv[8]);
-            if (method == -1) return false;
+        setFractalType(args.isJuliaSet, args.isInverse);
 
-            colorMethod = method;
-        } else {
-            colorMethod = DEFAULT_COLOR_METHOD.id;
-        }
+        setZoomPoints(args.point_r, args.point_i, args.seed_r, args.seed_i);
 
-        bool julia = false, inverse = false;
-
-        if (argc > 9) {
-            bool ok;
-            julia = parseBool(argv[9], &ok);
-
-            if (!ok) {
-                fprintf(stderr, "Invalid args.\nJulia set %s.\n", flagHelp);
-                return false;
-            }
-        }
-
-        if (argc > 10) {
-            bool ok;
-            inverse = parseBool(argv[10], &ok);
-
-            if (!ok) {
-                fprintf(stderr, "Invalid args.\nInverse %s.\n", flagHelp);
-                return false;
-            }
-        }
-
-        setFractalType(julia, inverse);
-
-        const scalar_full_t sr = PARSE_NUM(11, SEED_R);
-        const scalar_full_t si = PARSE_NUM(12, SEED_I);
-
-        setZoomPoints(pr, pi, sr, si);
-
-        const scalar_full_t pw = PARSE_NUM(13, FRACTAL_EXP);
-
-        if (!setFractalExponent(pw)) {
+        if (!setFractalExponent(args.N)) {
             fprintf(stderr, "Invalid args.\nFractal exponent must be > 1.\n");
             return false;
         }
@@ -139,32 +231,32 @@ namespace ArgsParser {
         switch (colorMethod) {
             case 0:
             case 1:
-            {
-                const scalar_half_t R = PARSE_NUM(14, FREQ_R);
-                const scalar_half_t G = PARSE_NUM(15, FREQ_G);
-                const scalar_half_t B = PARSE_NUM(16, FREQ_B);
-                const scalar_half_t mult = PARSE_NUM(17, FREQ_MULT);
-
-                if (!setColorGlobals(R, G, B, mult)) {
+                if (!setColorGlobals(
+                    args.colorArg1 ? args.colorArg1 : DEFAULT_FREQ_R,
+                    args.colorArg2 ? args.colorArg2 : DEFAULT_FREQ_G,
+                    args.colorArg3 ? args.colorArg3 : DEFAULT_FREQ_B,
+                    args.colorArg4 ? args.colorArg4 : DEFAULT_FREQ_MULT
+                )) {
                     fprintf(stderr, "Invalid args.\n"
                         "Frequency multiplier must be non-zero.\n");
                     return false;
                 }
-            }
-            break;
+                break;
 
             case 2:
             {
-                const scalar_half_t real = PARSE_NUM(14, LIGHT_R);
-                const scalar_half_t imag = PARSE_NUM(15, LIGHT_I);
+                const scalar_half_t real =
+                    args.colorArg1 ? args.colorArg1 : DEFAULT_LIGHT_R;
+                const scalar_half_t imag =
+                    args.colorArg2 ? args.colorArg2 : DEFAULT_LIGHT_I;
 
                 if (!setLightGlobals(real, imag)) {
                     fprintf(stderr, "Invalid args.\n"
                         "Light vector must be non-zero.\n");
                     return false;
                 }
+                break;
             }
-            break;
 
             default:
                 return false;
