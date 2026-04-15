@@ -14,6 +14,7 @@
 #include "../util/WarningUtil.h"
 
 PUSH_DISABLE_WARNINGS
+#define STB_IMAGE_WRITE_STATIC
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 POP_DISABLE_WARNINGS

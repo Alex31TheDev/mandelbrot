@@ -5,8 +5,19 @@
 
     if (mag > bailout_mp) break;
 
+    mpfr_number_t new_zr = zr, new_zi = zi;
+    mpfr_number_t new_dr = dr, new_di = di;
+
 #ifdef _USE_DERIVATIVE
     _DERIVATIVE;
 #endif
     _FORMULA;
+
+#ifdef _USE_DERIVATIVE
+    dr = new_dr;
+    di = new_di;
+#endif
+
+    zr = new_zr;
+    zi = new_zi;
 }

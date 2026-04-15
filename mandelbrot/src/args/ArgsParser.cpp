@@ -144,19 +144,22 @@ static void addArgumentBool(
 static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) {
     parser.add_description(modeHelp);
 
+    const std::string defaultCount = "auto";
+    const std::string defaultColorMethod = DEFAULT_COLOR_METHOD.name;
+    const std::string defaultFractalType = DEFAULT_FRACTAL_TYPE.name;
+
     addArgument_INT32(parser, "width", args.width);
     addArgument_INT32(parser, "height", args.height);
     addArgument_F(parser, "point_r", args.point_r);
     addArgument_F(parser, "point_i", args.point_i);
     addArgument_H(parser, "zoom", args.zoom);
-    
-    addArgumentString(parser, "count", args.count, "auto");
+    addArgumentString(parser, "count", args.count, defaultCount);
     addArgument_INT32(parser, "AA", args.aaPixels, 1);
     addArgumentBool(parser, "useThreads", args.useThreads, false);
     addArgumentOptions(
         parser, colorMethodsRange{},
         "colorMethod", args.colorMethod,
-        DEFAULT_COLOR_METHOD.name
+        defaultColorMethod
     );
 
     addArgumentBool(parser, "isJuliaSet", args.isJuliaSet, false);
@@ -167,7 +170,7 @@ static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) 
     addArgumentOptions(
         parser, fractalTypesRange{},
         "fractalType", args.fractalType,
-        DEFAULT_FRACTAL_TYPE.name
+        defaultFractalType
     );
     addArgument_F(parser, "N", args.N, DEFAULT_FRACTAL_EXP);
     addArgumentString(parser, "color1", args.colorArg1, skipOption);
@@ -285,12 +288,12 @@ namespace ArgsParser {
             {
                 PaletteParser::PaletteConfig paletteCfg;
                 std::string err;
-                
+
                 std::vector<std::string> paletteArgs;
                 for (const std::string *arg : {
                     &args.colorArg1, &args.colorArg2,
                     &args.colorArg3, &args.colorArg4
-                }) {
+                    }) {
                     if (*arg != skipOption) paletteArgs.push_back(*arg);
                 }
 

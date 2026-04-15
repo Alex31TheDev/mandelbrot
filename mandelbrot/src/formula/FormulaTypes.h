@@ -118,6 +118,7 @@ typedef mpfr_param_t number_param_t;
 
 #define NUM_NEG(x) -(x)
 #define NUM_ABS(x) abs(x)
+#define NUM_SGN(x) ((x) > 0.0 ? NUM_CONST(1.0) : ((x) < 0.0 ? NUM_CONST(-1.0) : NUM_CONST(0.0)))
 
 #define NUM_SQRT(x) sqrt(x)
 #define NUM_POW(a, b) pow(a, b)
