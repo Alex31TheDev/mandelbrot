@@ -360,8 +360,7 @@
       <AdditionalIncludeDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\include;$(VcpkgInstalledDir)x64-windows\include;$(ProjectDir)src;$(MSBuildProjectDirectory)\..\common\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\x64-windows\lib;$(VcpkgInstalledDir)x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\lib;$(MSBuildProjectDirectory)\..\common\bin\$(Platform)\$(CommonConfiguration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>common.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\x64-windows\lib;$(VcpkgInstalledDir)x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <PropertyGroup Label="Vcpkg">
@@ -906,6 +905,11 @@
     <ClCompile Include="src\image\Image.cpp" />
     <ClCompile Include="src\scalar\ScalarRenderer.cpp" />
     <ClCompile Include="src\vector\VectorRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\common\common.vcxproj">
+      <Project>{3152A3CB-1150-412C-A89F-5CE415183276}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="IntelVcpkgAppLocal" AfterTargets="CopyFilesToOutputDirectory" BeforeTargets="CopyLocalFilesOutputGroup;RegisterOutput" Condition="'$(VcpkgEnabled)' == 'true' and '$(VcpkgApplocalDeps)' == 'true' and '$(PlatformToolset)' == 'Intel C++ Compiler 2025' and Exists('$(TargetPath)') and '$(_ZVcpkgExecutable)' != '' and '$(_ZVcpkgCurrentInstalledDir)' != ''">
