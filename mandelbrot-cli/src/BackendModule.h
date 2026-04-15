@@ -38,7 +38,7 @@ struct BackendModule {
     BackendModule(BackendModule &&other) noexcept;
     BackendModule &operator=(BackendModule &&other) noexcept;
 
-    ~BackendModule() {  reset(); }
+    ~BackendModule() { reset(); }
 
     explicit operator bool() const { return module && session; }
 

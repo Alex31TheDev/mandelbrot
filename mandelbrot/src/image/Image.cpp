@@ -58,8 +58,8 @@ static void boxDownscale(
             for (int sy = sy0; sy < sy1; sy++) {
                 if (sy < 0 || sy >= srcH) continue;
 
-                    float oy0 = fmaxf(y0, static_cast<float>(sy)),
-                        oy1 = fminf(y1, static_cast<float>(sy) + 1.0f);
+                float oy0 = fmaxf(y0, static_cast<float>(sy)),
+                    oy1 = fminf(y1, static_cast<float>(sy) + 1.0f);
 
                 float wy = oy1 - oy0;
                 if (wy <= 0) continue;
@@ -91,13 +91,13 @@ static void boxDownscale(
 
                 dst[di] = static_cast<uint8_t>(
                     clampf(r * inv + 0.5f, 0.0f, 255.0f)
-                );
+                    );
                 dst[di + 1] = static_cast<uint8_t>(
                     clampf(g * inv + 0.5f, 0.0f, 255.0f)
-                );
+                    );
                 dst[di + 2] = static_cast<uint8_t>(
                     clampf(b * inv + 0.5f, 0.0f, 255.0f)
-                );
+                    );
             } else {
                 dst[di] = dst[di + 1] = dst[di + 2] = 0;
             }
@@ -287,7 +287,7 @@ bool Image::_allocate(int32_t width, int32_t height) {
 
     const size_t originalSize = _calcBufferSize(_width, _height,
         _strideW, _tailBytes);
-    
+
     if (_downscaling) {
         _outputSize = _calcBufferSize(_outputW, _outputH, _outputStrideW, 0);
     }

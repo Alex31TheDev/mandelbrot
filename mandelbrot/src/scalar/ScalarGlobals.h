@@ -93,5 +93,4 @@ namespace ScalarGlobals {
         setColorGlobals();
         setLightGlobals();
     }
-
 }

@@ -4,7 +4,7 @@
 
 #define formula_normalPower \
     new_zr = NUM_ADD(NUM_SUB(zr2, zi2), cr); \
-    new_zi = NUM_MULADD(NUM_CONST(2.0), NUM_MUL(zr, zi), ci); 
+    new_zi = NUM_MULADD(NUM_CONST(2.0), NUM_MUL(zr, zi), ci);
 
 #define formula_wholePower \
     for (int k = N - 1; k > 0; k >>= 1) { \
@@ -30,7 +30,7 @@
     \
     const number_2_t m_sincos = NUM_SINCOS(m_angle); \
     new_zr = NUM_MULADD(m_rp, m_sincos.y, cr); \
-    new_zi = NUM_MULADD(m_rp, m_sincos.x, ci); 
+    new_zi = NUM_MULADD(m_rp, m_sincos.x, ci);
 
 #define derivative_normalPower \
     const number_t t1 = NUM_SUBXX(zr, dr, zi, di); \
@@ -53,7 +53,7 @@
     const number_t t2 = NUM_ADDXX(new_dr, di, new_di, dr); \
     \
     new_dr = NUM_MULADD(t1, N_VAR, NUM_CONST(1.0)); \
-    new_di = NUM_MUL(t2, N_VAR); 
+    new_di = NUM_MUL(t2, N_VAR);
 
 #define derivative_fractionalPower \
     const number_t d_pw = NUM_SUB(N_VAR, NUM_CONST(1.0)); \

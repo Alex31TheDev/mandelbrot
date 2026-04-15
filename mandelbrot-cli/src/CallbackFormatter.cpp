@@ -34,38 +34,38 @@ void CallbackFormatter::bind(Backend::Session &session) const {
             printf("\n");
         }
         fflush(stdout);
-    };
+        };
 
     callbacks.onImage = [](const Backend::ImageEvent &event) {
         switch (event.kind) {
-        case Backend::ImageEventKind::allocated:
-            printAllocatedImageEvent(event);
-            return;
+            case Backend::ImageEventKind::allocated:
+                printAllocatedImageEvent(event);
+                return;
 
-        case Backend::ImageEventKind::saved:
-            if (event.path) {
-                printf("Successfully saved: %s (%dx%d)\n",
-                    event.path, event.outputWidth, event.outputHeight);
-            }
-            return;
+            case Backend::ImageEventKind::saved:
+                if (event.path) {
+                    printf("Successfully saved: %s (%dx%d)\n",
+                        event.path, event.outputWidth, event.outputHeight);
+                }
+                return;
         }
-    };
+        };
 
     callbacks.onInfo = [](const Backend::InfoEvent &event) {
         switch (event.kind) {
-        case Backend::InfoEventKind::iterations:
-            printf("Total iterations: %s | %.2f GI/s\n",
-                FormatUtil::formatNumber(event.totalIterations).c_str(),
-                event.opsPerSecond);
-            return;
+            case Backend::InfoEventKind::iterations:
+                printf("Total iterations: %s | %.2f GI/s\n",
+                    FormatUtil::formatNumber(event.totalIterations).c_str(),
+                    event.opsPerSecond);
+                return;
         }
-    };
+        };
 
     callbacks.onDebug = [](const Backend::DebugEvent &event) {
         if (event.message) {
             fprintf(stderr, "%s\n", event.message);
         }
-    };
+        };
 
     session.setCallbacks(callbacks);
 }
