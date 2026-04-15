@@ -671,6 +671,12 @@ public:
     return *this;
   }
 
+  Argument &skip_token(std::string value) {
+    m_skip_token = std::move(value);
+    m_accepts_optional_like_value = true;
+    return *this;
+  }
+
   template <class F, class... Args>
   auto action(F &&callable, Args &&... bound_args)
       -> std::enable_if_t<std::is_invocable_v<F, Args..., std::string const>,
@@ -691,6 +697,23 @@ public:
     return *this;
   }
 
+  template <class F, class... Args>
+  auto store_action(F &&callable, Args &&... bound_args)
+      -> std::enable_if_t<std::is_invocable_v<F, Args..., const Argument &>,
+                          Argument &> {
+    if constexpr (sizeof...(Args) == 0) {
+      m_store_actions.emplace_back(std::forward<F>(callable));
+    } else {
+      m_store_actions.emplace_back(
+          [f = std::forward<F>(callable),
+           tup = std::make_tuple(std::forward<Args>(bound_args)...)](
+              const Argument &arg) mutable {
+            return details::apply_plus_one(f, tup, arg);
+          });
+    }
+    return *this;
+  }
+
   auto &store_into(bool &var) {
     if ((!m_default_value.has_value()) && (!m_implicit_value.has_value())) {
       flag();
@@ -698,9 +721,11 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<bool>(m_default_value);
     }
-    action([&var](const auto & /*unused*/) {
-      var = true;
-      return var;
+    if (m_actions.empty()) {
+      action([](const auto & /*unused*/) { return true; });
+    }
+    store_action([&var](const Argument &arg) {
+      var = std::any_cast<bool>(arg.m_values.front());
     });
     return *this;
   }
@@ -710,9 +735,11 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<T>(m_default_value);
     }
-    action([&var](const auto &s) {
-      var = details::parse_number<T, details::radix_10>()(s);
-      return var;
+    if (m_actions.empty()) {
+      action(details::parse_number<T, details::radix_10>());
+    }
+    store_action([&var](const Argument &arg) {
+      var = std::any_cast<T>(arg.m_values.front());
     });
     return *this;
   }
@@ -722,20 +749,33 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<T>(m_default_value);
     }
-    action([&var](const auto &s) {
-      var = details::parse_number<T, details::chars_format::general>()(s);
-      return var;
+    if (m_actions.empty()) {
+      action(details::parse_number<T, details::chars_format::general>());
+    }
+    store_action([&var](const Argument &arg) {
+      var = std::any_cast<T>(arg.m_values.front());
     });
     return *this;
   }
 
   auto &store_into(std::string &var) {
     if (m_default_value.has_value()) {
-      var = std::any_cast<std::string>(m_default_value);
+      if (m_default_value.type() == typeid(std::string)) {
+        var = std::any_cast<std::string>(m_default_value);
+      } else if (m_default_value.type() == typeid(std::string_view)) {
+        var = std::any_cast<std::string_view>(m_default_value);
+      }
     }
-    action([&var](const std::string &s) {
-      var = s;
-      return var;
+    if (m_actions.empty()) {
+      action([](const std::string &s) { return s; });
+    }
+    store_action([&var](const Argument &arg) {
+      const auto &value = arg.m_values.front();
+      if (value.type() == typeid(std::string)) {
+        var = std::any_cast<std::string>(value);
+      } else if (value.type() == typeid(std::string_view)) {
+        var = std::any_cast<std::string_view>(value);
+      }
     });
     return *this;
   }
@@ -744,7 +784,12 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<std::filesystem::path>(m_default_value);
     }
-    action([&var](const std::string &s) { var = s; });
+    if (m_actions.empty()) {
+      action([](const std::string &s) { return std::filesystem::path(s); });
+    }
+    store_action([&var](const Argument &arg) {
+      var = std::any_cast<std::filesystem::path>(arg.m_values.front());
+    });
     return *this;
   }
 
@@ -752,13 +797,11 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<std::vector<std::string>>(m_default_value);
     }
-    action([this, &var](const std::string &s) {
-      if (!m_is_used) {
-        var.clear();
-      }
-      m_is_used = true;
-      var.push_back(s);
-      return var;
+    if (m_actions.empty()) {
+      action([](const std::string &s) { return s; });
+    }
+    store_action([&var](const Argument &arg) {
+      var = any_cast_container<std::vector<std::string>>(arg.m_values);
     });
     return *this;
   }
@@ -767,13 +810,11 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<std::vector<int>>(m_default_value);
     }
-    action([this, &var](const std::string &s) {
-      if (!m_is_used) {
-        var.clear();
-      }
-      m_is_used = true;
-      var.push_back(details::parse_number<int, details::radix_10>()(s));
-      return var;
+    if (m_actions.empty()) {
+      action(details::parse_number<int, details::radix_10>());
+    }
+    store_action([&var](const Argument &arg) {
+      var = any_cast_container<std::vector<int>>(arg.m_values);
     });
     return *this;
   }
@@ -782,13 +823,11 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<std::set<std::string>>(m_default_value);
     }
-    action([this, &var](const std::string &s) {
-      if (!m_is_used) {
-        var.clear();
-      }
-      m_is_used = true;
-      var.insert(s);
-      return var;
+    if (m_actions.empty()) {
+      action([](const std::string &s) { return s; });
+    }
+    store_action([&var](const Argument &arg) {
+      var = any_cast_container<std::set<std::string>>(arg.m_values);
     });
     return *this;
   }
@@ -797,13 +836,11 @@ public:
     if (m_default_value.has_value()) {
       var = std::any_cast<std::set<int>>(m_default_value);
     }
-    action([this, &var](const std::string &s) {
-      if (!m_is_used) {
-        var.clear();
-      }
-      m_is_used = true;
-      var.insert(details::parse_number<int, details::radix_10>()(s));
-      return var;
+    if (m_actions.empty()) {
+      action(details::parse_number<int, details::radix_10>());
+    }
+    store_action([&var](const Argument &arg) {
+      var = any_cast_container<std::set<int>>(arg.m_values);
     });
     return *this;
   }
@@ -955,6 +992,11 @@ public:
 
     const auto &choices = m_choices.value();
 
+    if (m_skip_token.has_value() && m_default_value.has_value() &&
+        *option_it == *m_skip_token) {
+      return true;
+    }
+
     return (std::find(choices.begin(), choices.end(), *option_it) !=
             choices.end());
   }
@@ -994,6 +1036,10 @@ public:
       const auto max_number_of_args = m_num_args_range.get_max();
       const auto min_number_of_args = m_num_args_range.get_min();
       for (auto it = start; it != end; ++it) {
+        if (passed_options >= max_number_of_args) {
+          break;
+        }
+
         if (is_value_in_choices(it)) {
           passed_options += 1;
           continue;
@@ -1021,6 +1067,9 @@ public:
         if(m_actions.empty()){
           std::visit([&](const auto &f) { f({}); }, m_default_action);
         }
+        for(auto &store_action: m_store_actions) {
+          store_action(*this);
+        }
         m_is_used = true;
       }
       return start;
@@ -1043,7 +1092,14 @@ public:
       }
       struct ActionApply {
         void operator()(valued_action &f) {
-          std::transform(first, last, std::back_inserter(self.m_values), f);
+          std::transform(
+              first, last, std::back_inserter(self.m_values), [this, &f](const auto &value) -> std::any {
+                if (self.m_skip_token.has_value() && self.m_default_value.has_value() &&
+                    value == *self.m_skip_token) {
+                  return self.m_default_value;
+                }
+                return f(value);
+              });
         }
 
         void operator()(void_action &f) {
@@ -1065,6 +1121,9 @@ public:
         }
         if(m_actions.empty()){
           std::visit(ActionApply{start, end, *this}, m_default_action);
+        }
+        for(auto &store_action: m_store_actions) {
+          store_action(*this);
         }
         m_is_used = true;
       }
@@ -1594,7 +1653,8 @@ private:
 
     T result;
     std::transform(
-        std::begin(operand), std::end(operand), std::back_inserter(result),
+        std::begin(operand), std::end(operand),
+        std::inserter(result, result.end()),
         [](const auto &value) { return std::any_cast<ValueType>(value); });
     return result;
   }
@@ -1613,9 +1673,12 @@ private:
       m_default_value_str; // used for checking default_value against choices
   std::any m_implicit_value;
   std::optional<std::vector<std::string>> m_choices{std::nullopt};
+  std::optional<std::string> m_skip_token{std::nullopt};
   using valued_action = std::function<std::any(const std::string &)>;
   using void_action = std::function<void(const std::string &)>;
   std::vector<std::variant<valued_action, void_action>> m_actions;
+  using store_action_t = std::function<void(const Argument &)>;
+  std::vector<store_action_t> m_store_actions;
   std::variant<valued_action, void_action> m_default_action{
     std::in_place_type<valued_action>,
     [](const std::string &value) { return value; }};

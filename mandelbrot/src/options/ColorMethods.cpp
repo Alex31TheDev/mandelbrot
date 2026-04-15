@@ -6,7 +6,8 @@ namespace ColorMethods {
     DEFINE_RANGE_ARRAY(ColorMethod, colorMethods,
         { "iterations", 0 },
         { "smooth_iterations", 1 },
-        { "light", 2 }
+        { "palette", 2 },
+        { "light", 3 }
     );
 
     int parseColorMethod(std::string_view str) {

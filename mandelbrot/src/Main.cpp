@@ -4,6 +4,8 @@
 #include <string>
 #include <string_view>
 
+#include <libcpuid/libcpuid.h>
+
 #include "args/ArgsParser.h"
 #include "args/ArgsUsage.h"
 
@@ -19,8 +21,8 @@
 #include "fullname.h"
 
 static bool initializeImage(std::unique_ptr<Image> &image) {
-    image = Image::create(RenderGlobals::width, RenderGlobals::height,
-        RenderGlobals::useThreads);
+    image = Image::create(RenderGlobals::outputWidth, RenderGlobals::outputHeight,
+        RenderGlobals::useThreads, RenderGlobals::aaPixels);
 
     return image != nullptr;
 }
@@ -52,7 +54,7 @@ static int runOnce(int argc, char **argv) {
 static int runRepl(int argc, char **argv) {
     bool running = true;
 
-    int lastWidth = 0, lastHeight = 0;
+    int lastOutputW = 0, lastOutputH = 0, lastAAPixels = 0;
     std::unique_ptr<Image> image = nullptr;
     int fileCounter = 1;
 
@@ -82,16 +84,18 @@ static int runRepl(int argc, char **argv) {
             continue;
         }
 
-        if (RenderGlobals::width != lastWidth ||
-            RenderGlobals::height != lastHeight) {
+        if (RenderGlobals::outputWidth != lastOutputW ||
+            RenderGlobals::outputHeight != lastOutputH ||
+            RenderGlobals::aaPixels != lastAAPixels) {
             if (!initializeImage(image)) continue;
         } else if (image) image->clear();
 
         renderImage(image.get(), true, true);
 
         if (saveImage(image.get(), fullname, fileCounter)) {
-            lastWidth = RenderGlobals::width;
-            lastHeight = RenderGlobals::height;
+            lastOutputW = RenderGlobals::outputWidth;
+            lastOutputH = RenderGlobals::outputHeight;
+            lastAAPixels = RenderGlobals::aaPixels;
             fileCounter++;
         }
     }
@@ -99,9 +103,20 @@ static int runRepl(int argc, char **argv) {
     return 0;
 }
 
+static std::string getCpuName() {
+    cpu_raw_data_t raw = {};
+    if (cpuid_get_raw_data(&raw) < 0) return cpuid_error();
+
+    cpu_id_t id = {};
+    if (cpu_identify(&raw, &id) < 0) return cpuid_error();
+
+    return id.brand_str;
+}
+
 int main(int argc, char **argv) {
     if (ArgsParser::checkHelp(argc, argv)) return 0;
 
+    std::cout << "CPU: " << getCpuName() << '\n';
     MPFRGlobals::initMPFR();
 
     if (ArgsUsage::argsCount(argc) == 1 &&

@@ -17,7 +17,8 @@ using namespace VectorGlobals;
 #include "VectorCoords.h"
 
 #define _FORMULA_VECTOR
-#include "../formula/fractals/mandelbrot.h"
+#define _SKIP_FORMULA_OPS
+#include "../formula/FormulaTypes.h"
 
 #include "../util/InlineUtil.h"
 #include "../util/AssertUtil.h"
@@ -85,19 +86,27 @@ FORCE_INLINE simd_full_t _iterateFractal_vec(
             iter, SIMD_SET1_F(count),
             SIMD_CMP_LT_F(mag, f_bailout_vec)
         );
+    } else {
+        switch (fractalType) {
+            case 0:
+#define _FRACTAL_TYPE mandelbrot
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            case 1:
+#define _FRACTAL_TYPE perpendicular
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            case 2:
+#define _FRACTAL_TYPE burningship
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+        }
     }
-
-#define _FORMULA_TYPE 0
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
-
-#define _FORMULA_TYPE 1
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
-
-#define _FORMULA_TYPE 2
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
 
     outMag = mag;
     outActive = active;
@@ -173,7 +182,6 @@ FORCE_INLINE void getPixelColor_vec(
     simd_half_t val,
     simd_half_t &outR, simd_half_t &outG, simd_half_t &outB
 ) {
-#if false
     outR = normCos_vec(SIMD_MULADD_H(
         val, h_freq_r_vec,
         h_phase_r_vec
@@ -186,9 +194,13 @@ FORCE_INLINE void getPixelColor_vec(
         val, h_freq_b_vec,
         h_phase_b_vec
     ));
-#else
+}
+
+FORCE_INLINE void getPaletteColor_vec(
+    simd_half_t val,
+    simd_half_t &outR, simd_half_t &outG, simd_half_t &outB
+) {
     palette_vec.sampleSIMD(val, outR, outG, outB);
-#endif
 }
 
 FORCE_INLINE simd_half_t getIterVal_vec(simd_half_t iter) {
@@ -211,29 +223,50 @@ FORCE_INLINE simd_half_t getLightVal_vec(
     simd_half_t zr, simd_half_t zi,
     simd_half_t dr, simd_half_t di
 ) {
-    const simd_half_t dinv = SIMD_RECIP_H(SIMD_ADDSQ_H(dr, di));
+    simd_half_t val;
 
-    simd_half_t ur = SIMD_MUL_H(
-        SIMD_ADDXX_H(zr, dr, zi, di),
-        dinv
-    );
+    switch (fractalType) {
+        case 0:
+        {
+            const simd_half_t dinv = SIMD_RECIP_H(SIMD_ADDSQ_H(dr, di));
 
-    simd_half_t ui = SIMD_MUL_H(
-        SIMD_SUBXX_H(zi, dr, zr, di),
-        dinv
-    );
+            simd_half_t ur = SIMD_MUL_H(
+                SIMD_ADDXX_H(zr, dr, zi, di),
+                dinv
+            );
 
-    const simd_half_t umag = SIMD_RSQRT_H(SIMD_ADDSQ_H(ur, ui));
-    ur = SIMD_MUL_H(ur, umag);
-    ui = SIMD_MUL_H(ui, umag);
+            simd_half_t ui = SIMD_MUL_H(
+                SIMD_SUBXX_H(zi, dr, zr, di),
+                dinv
+            );
 
-    const simd_half_t val = SIMD_ADD_H(
-        SIMD_SUBXX_H(
-            ur, h_light_r_vec,
-            ui, h_light_i_vec
-        ),
-        h_light_h_vec
-    );
+            const simd_half_t umag = SIMD_RSQRT_H(SIMD_ADDSQ_H(ur, ui));
+            ur = SIMD_MUL_H(ur, umag);
+            ui = SIMD_MUL_H(ui, umag);
+
+            val = SIMD_ADD_H(
+                SIMD_SUBXX_H(
+                    ur, h_light_r_vec,
+                    ui, h_light_i_vec
+                ),
+                h_light_h_vec
+            );
+            break;
+        }
+        default:
+        {
+            const simd_half_t zmag = SIMD_RSQRT_H(SIMD_ADDSQ_H(zr, zi));
+            const simd_half_t dmag = SIMD_RSQRT_H(SIMD_ADDSQ_H(dr, di));
+
+            const simd_half_t s = SIMD_MUL_H(
+                SIMD_ADDXX_H(zr, dr, zi, di),
+                SIMD_MUL_H(zmag, dmag)
+            );
+
+            val = SIMD_ADD_H(s, h_light_h_vec);
+            break;
+        }
+    }
 
     const simd_half_t light = SIMD_DIV_H(
         val,
@@ -348,6 +381,16 @@ FORCE_INLINE void _colorPixels_vec(
         break;
 
         case 2:
+        {
+            vals = getSmoothIterVal_vec(
+                SIMD_FULL_TO_HALF_CONV(iter),
+                SIMD_FULL_TO_HALF_CONV(mag)
+            );
+            getPaletteColor_vec(vals, r_vec, g_vec, b_vec);
+        }
+        break;
+
+        case 3:
         {
             vals = getLightVal_vec(
                 SIMD_FULL_TO_HALF_CONV(zr),

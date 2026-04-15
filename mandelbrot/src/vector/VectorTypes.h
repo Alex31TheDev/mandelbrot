@@ -1095,6 +1095,15 @@ FORCE_INLINE __m256d _mfrombits_pd256_impl(int mask) {
 #define SIMD_ABS_F(x) SIMD_ANDNOT_F(SIMD_CONSTSET_F(-0.0), x)
 #define SIMD_ABS_H(x) SIMD_ANDNOT_H(SIMD_CONSTSET_H(-0.0), x)
 
+#define SIMD_SGN_F(x) SIMD_OR_F( \
+        SIMD_AND_F((x), SIMD_CONSTSET_F(-0.0)), \
+        SIMD_CONSTSET_F(1.0) \
+    )
+#define SIMD_SGN_H(x) SIMD_OR_H( \
+        SIMD_AND_H((x), SIMD_CONSTSET_H(-0.0)), \
+        SIMD_CONSTSET_H(1.0) \
+    )
+
 #if AVX512
 
 FORCE_INLINE __m512 _floor_ps512_impl(__m512 x) {

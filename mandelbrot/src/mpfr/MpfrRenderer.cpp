@@ -16,7 +16,8 @@ using namespace ScalarGlobals;
 #include "../scalar/ScalarRenderer.h"
 
 #define FORMULA_MPFR
-#include "../formula/fractals/mandelbrot.h"
+#define _SKIP_FORMULA_OPS
+#include "../formula/FormulaTypes.h"
 
 #include "../util/InlineUtil.h"
 
@@ -69,19 +70,27 @@ FORCE_INLINE int _iterateFractal_mp(
         mag = zr * zr + zi * zi;
 
         i = mag > bailout_mp ? 0 : count;
+    } else {
+        switch (fractalType) {
+            case 0:
+#define _FRACTAL_TYPE mandelbrot
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            case 1:
+#define _FRACTAL_TYPE perpendicular
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            case 2:
+#define _FRACTAL_TYPE burningship
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+        }
     }
-
-#define _FORMULA_TYPE 0
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
-
-#define _FORMULA_TYPE 1
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
-
-#define _FORMULA_TYPE 2
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
 
     return i;
 }

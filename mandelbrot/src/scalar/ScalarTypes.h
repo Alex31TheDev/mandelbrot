@@ -91,6 +91,9 @@ struct scalar_half_2_t {
 #define ABS_F(x) SC_FUNC1_F(fabs, x)
 #define ABS_H(x) SC_FUNC1_H(fabs, x)
 
+#define SGN_F(x) ((CAST_F(x) > ZERO_F) - (CAST_F(x) < ZERO_F))
+#define SGN_H(x) ((CAST_H(x) > ZERO_H) - (CAST_H(x) < ZERO_H))
+
 #define FLOOR_F(x) SC_FUNC1_F(floor, x)
 #define FLOOR_H(x) SC_FUNC1_H(floor, x)
 

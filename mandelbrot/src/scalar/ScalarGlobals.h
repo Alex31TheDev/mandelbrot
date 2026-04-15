@@ -37,7 +37,7 @@ namespace ScalarGlobals {
 
     const scalar_half_t invLnBail = RECIP_H(LOG_H(BAILOUT));
 
-    extern int count, colorMethod;
+    extern int count, colorMethod, fractalType;
 
     extern bool isJuliaSet, isInverse;
     extern bool normalSeed;
@@ -55,6 +55,8 @@ namespace ScalarGlobals {
     extern scalar_half_t freq_r, freq_g, freq_b, freqMult;
     extern scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     extern scalar_half_t light_r, light_i, light_h;
+
+    extern ScalarColorPalette palette;
 
     void initImageValues();
     bool setZoomGlobals(int iterCount = 0, scalar_half_t zoomScale = 0);
@@ -77,6 +79,11 @@ namespace ScalarGlobals {
     bool setLightGlobals(
         scalar_half_t lr = DEFAULT_LIGHT_R, scalar_half_t li = DEFAULT_LIGHT_I
     );
+    bool setPaletteGlobals(
+        const std::vector<ScalarPaletteColor> &entries,
+        scalar_half_t totalLength = SC_SYM_H(10.0),
+        scalar_half_t offset = ZERO_H
+    );
 
     [[maybe_unused]] static void setAllDefaults() {
         setZoomGlobals();
@@ -87,14 +94,4 @@ namespace ScalarGlobals {
         setLightGlobals();
     }
 
-    const std::vector<ScalarPaletteColor> gradient = {
-       { 0.0f, 0.0f, 0.4f, 1.0f },
-       { 0.125f, 0.42f, 0.8f, 1.0f },
-       { 0.92f, 1.0f, 1.0f, 1.0f },
-       { 1.0f, 0.66f, 0.0f, 1.0f },
-       { 0.0f, 0.0f, 0.0f, 1.0f },
-    };
-
-    const ScalarColorPalette palette(
-        gradient, 10.0f);
 }

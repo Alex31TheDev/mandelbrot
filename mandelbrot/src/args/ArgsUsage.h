@@ -7,6 +7,7 @@ namespace ArgsUsage {
 
     extern const char *replOption;
     extern const char *exitOption;
+    extern const char *skipOption;
 
     extern const char *flagHelp;
     extern const char *modeHelp;

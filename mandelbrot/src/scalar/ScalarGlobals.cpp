@@ -7,7 +7,7 @@
 using namespace RenderGlobals;
 
 namespace ScalarGlobals {
-    int count, colorMethod;
+    int count, colorMethod, fractalType;
 
     bool isJuliaSet, isInverse;
     bool normalSeed;
@@ -26,6 +26,8 @@ namespace ScalarGlobals {
     scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     scalar_half_t light_r, light_i, light_h;
 
+    ScalarColorPalette palette({}, SC_SYM_H(10.0));
+
     void initImageValues() {
         aspect = CAST_H(width) / height;
 
@@ -34,6 +36,11 @@ namespace ScalarGlobals {
 
         invWidth = RECIP_F(width);
         invHeight = RECIP_F(height);
+
+        const scalar_full_t zoomPow = POW_F(10, zoom);
+
+        realScale = RECIP_F(zoomPow);
+        imagScale = realScale / aspect;
     }
 
     bool setZoomGlobals(int iterCount, scalar_half_t zoomScale) {
@@ -41,13 +48,10 @@ namespace ScalarGlobals {
         else count = iterCount;
 
         zoom = zoomScale;
-        const scalar_full_t zoomPow = POW_F(10, zoom);
-
-        realScale = RECIP_F(zoomPow);
-        imagScale = realScale / aspect;
+        initImageValues();
 
         if (iterCount == 0) {
-            const scalar_half_t visualRange = CAST_H(zoomPow);
+            const scalar_half_t visualRange = CAST_H(POW_F(10, zoom));
             count += static_cast<int>(POW_H(LOG10_H(visualRange), 5));
         }
 
@@ -120,6 +124,18 @@ namespace ScalarGlobals {
         light_i = li / mag;
         light_h = mag;
 
+        return true;
+    }
+
+    bool setPaletteGlobals(
+        const std::vector<ScalarPaletteColor> &entries,
+        scalar_half_t totalLength, scalar_half_t offset
+    ) {
+        if (entries.size() < 2 || ISNEG0_H(totalLength) || offset < ZERO_H) {
+            return false;
+        }
+
+        palette = ScalarColorPalette(entries, totalLength, offset);
         return true;
     }
 }

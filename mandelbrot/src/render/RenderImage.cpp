@@ -69,27 +69,32 @@ inline ThreadPool<> &getThreadPool() {
 }
 
 static void renderStrip(
-    Image *image, int start_y, int end_y,
+    Image *image,
+    unsigned xstart, unsigned xend,
+    unsigned ystart, unsigned yend,
     uint64_t *totalIterCount, ProgressTracker *progress
 ) {
     uint64_t iterCount = 0, totalCount = 0;
     uint64_t *iterPtr = totalIterCount ? &iterCount : nullptr;
 
-    size_t pos = static_cast<size_t>(start_y) * image->strideWidth();
+    const unsigned rowWidth = xend - xstart + 1;
 
-    for (int y = start_y; y < end_y; y++) {
+    for (unsigned y = ystart; y <= yend; ++y) {
+        size_t pos = static_cast<size_t>(y) * image->strideWidth() +
+            static_cast<size_t>(xstart) * Image::STRIDE;
+
 #if defined(USE_SCALAR) || defined(USE_MPFR)
         const auto ci = imagCenterCoord(y);
 
-        for (int x = 0; x < width; x++) {
+        for (unsigned x = xstart; x <= xend; ++x) {
             renderPixel(image->pixels(), pos, x, ci, iterPtr);
             totalCount += iterCount;
         }
 #elif defined(USE_VECTORS)
         const simd_full_t ci = imagCenterCoord(SIMD_SET1_F(y));
 
-        for (int x = 0; x < width; x += SIMD_FULL_WIDTH) {
-            const int pixelsLeft = width - x;
+        for (unsigned x = xstart; x <= xend; x += SIMD_FULL_WIDTH) {
+            const int pixelsLeft = static_cast<int>(xend - x + 1);
             const int simdWidth =
                 pixelsLeft < SIMD_FULL_WIDTH ?
                 pixelsLeft : SIMD_FULL_WIDTH;
@@ -104,7 +109,7 @@ static void renderStrip(
 #endif
 
         pos += image->tailBytes();
-        if (progress) progress->update(width);
+        if (progress) progress->update(rowWidth);
     }
 
     if (totalIterCount) *totalIterCount = totalCount;
@@ -129,7 +134,7 @@ static void renderImageSequential(
     uint64_t iterCount = 0;
     uint64_t *iterPtr = trackIterations ? &iterCount : nullptr;
 
-    renderStrip(image, 0, height, iterPtr, progress.get());
+    renderStrip(image, 0, width - 1, 0, height - 1, iterPtr, progress.get());
 
     if (trackProgress) progress->complete();
     if (trackIterations) printIterations(iterCount, progress->elapsed());
@@ -148,7 +153,6 @@ static void renderImageParallel(
     }
 
     auto progress = createProgressTracker(trackProgress);
-
     const int taskCount = (height < MAX_TASK_COUNT)
         ? height : MAX_TASK_COUNT;
 
@@ -159,27 +163,29 @@ static void renderImageParallel(
         ? std::make_unique<uint64_t[]>(taskCount)
         : nullptr;
 
-    int start_y = 0;
+    int startY = 0;
 
-    for (int i = 0; i < taskCount; i++) {
+    for (int i = 0; i < taskCount; ++i) {
         const int chunkRows = rowsPerTask + (i < extraRows ? 1 : 0);
-        const int end_y = start_y + chunkRows;
-
+        const int endY = startY + chunkRows;
         uint64_t *iterPtr = trackIterations ? &iterCounts[i] : nullptr;
 
-        pool.enqueueDetach(
-            [=, &progress]() { renderStrip(image, start_y, end_y,
-                iterPtr, progress.get()); }
-        );
+        pool.enqueueDetach([=, &progress]() {
+            renderStrip(image,
+                0, width - 1,
+                startY, endY - 1,
+                iterPtr, progress.get());
+            });
 
-        start_y = end_y;
+        startY = endY;
     }
 
     pool.waitForTasks();
 
     const uint64_t totalCount = trackIterations
         ? std::accumulate(iterCounts.get(),
-            iterCounts.get() + taskCount, 0Ui64) : 0;
+            iterCounts.get() + taskCount, 0Ui64)
+        : 0;
 
     if (trackProgress) progress->complete();
     if (trackIterations) printIterations(totalCount, progress->elapsed());

@@ -1,0 +1,6 @@
+totalLength=10
+offset=0
+color=#001a66 length=1
+color=#2a7fcc length=1
+color=#ebffff length=1
+color=#ff9900 length=1

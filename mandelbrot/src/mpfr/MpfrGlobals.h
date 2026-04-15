@@ -23,6 +23,7 @@ namespace MPFRGlobals {
     extern mpfr_number_t seed_r_mp, seed_i_mp;
 
     void initMPFR(int prec = 0);
+    void initImageValues();
     void initMPFRValues(const char *pr_str, const char *pi_str);
 }
 
@@ -30,6 +31,7 @@ namespace MPFRGlobals {
 
 namespace MPFRGlobals {
     [[maybe_unused]] static void initMPFR(int = 0) {}
+    [[maybe_unused]] static void initImageValues() {}
     [[maybe_unused]] static void initMPFRValues(const char *, const char *) {}
 }
 

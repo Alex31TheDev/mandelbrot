@@ -19,6 +19,7 @@ namespace VectorGlobals {
     simd_half_t h_freq_r_vec, h_freq_g_vec, h_freq_b_vec;
     simd_half_t h_phase_r_vec, h_phase_g_vec, h_phase_b_vec;
     simd_half_t h_light_r_vec, h_light_i_vec, h_light_h_vec;
+    VectorColorPalette palette_vec(palette);
 
     static void _calcCoordConsts() {
         const simd_full_t halfWidth_vec = SIMD_SET1_F(halfWidth);
@@ -48,6 +49,7 @@ namespace VectorGlobals {
 
     void initVectors() {
         _calcCoordConsts();
+        palette_vec = VectorColorPalette(palette);
 
         f_seed_r_vec = SIMD_SET1_F(seed_r);
         f_seed_i_vec = SIMD_SET1_F(seed_i);

@@ -71,7 +71,7 @@
     new_dr = NUM_ADD(t1, NUM_CONST(1.0)); \
     new_di = t2;
 
-_FORMULA_TYPEOPS_FUNC(
+_FORMULA_OPS_FUNC(
     {
         if (invalidPower) {
             count += 2 * OP_ASSIGN;

@@ -15,7 +15,8 @@ using namespace ScalarGlobals;
 #include "ScalarCoords.h"
 
 #define _FORMULA_SCALAR
-#include "../formula/fractals/mandelbrot.h"
+#define _SKIP_FORMULA_OPS
+#include "../formula/FormulaTypes.h"
 
 FORCE_INLINE void complexInverse(
     scalar_full_t &cr, scalar_full_t &ci
@@ -66,19 +67,27 @@ FORCE_INLINE int _iterateFractal(
         mag = zr * zr + zi * zi;
 
         i = mag > BAILOUT ? 0 : count;
+    } else {
+        switch (fractalType) {
+            case 0:
+#define _FRACTAL_TYPE mandelbrot
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            case 1:
+#define _FRACTAL_TYPE perpendicular
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            case 2:
+#define _FRACTAL_TYPE burningship
+#include "loop/FractalLoop.h"
+#undef _FRACTAL_TYPE
+                break;
+        }
     }
-
-#define _FORMULA_TYPE 0
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
-
-#define _FORMULA_TYPE 1
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
-
-#define _FORMULA_TYPE 2
-#include "loop/OuterLoop.h"
-#undef _FORMULA_TYPE
 
     return i;
 }
@@ -108,28 +117,49 @@ FORCE_INLINE void getPixelColor(
     scalar_half_t val,
     scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
 ) {
-#if false
     outR = normCos(val * freq_r + phase_r);
     outG = normCos(val * freq_g + phase_g);
     outB = normCos(val * freq_b + phase_b);
-#else
+}
+
+FORCE_INLINE void getPaletteColor(
+    scalar_half_t val,
+    scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
+) {
     palette.sample(val, outR, outG, outB);
-#endif
 }
 
 FORCE_INLINE scalar_half_t getLightVal(
     scalar_full_t zr, scalar_full_t zi,
     scalar_full_t dr, scalar_full_t di
 ) {
-    const scalar_half_t dsum = RECIP_H(dr * dr + di * di);
-    scalar_half_t ur = CAST_H(zr * dr + zi * di) * dsum;
-    scalar_half_t ui = CAST_H(zi * dr - zr * di) * dsum;
+    scalar_half_t light;
 
-    const scalar_half_t umag = RECIP_H(SQRT_H(ur * ur + ui * ui));
-    ur *= umag;
-    ui *= umag;
+    switch (fractalType) {
+        case 0:
+        {
+            const scalar_half_t dsum = RECIP_H(dr * dr + di * di);
+            scalar_half_t ur = CAST_H(zr * dr + zi * di) * dsum;
+            scalar_half_t ui = CAST_H(zi * dr - zr * di) * dsum;
 
-    scalar_half_t light = ur * light_r - ui * light_i + light_h;
+            const scalar_half_t umag = RECIP_H(SQRT_H(ur * ur + ui * ui));
+            ur *= umag;
+            ui *= umag;
+
+            light = ur * light_r - ui * light_i + light_h;
+            break;
+        }
+        default:
+        {
+            const scalar_half_t zmag = RECIP_H(SQRT_H(zr * zr + zi * zi));
+            const scalar_half_t dmag = RECIP_H(SQRT_H(dr * dr + di * di));
+
+            const scalar_half_t s = CAST_H(zr * dr + zi * di) * zmag * dmag;
+            light = s + light_h;
+            break;
+        }
+    }
+
     light /= (light_h + ONE_H);
 
 #ifdef NORM_ITER_COUNT
@@ -184,6 +214,11 @@ FORCE_INLINE void _colorPixel(
             break;
 
         case 2:
+            val = getSmoothIterVal(i, CAST_H(mag));
+            getPaletteColor(val, R, G, B);
+            break;
+
+        case 3:
             val = getLightVal(zr, zi, dr, di);
             R = G = B = val;
             break;

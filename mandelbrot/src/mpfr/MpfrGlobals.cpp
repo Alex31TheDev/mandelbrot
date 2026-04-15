@@ -23,7 +23,7 @@ namespace MPFRGlobals {
         mpreal::set_default_prec(digits2bits(prec));
     }
 
-    void initMPFRValues(const char *pr_str, const char *pi_str) {
+    void initImageValues() {
         aspect_mp = static_cast<mpfr_number_t>(width) / height;
 
         halfWidth_mp = static_cast<mpfr_number_t>(width) / 2.0;
@@ -36,6 +36,10 @@ namespace MPFRGlobals {
 
         realScale_mp = 1.0 / zoomPow;
         imagScale_mp = realScale_mp / aspect_mp;
+    }
+
+    void initMPFRValues(const char *pr_str, const char *pi_str) {
+        initImageValues();
 
         point_r_mp = mpfr_number_t(pr_str);
         point_i_mp = mpfr_number_t(pi_str);

@@ -10,11 +10,12 @@ namespace ArgsUsage {
 
     const char *replOption = "replio";
     const char *exitOption = "exit";
+    const char *skipOption = "-";
 
     const char *flagHelp = "flag must be \"true\" or \"false\"";
     const char *modeHelp =
         "Mode-specific trailing args: "
-        "help iterations | help smooth_iterations | help light";
+        "help iterations | help smooth_iterations | help palette | help light";
 
     bool isHelpArg(const char *arg) {
         return arg && std::ranges::any_of(helpOptionsRange{},
@@ -36,6 +37,20 @@ namespace ArgsUsage {
                     "\n"
                     "After N, pass:\n"
                     "  [freq_r] [freq_g] [freq_b] [freqMult]\n",
+                    mode
+                );
+            return true;
+
+            STR_CASE("palette") :
+                printf(
+                    "Color method '%s':\n"
+                    "\n"
+                    "After N, pass:\n"
+                    "  [paletteLength] [paletteOffset] [color1] [color2] ...\n"
+                    "  or a palette file path as the first trailing arg\n"
+                    "Each color is #RRGGBB or #RRGGBB:length\n"
+                    "Palette files use key=value lines, then color=#RRGGBB "
+                    "length=value\n",
                     mode
                 );
             return true;

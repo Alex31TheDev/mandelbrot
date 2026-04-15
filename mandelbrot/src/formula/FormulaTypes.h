@@ -35,6 +35,7 @@ typedef scalar_full_t number_param_t;
 
 #define NUM_NEG(x) -(x)
 #define NUM_ABS ABS_F
+#define NUM_SGN SGN_F
 
 #define NUM_SQRT SQRT_F
 #define NUM_POW POW_F
@@ -77,6 +78,7 @@ typedef simd_full_t number_param_t;
 
 #define NUM_NEG SIMD_NEG_F
 #define NUM_ABS SIMD_ABS_F
+#define NUM_SGN SIMD_SGN_F
 
 #define NUM_SQRT SIMD_SQRT_F
 #define NUM_POW SIMD_POW_F
@@ -187,7 +189,11 @@ constexpr int OP_ATAN2 = 1;
 
 #include "../util/InlineUtil.h"
 
-#define _FORMULA_TYPEOPS_FUNC(body) \
+#ifdef _SKIP_FORMULA_OPS
+#define _FORMULA_OPS_FUNC(body)
+#define _DERIVATIVE_OPS_FUNC(body)
+#else
+#define _FORMULA_OPS_FUNC(body) \
     FORCE_INLINE int formulaOps() { \
         using namespace ScalarGlobals; \
         int count = 0; \
@@ -201,3 +207,4 @@ constexpr int OP_ATAN2 = 1;
         body; \
         return count; \
     }
+#endif
