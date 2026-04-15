@@ -11,7 +11,7 @@
 #include "../scalar/ScalarTypes.h"
 #include "../scalar/ScalarColorPalette.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 VectorColorPalette::VectorColorPalette(const ScalarColorPalette &palette) {
     _n = palette._colors.size();

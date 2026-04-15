@@ -1,6 +1,9 @@
 #pragma once
 
-#include "../util/RangeUtil.h"
+#include <string>
+#include <string_view>
+
+#include "util/RangeUtil.h"
 
 namespace ArgsUsage {
     DECLARE_RANGE_ARRAY(char *, helpOptions);
@@ -15,5 +18,7 @@ namespace ArgsUsage {
     [[nodiscard]] inline int argsCount(int argc) { return argc - 1; }
 
     bool isHelpArg(const char *arg);
+    void printTopLevelUsage(const char *argv0);
     bool printDetailedHelp(int argc, char **argv);
+    std::string resolveVariant(std::string_view input);
 }

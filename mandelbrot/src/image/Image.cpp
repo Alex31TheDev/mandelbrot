@@ -11,7 +11,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "../util/WarningUtil.h"
+#include "util/WarningUtil.h"
 
 PUSH_DISABLE_WARNINGS
 #define STB_IMAGE_WRITE_STATIC
@@ -21,10 +21,10 @@ POP_DISABLE_WARNINGS
 
 #include "BmpWriter.h"
 
-#include "../util/fnv1a.h"
-#include "../util/BufferUtil.h"
-#include "../util/PathUtil.h"
-#include "../util/FormatUtil.h"
+#include "util/fnv1a.h"
+#include "util/BufferUtil.h"
+#include "util/PathUtil.h"
+#include "util/FormatUtil.h"
 
 inline float clampf(float x, float a, float b) {
     return fmaxf(a, fminf(x, b));
@@ -188,10 +188,7 @@ bool Image::writeToStream(
     std::ostream &fout,
     const std::string &type
 ) const {
-    if (!_pixels) {
-        fprintf(stderr, "Cannot write image. No pixel data allocated.\n");
-        return false;
-    }
+    if (!_pixels) return false;
 
     bool result = false;
 
@@ -225,12 +222,7 @@ bool Image::writeToStream(
         break;
 
         default:
-            fprintf(stderr, "Invalid image type: %s\n", type.c_str());
             return false;
-    }
-
-    if (!result) {
-        fprintf(stderr, "Failed to write %s data to stream\n", type.c_str());
     }
 
     return result;
@@ -240,10 +232,7 @@ bool Image::saveToFile(
     const std::string &filePath, bool appendDate,
     const std::string &type
 ) const {
-    if (!_pixels) {
-        fprintf(stderr, "Cannot save image. No pixel data allocated.\n");
-        return false;
-    }
+    if (!_pixels) return false;
 
     const std::string outPath = appendDate ?
         PathUtil::appendIsoDate(filePath) : filePath;
@@ -253,15 +242,29 @@ bool Image::saveToFile(
     const bool result = writeToStream(fout, type);
     fout.close();
 
-    if (result) {
-        printf("Successfully saved: %s (%dx%d)\n", absPath.c_str(),
-            _outputW, _outputH);
-    } else {
-        fprintf(stderr, "Failed to write %s file: %s\n", type.c_str(),
-            absPath.c_str());
-    }
+    if (result) _emitImageEvent(Backend::ImageEventKind::saved, absPath.c_str());
 
     return result;
+}
+
+void Image::_emitImageEvent(Backend::ImageEventKind kind, const char *path) const {
+    if (!_callbacks || !_callbacks->onImage) return;
+
+    const Backend::ImageEvent event = {
+        .kind = kind,
+        .aaScale = _aaScale,
+        .aspect = _aspect,
+        .downscaling = _downscaling,
+        .width = _width,
+        .height = _height,
+        .outputWidth = _outputW,
+        .outputHeight = _outputH,
+        .primaryBytes = _bufferSize,
+        .secondaryBytes = _outputSize,
+        .path = path
+    };
+
+    _callbacks->onImage(event);
 }
 
 void Image::_setDimensions(int32_t width, int32_t height) {
@@ -277,10 +280,7 @@ void Image::_setDimensions(int32_t width, int32_t height) {
 bool Image::_allocate(int32_t width, int32_t height) {
     if (_pixels) return false;
 
-    if (width <= 0 || height <= 0) {
-        fprintf(stderr, "Invalid image dimensions. (%dx%d)\n", width, height);
-        return false;
-    }
+    if (width <= 0 || height <= 0) return false;
 
     _setDimensions(width, height);
     _resolved = !_downscaling;
@@ -290,25 +290,12 @@ bool Image::_allocate(int32_t width, int32_t height) {
     
     if (_downscaling) {
         _outputSize = _calcBufferSize(_outputW, _outputH, _outputStrideW, 0);
-
-        printf("Supersampling: %.2fx (%dx%d -> %dx%d)\n",
-            _aaScale, _width, _height, _outputW, _outputH);
-        
-        printf("Memory required: %s (%s + %s)\n",
-            FormatUtil::formatBufferSize(originalSize + _outputSize).c_str(),
-            FormatUtil::formatBufferSize(originalSize).c_str(),
-            FormatUtil::formatBufferSize(_outputSize).c_str());
-    } else {
-        printf("Memory required: %s\n",
-            FormatUtil::formatBufferSize(originalSize).c_str());
     }
 
     uint8_t *ptr = BufferUtil::bufferAlloc<ALIGNMENT>
         (originalSize, _bufferSize);
 
     if (!ptr) {
-        fprintf(stderr, "Failed to allocate pixel buffer. (%zu bytes)\n",
-            _bufferSize);
         return false;
     }
 
@@ -317,6 +304,8 @@ bool Image::_allocate(int32_t width, int32_t height) {
     if (_downscaling) {
         _outputPixels = std::make_unique<uint8_t[]>(_outputSize);
     }
+
+    _emitImageEvent(Backend::ImageEventKind::allocated);
 
     return true;
 }

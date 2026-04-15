@@ -9,7 +9,7 @@
 using namespace ScalarGlobals;
 
 #include "../image/Image.h"
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 #ifdef USE_SCALAR
 #include "ScalarCoords.h"

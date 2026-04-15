@@ -4,7 +4,7 @@
 
 #include "VectorTypes.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 struct VectorColor {
     simd_half_t R, G, B;

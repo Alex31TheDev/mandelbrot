@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{697c4775-c551-4d9c-a816-ce480252dbfa}</ProjectGuid>
+    <RootNamespace>mandelbrot_cli</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(MSBuildProjectDirectory)\..\common\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), vcpkg.json))\</VcpkgManifestRoot>
+    <VcpkgInstalledDir>$(VcpkgManifestRoot)vcpkg_installed\</VcpkgInstalledDir>
+    <VcpkgConfiguration Condition="'$(UseDebugLibraries)'=='true'">Debug</VcpkgConfiguration>
+    <VcpkgConfiguration Condition="'$(UseDebugLibraries)'!='true'">Release</VcpkgConfiguration>
+    <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\include;$(VcpkgInstalledDir)x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\x64-windows\lib;$(VcpkgInstalledDir)x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cpuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\include;$(VcpkgInstalledDir)x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\lib;$(VcpkgInstalledDir)x64-windows\x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\lib;$(VcpkgInstalledDir)x64-windows\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cpuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="src\args\argparse.hpp" />
+    <ClInclude Include="src\args\ArgsParser.h" />
+    <ClInclude Include="src\args\ArgsUsage.h" />
+    <ClInclude Include="src\args\PaletteParser.h" />
+    <ClInclude Include="src\BackendModule.h" />
+    <ClInclude Include="src\CallbackFormatter.h" />
+    <ClInclude Include="src\prefix.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\args\ArgsParser.cpp" />
+    <ClCompile Include="src\args\ArgsUsage.cpp" />
+    <ClCompile Include="src\args\PaletteParser.cpp" />
+    <ClCompile Include="src\BackendModule.cpp" />
+    <ClCompile Include="src\CallbackFormatter.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\common\common.vcxproj">
+      <Project>{3152a3cb-1150-412c-a89f-5ce415183276}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="BuildBundledCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'">
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - FloatScalar;Platform=x64" />
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - DoubleScalar;Platform=x64" />
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - FloatAVX2;Platform=x64" />
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - DoubleAVX2;Platform=x64" />
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - MPFR;Platform=x64" />
+  </Target>
+  <Target Name="BuildBundledCoreDllsWin32" BeforeTargets="Build" Condition="'$(Platform)'=='Win32'">
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - FloatScalar;Platform=Win32" />
+    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - DoubleScalar;Platform=Win32" />
+  </Target>
+  <Target Name="BundleCoreDlls" AfterTargets="Build">
+    <ItemGroup Condition="'$(Platform)'=='x64'">
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatScalar\mandelbrot.dll">
+        <ConfigName>$(Configuration) - FloatScalar</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatScalar\</SourceDir>
+      </BundledCore>
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleScalar\mandelbrot.dll">
+        <ConfigName>$(Configuration) - DoubleScalar</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleScalar\</SourceDir>
+      </BundledCore>
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatAVX2\mandelbrot.dll">
+        <ConfigName>$(Configuration) - FloatAVX2</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatAVX2\</SourceDir>
+      </BundledCore>
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleAVX2\mandelbrot.dll">
+        <ConfigName>$(Configuration) - DoubleAVX2</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleAVX2\</SourceDir>
+      </BundledCore>
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll">
+        <ConfigName>$(Configuration) - MPFR</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\</SourceDir>
+      </BundledCore>
+    </ItemGroup>
+    <ItemGroup Condition="'$(Platform)'=='Win32'">
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - FloatScalar\mandelbrot.dll">
+        <ConfigName>$(Configuration) - FloatScalar</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - FloatScalar\</SourceDir>
+      </BundledCore>
+      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - DoubleScalar\mandelbrot.dll">
+        <ConfigName>$(Configuration) - DoubleScalar</ConfigName>
+        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - DoubleScalar\</SourceDir>
+      </BundledCore>
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledCore)" DestinationFiles="@(BundledCore->'$(OutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
+    <ItemGroup Condition="'$(Platform)'=='x64'">
+      <BundledSupport Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\*.dll"
+                      Exclude="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="IntelVcpkgAppLocal" AfterTargets="CopyFilesToOutputDirectory" BeforeTargets="CopyLocalFilesOutputGroup;RegisterOutput" Condition="'$(VcpkgEnabled)' == 'true' and '$(VcpkgApplocalDeps)' == 'true' and '$(PlatformToolset)' == 'Intel C++ Compiler 2025' and Exists('$(TargetPath)') and '$(_ZVcpkgExecutable)' != '' and '$(_ZVcpkgCurrentInstalledDir)' != ''">
+    <PropertyGroup>
+      <_IntelVcpkgInstalledBinDir>$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)bin</_IntelVcpkgInstalledBinDir>
+      <_IntelVcpkgApplocalLog>$(IntDir)vcpkg.applocal.log</_IntelVcpkgApplocalLog>
+      <_IntelVcpkgApplocalTlog>$(TLogLocation)$(ProjectName).write.1u.tlog</_IntelVcpkgApplocalTlog>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_ZVcpkgExecutable)&quot; z-applocal --target-binary=&quot;$(TargetPath)&quot; --installed-bin-dir=&quot;$(_IntelVcpkgInstalledBinDir)&quot; --tlog-file=&quot;$(_IntelVcpkgApplocalTlog)&quot; --copied-files-log=&quot;$(_IntelVcpkgApplocalLog)&quot;" UseUtf8Encoding="Always" StdOutEncoding="utf-8" StdErrEncoding="utf-8" UseCommandProcessor="false" />
+  </Target>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

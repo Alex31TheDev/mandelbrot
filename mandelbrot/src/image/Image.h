@@ -7,13 +7,14 @@
 #include <optional>
 #include <functional>
 #include <memory>
-#include <iostream>
+#include <iosfwd>
 
 #ifdef USE_VECTORS
 #include "../vector/VectorTypes.h"
 #endif
 
-#include "../util/BufferUtil.h"
+#include "util/BufferUtil.h"
+#include "BackendApi.h"
 
 class Image {
 public:
@@ -38,6 +39,10 @@ public:
 
     static std::unique_ptr<Image> create(int32_t width, int32_t height,
         bool simdSafe = true, int32_t aaPixels = 1);
+
+    void setCallbacks(const Backend::Callbacks *callbacks) {
+        _callbacks = callbacks;
+    }
 
     [[nodiscard]] int32_t width() const { return _width; }
     [[nodiscard]] int32_t height() const { return _height; }
@@ -77,6 +82,7 @@ private:
         int32_t tailBytes);
 
     explicit Image(bool simdSafe, int32_t aaPixels);
+    const Backend::Callbacks *_callbacks = nullptr;
 
     bool _downscaling = false;
     mutable bool _resolved = true;
@@ -104,6 +110,9 @@ private:
     [[nodiscard]] const uint8_t *_getOutputBuffer() const {
         return _downscaling ? _outputPixels.get() : _pixels.get();
     }
+
+    void _emitImageEvent(Backend::ImageEventKind kind,
+        const char *path = nullptr) const;
 
     void _setDimensions(int32_t width, int32_t height);
     bool _allocate(int32_t width, int32_t height);

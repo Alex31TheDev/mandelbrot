@@ -1,8 +1,6 @@
 #include "ProgressTracker.h"
 
-#include <cstdio>
 #include <cstdint>
-#include <cinttypes>
 
 #include <numeric>
 #include <chrono>
@@ -12,11 +10,7 @@
 #include <variant>
 #include <type_traits>
 
-#include "../util/FormatUtil.h"
-
 using namespace std::chrono;
-
-#define CLEAR_LINE "\r\x1b[K"
 
 ProgressTracker::ProgressTracker(
     WU totalWork, bool threadSafe,
@@ -29,7 +23,7 @@ ProgressTracker::ProgressTracker(
     if (_threadSafe) _state.emplace<_AtomicState>();
     else _state.emplace<_PlainState>();
 
-    _printProgress(0);
+    _emitProgress(0, false);
 }
 
 int64_t ProgressTracker::startTimeEpoch() const {
@@ -104,28 +98,28 @@ double ProgressTracker::opsPerSecond() const {
     );
 }
 
-void ProgressTracker::_printProgress(int perc) {
-    auto print = [&]() {
-        printf(CLEAR_LINE "%s: %3d%% | %.2f %s/s",
-            _config.progressName.c_str(),
-            perc, opsPerSecond(),
-            _config.opsName.c_str());
-
-        fflush(stdout);
+void ProgressTracker::_emitProgress(int perc, bool completed) {
+    const auto *callbacks = _config.callbacks;
+    if (callbacks && callbacks->onProgress) {
+        const Backend::ProgressEvent event = {
+            .percentage = perc,
+            .opsPerSecond = opsPerSecond(),
+            .elapsedMs = elapsedInt(),
+            .completedWork = completedWork(),
+            .totalWork = _totalWork,
+            .completed = completed
         };
+
+        callbacks->onProgress(event);
+    }
 
     std::visit(
         [&](auto &&state) {
             using T = std::decay_t<decltype(state)>;
 
             if constexpr (std::is_same_v<T, _PlainState>) {
-                print();
                 state.lastPrinted = perc;
             } else if constexpr (std::is_same_v<T, _AtomicState>) {
-                {
-                    std::scoped_lock lock(state.printfMutex);
-                    print();
-                }
                 state.lastPrinted.store(perc, std::memory_order_relaxed);
             }
         }, _state
@@ -193,41 +187,8 @@ void ProgressTracker::update(WU processed, bool printUpdate) {
     _updateOpsHistory(processed);
 
     if (printUpdate && perc > last) {
-        _printProgress(perc);
+        _emitProgress(perc, false);
     }
-}
-
-void ProgressTracker::_printElapsed(SU time) {
-    auto print = [&] {
-        if (_config.formatTime) {
-            const auto elapsed = FormatUtil::formatDuration(time.count());
-            printf(" (completed in: %s)\n", elapsed.c_str());
-        } else {
-            const auto elapsed = time.count();
-            using T = std::decay_t<decltype(elapsed)>;
-
-            if constexpr (std::is_same_v<T, int32_t>) {
-                printf(" (completed in: %" PRId32 " ms)\n", elapsed);
-            } else if constexpr (std::is_same_v<T, int64_t>) {
-                printf(" (completed in: %" PRId64 " ms)\n", elapsed);
-            }
-        }
-
-        fflush(stdout);
-        };
-
-    std::visit(
-        [&](auto &&state) {
-            using T = std::decay_t<decltype(state)>;
-
-            if constexpr (std::is_same_v<T, _PlainState>) {
-                print();
-            } else if constexpr (std::is_same_v<T, _AtomicState>) {
-                std::scoped_lock lock(state.printfMutex);
-                print();
-            }
-        }, _state
-    );
 }
 
 void ProgressTracker::complete(bool printUpdate) {
@@ -236,7 +197,6 @@ void ProgressTracker::complete(bool printUpdate) {
     _opsHistory.clear();
 
     if (printUpdate) {
-        _printProgress(100);
-        _printElapsed(elapsed());
+        _emitProgress(100, true);
     }
 }

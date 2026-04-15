@@ -5,7 +5,7 @@
 #include "MPFRTypes.h"
 #include "MPFRGlobals.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 FORCE_INLINE mpfr_number_t getCenterReal_mp(int x) {
     using namespace MPFRGlobals;

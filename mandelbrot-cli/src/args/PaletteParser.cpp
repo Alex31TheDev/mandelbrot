@@ -7,31 +7,33 @@
 #include <unordered_map>
 #include <vector>
 
+#include "BackendApi.h"
+#include "util/ParserUtil.h"
+
 #include "ArgsUsage.h"
 using namespace ArgsUsage;
-
-#include "../util/ParserUtil.h"
 using namespace ParserUtil;
 
 using KeyValueMap = std::unordered_map<std::string, std::string>;
 
-static bool isValidEntry(const ScalarPaletteColor &entry) {
-    return entry.R >= ZERO_H && entry.G >= ZERO_H &&
-        entry.B >= ZERO_H && entry.length >= ZERO_H;
+static bool isValidEntry(const Backend::PaletteEntry &entry) {
+    bool ok = false;
+    parseHexString(entry.color, std::ref(ok));
+    return ok && entry.length >= 0.0f;
 }
 
 static bool validateConfig(
-    const PaletteParser::PaletteConfig &out,
+    const Backend::PaletteConfig &out,
     const std::string &context, std::string &err
 ) {
-    if (out.totalLength > ZERO_H && out.offset >= ZERO_H) return true;
+    if (out.totalLength > 0.0f && out.offset >= 0.0f) return true;
 
     err = context + " length must be > 0 and offset must be >= 0.";
     return false;
 }
 
 static bool validateEntryCount(
-    const PaletteParser::PaletteConfig &out,
+    const Backend::PaletteConfig &out,
     const std::string &context, std::string &err
 ) {
     if (out.entries.size() >= 2) return true;
@@ -42,7 +44,7 @@ static bool validateEntryCount(
 
 static bool parseCLIEntry(
     const std::string &str,
-    ScalarPaletteColor &out
+    Backend::PaletteEntry &out
 ) {
     const size_t split = str.find(':');
 
@@ -51,13 +53,16 @@ static bool parseCLIEntry(
         split == std::string::npos ? "1"
         : str.substr(split + 1);
 
-    out = ScalarPaletteColor::fromString(hex, length);
+    out = {
+        .color = hex,
+        .length = parseNumber<float>(length, 1.0f)
+    };
     return isValidEntry(out);
 }
 
 static bool parseCLI(
     const std::vector<std::string> &args,
-    PaletteParser::PaletteConfig &out, std::string &err
+    Backend::PaletteConfig &out, std::string &err
 ) {
     out = {};
     err.clear();
@@ -76,7 +81,7 @@ static bool parseCLI(
         const std::string &arg = args[i];
         if (arg == skipOption) continue;
 
-        ScalarPaletteColor entry;
+        Backend::PaletteEntry entry;
         if (!parseCLIEntry(arg, entry)) {
             err = "Palette entries must use #RRGGBB or #RRGGBB:length.";
             return false;
@@ -121,22 +126,19 @@ static bool parseFileLine(
     return true;
 }
 
-static void parseFileConfig(
-    const KeyValueMap &values,
-    PaletteParser::PaletteConfig &out
-) {
+static void parseFileConfig(const KeyValueMap &values, Backend::PaletteConfig &out) {
     if (const auto it = values.find("totalLength"); it != values.end()) {
-        out.totalLength = PARSE_H(it->second.c_str());
+        out.totalLength = parseNumber<float>(it->second, out.totalLength);
     }
 
     if (const auto it = values.find("offset"); it != values.end()) {
-        out.offset = PARSE_H(it->second.c_str());
+        out.offset = parseNumber<float>(it->second, out.offset);
     }
 }
 
 static bool parseFileEntry(
     const KeyValueMap &values,
-    ScalarPaletteColor &entry, std::string &err
+    Backend::PaletteEntry &entry, std::string &err
 ) {
     const auto colorIt = values.find("color");
     if (colorIt == values.end()) return false;
@@ -145,7 +147,10 @@ static bool parseFileEntry(
     const std::string length =
         lengthIt == values.end() ? "1" : lengthIt->second;
 
-    entry = ScalarPaletteColor::fromString(colorIt->second, length);
+    entry = {
+        .color = colorIt->second,
+        .length = parseNumber<float>(length, 1.0f)
+    };
     if (isValidEntry(entry)) return true;
 
     err = "Invalid palette file color entry.";
@@ -154,7 +159,7 @@ static bool parseFileEntry(
 
 static bool parseFile(
     const std::string &filePath,
-    PaletteParser::PaletteConfig &out, std::string &err
+    Backend::PaletteConfig &out, std::string &err
 ) {
     out = {};
     err.clear();
@@ -177,7 +182,7 @@ static bool parseFile(
         parseFileConfig(values, out);
 
         err.clear();
-        ScalarPaletteColor entry;
+        Backend::PaletteEntry entry;
 
         if (parseFileEntry(values, entry, err)) {
             out.entries.push_back(entry);
@@ -190,7 +195,7 @@ static bool parseFile(
 
 bool PaletteParser::parse(
     const std::vector<std::string> &args,
-    PaletteConfig &out, std::string &err
+    Backend::PaletteConfig &out, std::string &err
 ) {
     if (args.size() == 1 && args[0] != skipOption) {
         return parseFile(args[0], out, err);

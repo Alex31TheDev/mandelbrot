@@ -45,7 +45,7 @@ constexpr auto renderPixel = &MPFRRenderer::renderPixelMPFR;
 #error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, or USE_MPFR)"
 #endif
 
-#include "../util/FormatUtil.h"
+#include "util/FormatUtil.h"
 
 const ProgressConfig progressConfig = {
     .progressName = "Rendering",
@@ -56,10 +56,14 @@ constexpr int MIN_THREADING_HEIGHT = 50;
 constexpr int MAX_TASK_COUNT = 4096;
 
 inline std::unique_ptr<ProgressTracker>
-createProgressTracker(bool trackProgress) {
+createProgressTracker(bool trackProgress,
+    const Backend::Callbacks *callbacks = nullptr) {
     if (trackProgress) {
+        auto config = progressConfig;
+        config.callbacks = callbacks;
+
         return std::make_unique<ProgressTracker>(width * height,
-            useThreads, progressConfig);
+            useThreads, config);
     } else return nullptr;
 }
 
@@ -115,21 +119,31 @@ static void renderStrip(
     if (totalIterCount) *totalIterCount = totalCount;
 }
 
-inline void printIterations(uint64_t iter, ProgressTracker::SU time) {
+inline void emitIterations(const Backend::Callbacks *callbacks,
+    uint64_t iter, ProgressTracker::SU time) {
+    if (!callbacks || !callbacks->onInfo) return;
+
     const double gigaIter = static_cast<double>(iter) / 1.0e9;
     const double timeSec = static_cast<double>(time.count()) /
         ProgressTracker::SHORT_UNIT_SCALE;
+    const double iterSec = timeSec > 0.0 ? gigaIter / timeSec : 0.0;
 
-    const double iterSec = gigaIter / timeSec;
-    printf("Total iterations: %s | %.2f GI/s\n",
-        FormatUtil::formatNumber(iter).c_str(), iterSec);
+    const Backend::InfoEvent event = {
+        .kind = Backend::InfoEventKind::iterations,
+        .totalIterations = iter,
+        .opsPerSecond = iterSec,
+        .elapsedMs = static_cast<int64_t>(time.count())
+    };
+
+    callbacks->onInfo(event);
 }
 
 static void renderImageSequential(
     Image *image,
+    const Backend::Callbacks *callbacks,
     bool trackProgress, bool trackIterations
 ) {
-    auto progress = createProgressTracker(trackProgress);
+    auto progress = createProgressTracker(trackProgress, callbacks);
 
     uint64_t iterCount = 0;
     uint64_t *iterPtr = trackIterations ? &iterCount : nullptr;
@@ -137,22 +151,23 @@ static void renderImageSequential(
     renderStrip(image, 0, width - 1, 0, height - 1, iterPtr, progress.get());
 
     if (trackProgress) progress->complete();
-    if (trackIterations) printIterations(iterCount, progress->elapsed());
+    if (trackIterations) emitIterations(callbacks, iterCount, progress->elapsed());
 }
 
 static void renderImageParallel(
     Image *image,
+    const Backend::Callbacks *callbacks,
     bool trackProgress, bool trackIterations
 ) {
     auto &pool = getThreadPool();
 
     if (height < MIN_THREADING_HEIGHT ||
         pool.size() <= 1) {
-        renderImageSequential(image, trackProgress, trackIterations);
+        renderImageSequential(image, callbacks, trackProgress, trackIterations);
         return;
     }
 
-    auto progress = createProgressTracker(trackProgress);
+    auto progress = createProgressTracker(trackProgress, callbacks);
     const int taskCount = (height < MAX_TASK_COUNT)
         ? height : MAX_TASK_COUNT;
 
@@ -188,16 +203,18 @@ static void renderImageParallel(
         : 0;
 
     if (trackProgress) progress->complete();
-    if (trackIterations) printIterations(totalCount, progress->elapsed());
+    if (trackIterations)
+        emitIterations(callbacks, totalCount, progress->elapsed());
 }
 
 void renderImage(
     Image *image,
+    const Backend::Callbacks *callbacks,
     bool trackProgress, bool trackIterations
 ) {
     auto render = useThreads
         ? renderImageParallel
         : renderImageSequential;
 
-    render(image, trackProgress, trackIterations);
+    render(image, callbacks, trackProgress, trackIterations);
 }

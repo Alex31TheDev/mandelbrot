@@ -99,80 +99,80 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MPFR|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX2|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX512|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE4_2|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleScalar|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleScalar|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX2|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX512|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE4_2|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatScalar|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -180,7 +180,7 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - MPFR|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -188,14 +188,14 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatScalar|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatAVX2|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -203,7 +203,7 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatAVX512|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -211,14 +211,14 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE4_2|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleScalar|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -226,14 +226,14 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleScalar|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleAVX2|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -241,7 +241,7 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleAVX512|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -249,7 +249,7 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE4_2|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -351,6 +351,19 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <CommonConfiguration Condition="'$(UseDebugLibraries)'=='true'">Debug</CommonConfiguration>
+    <CommonConfiguration Condition="'$(UseDebugLibraries)'!='true'">Release</CommonConfiguration>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\include;$(VcpkgInstalledDir)x64-windows\include;$(ProjectDir)src;$(MSBuildProjectDirectory)\..\common\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\x64-windows\lib;$(VcpkgInstalledDir)x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\lib;$(MSBuildProjectDirectory)\..\common\bin\$(Platform)\$(CommonConfiguration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>common.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
@@ -498,6 +511,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <AdditionalDependencies>mpfr.lib;gmp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|Win32'">
@@ -667,6 +681,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>mpfr.lib;gmp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatScalar|Win32'">
@@ -823,10 +838,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\args\argparse.hpp" />
-    <ClInclude Include="src\args\ArgsParser.h" />
-    <ClInclude Include="src\args\PaletteParser.h" />
-    <ClInclude Include="src\args\ArgsUsage.h" />
     <ClInclude Include="src\formula\DefineFormulas.h" />
     <ClInclude Include="src\formula\fractals\burningship.h" />
     <ClInclude Include="src\formula\fractals\mandelbrot.h" />
@@ -854,32 +865,16 @@
     <ClInclude Include="src\scalar\loop\OuterLoop.h" />
     <ClInclude Include="src\scalar\ScalarColors.h" />
     <ClInclude Include="src\scalar\ScalarColorPalette.h" />
-    <ClInclude Include="src\util\FormatUtil.h" />
-    <ClInclude Include="src\util\FormatUtil_impl.h" />
-    <ClInclude Include="src\util\RangeUtil.h" />
-    <ClInclude Include="src\util\BufferUtil.h" />
-    <ClInclude Include="src\util\BufferUtil_impl.h" />
-    <ClInclude Include="src\util\fnv1a.h" />
-    <ClInclude Include="src\util\ParserUtil.h" />
-    <ClInclude Include="src\util\PathUtil.h" />
     <ClInclude Include="src\formula\FormulaTypes.h" />
     <ClInclude Include="src\mpfr\MPFRCoords.h" />
     <ClInclude Include="src\mpfr\MPFRGlobals.h" />
     <ClInclude Include="src\mpfr\MPFRRenderer.h" />
     <ClInclude Include="src\mpfr\mpreal.h" />
-    <ClInclude Include="src\options\ColorMethods.h" />
-    <ClInclude Include="src\options\FractalTypes.h" />
-    <ClInclude Include="src\util\InlineUtil.h" />
-    <ClInclude Include="src\util\MacroUtil.h" />
     <ClInclude Include="src\render\ProgressTracker.h" />
     <ClInclude Include="src\scalar\ScalarCoords.h" />
     <ClInclude Include="src\render\RenderImage.h" />
     <ClInclude Include="src\scalar\ScalarGlobals.h" />
     <ClInclude Include="src\scalar\ScalarTypes.h" />
-    <ClInclude Include="src\util\MathConstants.h" />
-    <ClInclude Include="src\util\ParserUtil_impl.h" />
-    <ClInclude Include="src\util\AssertUtil.h" />
-    <ClInclude Include="src\util\WarningUtil.h" />
     <ClInclude Include="src\vector\CommonDefs.h" />
     <ClInclude Include="src\vector\loop\FractalLoop.h" />
     <ClInclude Include="src\vector\loop\InnerLoop.h" />
@@ -895,28 +890,20 @@
     <ClInclude Include="src\vector\VectorTypes.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\args\ArgsParser.cpp" />
-    <ClCompile Include="src\args\PaletteParser.cpp" />
-    <ClCompile Include="src\args\ArgsUsage.cpp" />
+    <ClCompile Include="src\BackendSession.cpp" />
     <ClCompile Include="src\formula\UndefFormulas.h" />
     <ClCompile Include="src\image\BmpWriter.cpp" />
     <ClCompile Include="src\render\RenderGlobals.cpp" />
     <ClCompile Include="src\scalar\ScalarColors.cpp" />
     <ClCompile Include="src\scalar\ScalarColorPalette.cpp" />
-    <ClCompile Include="src\util\FormatUtil.cpp" />
-    <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\mpfr\MPFRGlobals.cpp" />
     <ClCompile Include="src\mpfr\MPFRRenderer.cpp" />
-    <ClCompile Include="src\options\ColorMethods.cpp" />
-    <ClCompile Include="src\options\FractalTypes.cpp" />
     <ClCompile Include="src\render\RenderImage.cpp" />
     <ClCompile Include="src\render\ProgressTracker.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
-    <ClCompile Include="src\util\PathUtil.cpp" />
     <ClCompile Include="src\vector\VectorColorPalette.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
     <ClCompile Include="src\image\Image.cpp" />
-    <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\scalar\ScalarRenderer.cpp" />
     <ClCompile Include="src\vector\VectorRenderer.cpp" />
   </ItemGroup>

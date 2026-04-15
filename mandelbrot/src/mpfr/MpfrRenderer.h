@@ -6,7 +6,7 @@
 
 #include "MPFRTypes.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 namespace MPFRRenderer {
     void initCoordsMPFR(mpfr_number_t &cr, mpfr_number_t &ci,

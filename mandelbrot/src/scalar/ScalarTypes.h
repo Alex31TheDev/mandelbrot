@@ -8,8 +8,8 @@
 #include <array>
 #include <algorithm>
 
-#include "../util/MacroUtil.h"
-#include "../util/InlineUtil.h"
+#include "util/MacroUtil.h"
+#include "util/InlineUtil.h"
 
 #if defined(USE_FLOATS)
 typedef float scalar_full_t;

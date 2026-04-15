@@ -1,7 +1,7 @@
 #include "ArgsParser.h"
 
 #include <cstdio>
-#include <iostream>
+#include <cstdio>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -9,45 +9,44 @@
 #include <stdexcept>
 #include <vector>
 
+#include "BackendApi.h"
+#include "options/ColorMethods.h"
+#include "options/FractalTypes.h"
+#include "util/ParserUtil.h"
+
 #include "argparse.hpp"
 
 #include "ArgsUsage.h"
 #include "PaletteParser.h"
 using namespace ArgsUsage;
 
-#include "../options/ColorMethods.h"
-#include "../options/FractalTypes.h"
 using namespace ColorMethods;
 using namespace FractalTypes;
-
-#include "../scalar/ScalarTypes.h"
-
-#include "../render/RenderGlobals.h"
-#include "../scalar/ScalarGlobals.h"
-#include "../vector/VectorGlobals.h"
-#include "../mpfr/MPFRGlobals.h"
-using namespace RenderGlobals;
-using namespace ScalarGlobals;
-
-#include "../util/ParserUtil.h"
 using namespace ParserUtil;
+
+constexpr float DEFAULT_FREQ_R = 0.98f;
+constexpr float DEFAULT_FREQ_G = 0.91f;
+constexpr float DEFAULT_FREQ_B = 0.86f;
+constexpr float DEFAULT_FREQ_MULT = 0.128f;
+constexpr float DEFAULT_LIGHT_R = 1.0f;
+constexpr float DEFAULT_LIGHT_I = 1.0f;
 
 struct ParsedArgs {
     int width = 0;
     int height = 0;
     int aaPixels = 1;
-    scalar_full_t point_r = ZERO_F;
-    scalar_full_t point_i = ZERO_F;
-    scalar_half_t zoom = ZERO_H;
+    std::string point_r = "0";
+    std::string point_i = "0";
+    float zoom = 0.0f;
     std::string count = "auto";
     bool useThreads = false;
     std::string colorMethod = DEFAULT_COLOR_METHOD.name;
     bool isJuliaSet = false;
     bool isInverse = false;
-    scalar_full_t seed_r = DEFAULT_SEED_R;
-    scalar_full_t seed_i = DEFAULT_SEED_I;
+    std::string seed_r = "0";
+    std::string seed_i = "0";
     std::string fractalType = DEFAULT_FRACTAL_TYPE.name;
-    scalar_full_t N = DEFAULT_FRACTAL_EXP;
+    std::string N = "2";
     std::string colorArg1 = skipOption;
     std::string colorArg2 = skipOption;
     std::string colorArg3 = skipOption;
@@ -96,31 +95,31 @@ static void addArgument_INT32(
     auto &arg = parser.add_argument(name);
     if (defaultValue) arg.default_value(*defaultValue).skip_token(skipOption);
 
-    arg.action([](const std::string &str) { return PARSE_INT32(str.c_str()); });
+    arg.action([](const std::string &str) { return parseNumber<int>(str); });
     arg.store_into(value);
 }
 
-static void addArgument_F(
+static void addArgumentStringFull(
     argparse::ArgumentParser &parser,
-    const char *name, scalar_full_t &value,
-    std::optional<scalar_full_t> defaultValue = std::nullopt
+    const char *name, std::string &value,
+    std::optional<std::string_view> defaultValue = std::nullopt
 ) {
     auto &arg = parser.add_argument(name);
     if (defaultValue) arg.default_value(*defaultValue).skip_token(skipOption);
 
-    arg.action([](const std::string &str) { return PARSE_F(str.c_str()); });
+    arg.action([](const std::string &str) { return str; });
     arg.store_into(value);
 }
 
 static void addArgument_H(
     argparse::ArgumentParser &parser,
-    const char *name, scalar_half_t &value,
-    std::optional<scalar_half_t> defaultValue = std::nullopt
+    const char *name, float &value,
+    std::optional<float> defaultValue = std::nullopt
 ) {
     auto &arg = parser.add_argument(name);
     if (defaultValue) arg.default_value(*defaultValue).skip_token(skipOption);
 
-    arg.action([](const std::string &str) { return PARSE_H(str.c_str()); });
+    arg.action([](const std::string &str) { return parseNumber<float>(str); });
     arg.store_into(value);
 }
 
@@ -150,8 +149,8 @@ static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) 
 
     addArgument_INT32(parser, "width", args.width);
     addArgument_INT32(parser, "height", args.height);
-    addArgument_F(parser, "point_r", args.point_r);
-    addArgument_F(parser, "point_i", args.point_i);
+    addArgumentStringFull(parser, "point_r", args.point_r, "0");
+    addArgumentStringFull(parser, "point_i", args.point_i, "0");
     addArgument_H(parser, "zoom", args.zoom);
     addArgumentString(parser, "count", args.count, defaultCount);
     addArgument_INT32(parser, "AA", args.aaPixels, 1);
@@ -165,14 +164,14 @@ static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) 
     addArgumentBool(parser, "isJuliaSet", args.isJuliaSet, false);
     addArgumentBool(parser, "isInverse", args.isInverse, false);
 
-    addArgument_F(parser, "seed_r", args.seed_r, DEFAULT_SEED_R);
-    addArgument_F(parser, "seed_i", args.seed_i, DEFAULT_SEED_I);
+    addArgumentStringFull(parser, "seed_r", args.seed_r, "0");
+    addArgumentStringFull(parser, "seed_i", args.seed_i, "0");
     addArgumentOptions(
         parser, fractalTypesRange{},
         "fractalType", args.fractalType,
         defaultFractalType
     );
-    addArgument_F(parser, "N", args.N, DEFAULT_FRACTAL_EXP);
+    addArgumentStringFull(parser, "N", args.N, "2");
     addArgumentString(parser, "color1", args.colorArg1, skipOption);
     addArgumentString(parser, "color2", args.colorArg2, skipOption);
     addArgumentString(parser, "color3", args.colorArg3, skipOption);
@@ -195,12 +194,12 @@ static std::unique_ptr<argparse::ArgumentParser> makeParser(
 }
 
 namespace ArgsParser {
-    scalar_half_t parseColorValue(
+    float parseColorValue(
         const std::string &str,
-        scalar_half_t defaultValue
+        float defaultValue
     ) {
         if (str == skipOption) return defaultValue;
-        return PARSE_H(str.c_str());
+        return parseNumber<float>(str, defaultValue);
     }
 
     bool checkHelp(int argc, char **argv) {
@@ -211,15 +210,15 @@ namespace ArgsParser {
         const auto parser = makeParser(argv[0], args);
 
         if (argsCount(argc) < 1 || isHelpArg(argv[1])) {
-            std::cout << parser->help().str();
+            printf("%s", parser->help().str().c_str());
             return true;
         }
 
         return false;
     }
 
-    bool parse(int argc, char **argv) {
-        if (!argv) return false;
+    Backend::Status parse(Backend::Session &session, int argc, char **argv) {
+        if (!argv) return Backend::Status::failure("No arguments were provided.");
 
         ParsedArgs args;
         const auto parser = makeParser(argv[0], args);
@@ -227,66 +226,61 @@ namespace ArgsParser {
         try {
             parser->parse_args(argc, argv);
         } catch (const std::exception &err) {
-            fprintf(stderr, "%s\n", err.what());
-            return false;
+            return Backend::Status::failure(err.what());
         }
 
-        if (!setImageGlobals(args.width, args.height, args.aaPixels)) {
-            fprintf(stderr, "Invalid args.\n"
-                "Width, height, and aaPixels must be > 0.\n");
-            return false;
-        }
+        if (auto status = session.setImageSize(args.width, args.height, args.aaPixels);
+            !status) return status;
 
         int iterCount = 0;
 
         if (args.count != "auto") {
-            iterCount = PARSE_INT32(args.count.c_str());
+            iterCount = parseNumber<int>(args.count);
         }
 
-        if (!setZoomGlobals(iterCount, args.zoom)) {
-            fprintf(stderr, "Invalid args.\nScale must be > -3.25.\n");
-            return false;
+        if (auto status = session.setZoom(iterCount, args.zoom); !status) return status;
+
+        session.setUseThreads(args.useThreads);
+
+        const int parsedColorMethod = parseColorMethod(args.colorMethod);
+        if (parsedColorMethod < 0) {
+            return Backend::Status::failure("Unknown color method.");
         }
 
-        useThreads = args.useThreads;
-
-        colorMethod = parseColorMethod(args.colorMethod);
-        if (colorMethod < 0) return false;
-
-        fractalType = parseFractalType(args.fractalType);
-        if (fractalType < 0) return false;
-
-        setFractalType(args.isJuliaSet, args.isInverse);
-
-        setZoomPoints(args.point_r, args.point_i, args.seed_r, args.seed_i);
-
-        if (!setFractalExponent(args.N)) {
-            fprintf(stderr, "Invalid args.\nFractal exponent must be > 1.\n");
-            return false;
+        const int parsedFractalType = parseFractalType(args.fractalType);
+        if (parsedFractalType < 0) {
+            return Backend::Status::failure("Unknown fractal type.");
         }
 
-        bool ok = true;
+        session.setFractalMode(args.isJuliaSet, args.isInverse);
 
-        switch (colorMethod) {
+        if (auto status = session.setPoint(args.point_r, args.point_i); !status) return status;
+        if (auto status = session.setSeed(args.seed_r, args.seed_i); !status) return status;
+        if (auto status = session.setFractalType(
+            static_cast<Backend::FractalType>(parsedFractalType)); !status) {
+            return status;
+        }
+
+        if (auto status = session.setFractalExponent(args.N); !status) return status;
+
+        if (auto status = session.setColorMethod(
+            static_cast<Backend::ColorMethod>(parsedColorMethod)); !status) {
+            return status;
+        }
+
+        switch (parsedColorMethod) {
             case 0:
             case 1:
-                ok = setColorGlobals(
+                return session.setColorFormula(
                     parseColorValue(args.colorArg1, DEFAULT_FREQ_R),
                     parseColorValue(args.colorArg2, DEFAULT_FREQ_G),
                     parseColorValue(args.colorArg3, DEFAULT_FREQ_B),
                     parseColorValue(args.colorArg4, DEFAULT_FREQ_MULT)
                 );
 
-                if (!ok) {
-                    fprintf(stderr, "Invalid args.\n"
-                        "Frequency multiplier must be non-zero.\n");
-                    return false;
-                }
-                break;
-
             case 2:
             {
-                PaletteParser::PaletteConfig paletteCfg;
+                Backend::PaletteConfig paletteCfg;
                 std::string err;
 
                 std::vector<std::string> paletteArgs;
@@ -302,44 +296,25 @@ namespace ArgsParser {
                     args.paletteArgs.begin(), args.paletteArgs.end()
                 );
 
-                ok = PaletteParser::parse(paletteArgs, paletteCfg, err);
-
-                if (ok) ok = setPaletteGlobals(
-                    paletteCfg.entries,
-                    paletteCfg.totalLength,
-                    paletteCfg.offset
-                );
-
-                if (!ok) {
-                    fprintf(stderr, "Invalid args.\n%s\n", err.c_str());
-                    return false;
+                if (!PaletteParser::parse(paletteArgs, paletteCfg, err)) {
+                    return Backend::Status::failure(err);
                 }
-                break;
+
+                return session.setPalette(paletteCfg);
             }
 
             case 3:
             {
-                const scalar_half_t real =
+                const float real =
                     parseColorValue(args.colorArg1, DEFAULT_LIGHT_R);
-                const scalar_half_t imag =
+                const float imag =
                     parseColorValue(args.colorArg2, DEFAULT_LIGHT_I);
 
-                ok = setLightGlobals(real, imag);
-                if (!ok) {
-                    fprintf(stderr, "Invalid args.\n"
-                        "Light vector must be non-zero.\n");
-                    return false;
-                }
-                break;
+                return session.setLight(real, imag);
             }
 
             default:
-                return false;
+                return Backend::Status::failure("Unsupported color method.");
         }
-
-        VectorGlobals::initVectors();
-        MPFRGlobals::initMPFRValues(argv[3], argv[4]);
-
-        return true;
     }
 }

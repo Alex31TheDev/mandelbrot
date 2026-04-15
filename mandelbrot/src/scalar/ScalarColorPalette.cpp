@@ -6,7 +6,7 @@
 #include "ScalarTypes.h"
 #include "ScalarColors.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 ScalarColorPalette::ScalarColorPalette(
     const std::vector<ScalarPaletteColor> &entries,

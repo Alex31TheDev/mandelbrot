@@ -188,7 +188,7 @@ constexpr int OP_ATAN2 = 1;
 
 #undef _USE_FUSED_OPS
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 #ifdef _SKIP_FORMULA_OPS
 #define _FORMULA_OPS_FUNC(body)

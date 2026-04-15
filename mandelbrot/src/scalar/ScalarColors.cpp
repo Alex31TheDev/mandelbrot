@@ -5,7 +5,7 @@
 
 #include "ScalarTypes.h"
 
-#include "../util/ParserUtil.h"
+#include "util/ParserUtil.h"
 using namespace ParserUtil;
 
 static void parseColor(std::string_view hex,

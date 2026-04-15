@@ -9,11 +9,13 @@
 #include <variant>
 
 #include "cqueue.h"
+#include "BackendApi.h"
 
 struct ProgressConfig {
     bool formatTime = true;
     const std::string progressName = "Progress";
     const std::string opsName = "ops";
+    const Backend::Callbacks *callbacks = nullptr;
 };
 
 class ProgressTracker {
@@ -89,6 +91,5 @@ private:
     std::tuple<int, int> _updateWork(WU processed);
     void _updateOpsHistory(WU processed);
 
-    void _printProgress(int perc);
-    void _printElapsed(SU time);
+    void _emitProgress(int perc, bool completed);
 };

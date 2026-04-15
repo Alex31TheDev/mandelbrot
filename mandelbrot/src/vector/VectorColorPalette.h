@@ -10,7 +10,7 @@
 
 #include "../scalar/ScalarColorPalette.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 class VectorColorPalette {
 public:

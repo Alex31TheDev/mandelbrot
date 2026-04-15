@@ -2,7 +2,7 @@
 #include "CommonDefs.h"
 
 #include "ScalarTypes.h"
-#include "../util/MathConstants.h"
+#include "util/MathConstants.h"
 
 #include "../image/Image.h"
 #include "ScalarColorPalette.h"

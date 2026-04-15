@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <iostream>
 
-#include "../util/BufferUtil.h"
+#include "util/BufferUtil.h"
 
 #pragma pack(push, 1)
 struct BmpHeader {

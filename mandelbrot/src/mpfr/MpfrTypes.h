@@ -2,7 +2,7 @@
 
 #include "mpreal.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 typedef mpfr::mpreal mpfr_number_t;
 typedef const mpfr::mpreal &mpfr_param_t;

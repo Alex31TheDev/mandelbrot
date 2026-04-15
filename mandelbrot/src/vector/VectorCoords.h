@@ -10,8 +10,8 @@
 
 #include "VectorGlobals.h"
 
-#include "../util/InlineUtil.h"
-#include "../util/AssertUtil.h"
+#include "util/InlineUtil.h"
+#include "util/AssertUtil.h"
 
 template<size_t N>
 consteval auto _makeIndexArray() {

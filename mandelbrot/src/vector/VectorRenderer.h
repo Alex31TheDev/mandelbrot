@@ -7,7 +7,7 @@
 #include "VectorTypes.h"
 #include "../scalar/ScalarTypes.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 namespace VectorRenderer {
     void VECTOR_CALL initCoordsSIMD(simd_full_t &cr, simd_full_t &ci,

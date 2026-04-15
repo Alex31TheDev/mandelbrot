@@ -20,8 +20,8 @@ using namespace VectorGlobals;
 #define _SKIP_FORMULA_OPS
 #include "../formula/FormulaTypes.h"
 
-#include "../util/InlineUtil.h"
-#include "../util/AssertUtil.h"
+#include "util/InlineUtil.h"
+#include "util/AssertUtil.h"
 
 FORCE_INLINE void complexInverse_vec(
     simd_full_t &real, simd_full_t &imag

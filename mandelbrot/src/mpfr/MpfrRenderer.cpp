@@ -19,7 +19,7 @@ using namespace ScalarGlobals;
 #define _SKIP_FORMULA_OPS
 #include "../formula/FormulaTypes.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 FORCE_INLINE void complexInverse_mp(
     mpfr_number_t &cr, mpfr_number_t &ci

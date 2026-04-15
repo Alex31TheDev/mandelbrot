@@ -4,7 +4,7 @@
 
 #include <immintrin.h>
 #ifdef USE_SLEEF
-#include "../util/WarningUtil.h"
+#include "util/WarningUtil.h"
 
 PUSH_DISABLE_WARNINGS
 #include <sleef.h>
@@ -13,8 +13,8 @@ POP_DISABLE_WARNINGS
 
 #include "../scalar/ScalarTypes.h"
 
-#include "../util/MacroUtil.h"
-#include "../util/InlineUtil.h"
+#include "util/MacroUtil.h"
+#include "util/InlineUtil.h"
 
 #define SIMD_SYM_F(a) _CONCAT2(a, SIMD_FULL_ARCH_WIDTH)
 

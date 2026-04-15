@@ -4,7 +4,7 @@
 #include "ScalarTypes.h"
 #include "ScalarGlobals.h"
 
-#include "../util/InlineUtil.h"
+#include "util/InlineUtil.h"
 
 FORCE_INLINE scalar_full_t getCenterReal(int x) {
     using namespace ScalarGlobals;
