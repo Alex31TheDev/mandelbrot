@@ -12,19 +12,13 @@
 
 #include "BackendModule.h"
 #include "CallbackFormatter.h"
+#include "fullname.h"
 #include "util/ParserUtil.h"
 #include "util/PathUtil.h"
 
-const char OUT_FILENAME[] = "mandelbrot";
-const char OUT_FILETYPE[] = "png";
-
-static std::string outputFilename() {
-    return std::string(OUT_FILENAME) + "." + OUT_FILETYPE;
-}
-
 static bool saveImage(Backend::Session &session,
     std::optional<int> num = std::nullopt) {
-    const std::string baseName = outputFilename();
+    const std::string baseName = fullname;
     const std::string outName = num
         ? PathUtil::appendSeqnum(baseName, *num)
         : baseName;

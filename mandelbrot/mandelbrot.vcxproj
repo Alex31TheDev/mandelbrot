@@ -841,7 +841,6 @@
     <ClInclude Include="src\formula\fractals\burningship.h" />
     <ClInclude Include="src\formula\fractals\mandelbrot.h" />
     <ClInclude Include="src\formula\fractals\perpendicular.h" />
-    <ClInclude Include="src\fullname.h" />
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\mpfr\CommonDefs.h" />
     <ClInclude Include="src\mpfr\loop\FractalLoop.h" />

@@ -9,7 +9,7 @@
 #define OUT_FILETYPE "png"
 #endif
 
-namespace _fullnameImpl {
+namespace {
     using namespace fnv1a;
 
     static_assert(fnv1a::hash_32(OUT_FILETYPE) == "png"_hash_32 ||

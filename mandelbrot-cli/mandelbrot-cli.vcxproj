@@ -171,15 +171,13 @@
     <ClInclude Include="src\args\ArgsParser.h" />
     <ClInclude Include="src\args\ArgsUsage.h" />
     <ClInclude Include="src\args\PaletteParser.h" />
-    <ClInclude Include="src\BackendModule.h" />
     <ClInclude Include="src\CallbackFormatter.h" />
-    <ClInclude Include="src\prefix.h" />
+    <ClInclude Include="src\fullname.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\args\ArgsParser.cpp" />
     <ClCompile Include="src\args\ArgsUsage.cpp" />
     <ClCompile Include="src\args\PaletteParser.cpp" />
-    <ClCompile Include="src\BackendModule.cpp" />
     <ClCompile Include="src\CallbackFormatter.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>

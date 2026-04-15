@@ -148,8 +148,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\BackendApi.h" />
+    <ClInclude Include="src\BackendModule.h" />
     <ClInclude Include="src\options\ColorMethods.h" />
     <ClInclude Include="src\options\FractalTypes.h" />
+    <ClInclude Include="src\prefix.h" />
     <ClInclude Include="src\util\AssertUtil.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
@@ -167,6 +169,7 @@
     <ClInclude Include="src\util\WarningUtil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\BackendModule.cpp" />
     <ClCompile Include="src\options\ColorMethods.cpp" />
     <ClCompile Include="src\options\FractalTypes.cpp" />
     <ClCompile Include="src\util\FormatUtil.cpp" />
