@@ -57,8 +57,6 @@ class MandelbrotBackendSession final : public Backend::Session {
 public:
     MandelbrotBackendSession() {
         MPFRGlobals::initMPFR();
-        colorMethod = static_cast<int>(Backend::ColorMethod::smooth_iterations);
-        fractalType = static_cast<int>(Backend::FractalType::mandelbrot);
         setAllDefaults();
     }
 
@@ -124,12 +122,15 @@ public:
     }
 
     Backend::Status setFractalType(Backend::FractalType type) override {
-        fractalType = static_cast<int>(type);
+        ScalarGlobals::setFractalType(
+            static_cast<int>(type),
+            isJuliaSet, isInverse
+        );
         return Backend::Status::success();
     }
 
     void setFractalMode(bool juliaSet, bool inverse) override {
-        ScalarGlobals::setFractalType(juliaSet, inverse);
+        ScalarGlobals::setFractalType(fractalType, juliaSet, inverse);
     }
 
     Backend::Status setFractalExponent(std::string_view exponent) override {
@@ -146,7 +147,7 @@ public:
     }
 
     Backend::Status setColorMethod(Backend::ColorMethod method) override {
-        colorMethod = static_cast<int>(method);
+        ScalarGlobals::setColorMethod(static_cast<int>(method));
         return Backend::Status::success();
     }
 

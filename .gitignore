@@ -367,6 +367,9 @@ FodyWeavers.xsd
 vcpkg-manifest-install.log
 vcpkg_installed/
 
+# Vtune
+*Vtune*
+
 # Render output
 mandelbrot.png
 mandelbrot.bmp

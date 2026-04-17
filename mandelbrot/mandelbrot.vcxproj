@@ -494,7 +494,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MPFR|x64'">
@@ -509,7 +509,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mpfr.lib;gmp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -540,7 +540,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatAVX512|x64'">
@@ -555,7 +555,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatSSE4_2|Win32'">
@@ -585,7 +585,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleScalar|Win32'">
@@ -615,7 +615,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX512|x64'">
@@ -630,7 +630,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleSSE4_2|Win32'">
@@ -657,12 +657,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - MPFR|x64'">
@@ -674,12 +676,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
       <AdditionalDependencies>mpfr.lib;gmp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -709,12 +713,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatAVX512|x64'">
@@ -726,12 +732,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions512</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - FloatSSE4_2|Win32'">
@@ -760,12 +768,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleScalar|Win32'">
@@ -794,12 +804,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleAVX512|x64'">
@@ -811,12 +823,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions512</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - DoubleSSE4_2|Win32'">
@@ -875,8 +889,11 @@
     <ClInclude Include="src\scalar\ScalarTypes.h" />
     <ClInclude Include="src\vector\CommonDefs.h" />
     <ClInclude Include="src\vector\loop\FractalLoop.h" />
+    <ClInclude Include="src\vector\loop\FractalLoop4.h" />
     <ClInclude Include="src\vector\loop\InnerLoop.h" />
+    <ClInclude Include="src\vector\loop\InnerLoop4.h" />
     <ClInclude Include="src\vector\loop\OuterLoop.h" />
+    <ClInclude Include="src\vector\loop\OuterLoop4.h" />
     <ClInclude Include="src\vector\VectorColor.h" />
     <ClInclude Include="src\vector\VectorColorPalette.h" />
     <ClInclude Include="src\vector\VectorCoords.h" />
@@ -908,6 +925,22 @@
   <ItemGroup>
     <ProjectReference Include="..\common\common.vcxproj">
       <Project>{3152A3CB-1150-412C-A89F-5CE415183276}</Project>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - FloatScalar'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - DoubleScalar'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - FloatAVX2'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - DoubleAVX2'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - FloatAVX512'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - DoubleAVX512'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Debug - MPFR'">Configuration=Debug</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - FloatScalar'">Configuration=Release</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - DoubleScalar'">Configuration=Release</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - FloatAVX2'">Configuration=Release</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - DoubleAVX2'">Configuration=Release</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - FloatAVX512'">Configuration=Release</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - DoubleAVX512'">Configuration=Release</SetConfiguration>
+      <SetConfiguration Condition="'$(Configuration)'=='Release - MPFR'">Configuration=Release</SetConfiguration>
+      <SetPlatform Condition="'$(Platform)'=='x64'">Platform=x64</SetPlatform>
+      <SetPlatform Condition="'$(Platform)'=='Win32'">Platform=Win32</SetPlatform>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

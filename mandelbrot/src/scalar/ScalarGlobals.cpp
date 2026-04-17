@@ -12,6 +12,7 @@ namespace ScalarGlobals {
     bool isJuliaSet, isInverse;
     bool normalSeed;
     bool invalidPower, normalPower, wholePower, fractionalPower;
+    bool useQuadPath;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     scalar_full_t realScale, imagScale;
@@ -74,6 +75,19 @@ namespace ScalarGlobals {
         return true;
     }
 
+    bool setFractalType(int type, bool julia, bool inverse) {
+        fractalType = type;
+        isJuliaSet = julia;
+        isInverse = inverse;
+        useQuadPath = fractalType == 0 && normalPower;
+        return true;
+    }
+
+    bool setColorMethod(int method) {
+        colorMethod = method;
+        return true;
+    }
+
     bool setFractalExponent(scalar_full_t pw) {
         N = pw;
         invLnPow = RECIP_H(LOG_H(N));
@@ -82,15 +96,9 @@ namespace ScalarGlobals {
         normalPower = N == SC_SYM_F(2.0);
         wholePower = ISWHOLE_F(N);
         fractionalPower = !wholePower;
+        useQuadPath = fractalType == 0 && normalPower;
 
         return !invalidPower;
-    }
-
-    bool setFractalType(bool julia, bool inverse) {
-        isJuliaSet = julia;
-        isInverse = inverse;
-
-        return true;
     }
 
     bool setColorGlobals(

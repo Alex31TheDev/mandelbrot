@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -26,19 +18,6 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -56,12 +35,6 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -84,52 +57,19 @@
     <VcpkgConfiguration Condition="'$(UseDebugLibraries)'!='true'">Release</VcpkgConfiguration>
     <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(MSBuildProjectDirectory)\bin\obj\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(MSBuildProjectDirectory)\bin\obj\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
+  <PropertyGroup>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerEnvironment>PATH=$(OutDir);$(PATH)</LocalDebuggerEnvironment>
+    <LocalDebuggerMergeEnvironment>true</LocalDebuggerMergeEnvironment>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -186,54 +126,34 @@
       <Project>{3152a3cb-1150-412c-a89f-5ce415183276}</Project>
     </ProjectReference>
   </ItemGroup>
-  <Target Name="BuildBundledCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'">
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - FloatScalar;Platform=x64" />
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - DoubleScalar;Platform=x64" />
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - FloatAVX2;Platform=x64" />
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - DoubleAVX2;Platform=x64" />
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - MPFR;Platform=x64" />
-  </Target>
-  <Target Name="BuildBundledCoreDllsWin32" BeforeTargets="Build" Condition="'$(Platform)'=='Win32'">
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - FloatScalar;Platform=Win32" />
-    <MSBuild Projects="..\mandelbrot\mandelbrot.vcxproj" Targets="Build" Properties="Configuration=$(Configuration) - DoubleScalar;Platform=Win32" />
+  <ItemGroup Condition="'$(Platform)'=='x64'">
+    <CoreVariant Include="FloatScalar" />
+    <CoreVariant Include="DoubleScalar" />
+    <CoreVariant Include="FloatAVX2" />
+    <CoreVariant Include="DoubleAVX2" />
+    <CoreVariant Include="MPFR" />
+  </ItemGroup>
+  <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'">
+    <MSBuild Projects="$(SolutionDir)mandelbrot\mandelbrot.vcxproj"
+             Targets="Build"
+             BuildInParallel="true"
+             Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
   </Target>
   <Target Name="BundleCoreDlls" AfterTargets="Build">
     <ItemGroup Condition="'$(Platform)'=='x64'">
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatScalar\mandelbrot.dll">
-        <ConfigName>$(Configuration) - FloatScalar</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatScalar\</SourceDir>
-      </BundledCore>
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleScalar\mandelbrot.dll">
-        <ConfigName>$(Configuration) - DoubleScalar</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleScalar\</SourceDir>
-      </BundledCore>
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatAVX2\mandelbrot.dll">
-        <ConfigName>$(Configuration) - FloatAVX2</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - FloatAVX2\</SourceDir>
-      </BundledCore>
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleAVX2\mandelbrot.dll">
-        <ConfigName>$(Configuration) - DoubleAVX2</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - DoubleAVX2\</SourceDir>
-      </BundledCore>
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll">
-        <ConfigName>$(Configuration) - MPFR</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\</SourceDir>
+      <BundledCore Include="@(CoreVariant)">
+        <ConfigName>$(Configuration) - %(Identity)</ConfigName>
+        <SourceDir>$(SolutionDir)mandelbrot\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
       </BundledCore>
     </ItemGroup>
-    <ItemGroup Condition="'$(Platform)'=='Win32'">
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - FloatScalar\mandelbrot.dll">
-        <ConfigName>$(Configuration) - FloatScalar</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - FloatScalar\</SourceDir>
-      </BundledCore>
-      <BundledCore Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - DoubleScalar\mandelbrot.dll">
-        <ConfigName>$(Configuration) - DoubleScalar</ConfigName>
-        <SourceDir>$(MSBuildProjectDirectory)\..\mandelbrot\bin\Win32\$(Configuration) - DoubleScalar\</SourceDir>
-      </BundledCore>
-    </ItemGroup>
-    <Copy SourceFiles="@(BundledCore)" DestinationFiles="@(BundledCore->'$(OutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
+    <Copy SourceFiles="@(BundledCore->'%(SourceDir)mandelbrot.dll')" DestinationFiles="@(BundledCore->'$(OutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
-      <BundledSupport Include="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\*.dll"
-                      Exclude="$(MSBuildProjectDirectory)\..\mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
+      <BundledCoreWithPdb Include="@(BundledCore)" Condition="Exists('%(BundledCore.SourceDir)mandelbrot.pdb')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledCoreWithPdb->'%(SourceDir)mandelbrot.pdb')" DestinationFiles="@(BundledCoreWithPdb->'$(OutDir)%(ConfigName).pdb')" SkipUnchangedFiles="true" Condition="'@(BundledCoreWithPdb)'!=''" />
+    <ItemGroup Condition="'$(Platform)'=='x64'">
+      <BundledSupport Include="$(SolutionDir)mandelbrot\bin\x64\$(Configuration) - MPFR\*.dll"
+                      Exclude="$(SolutionDir)mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
   </Target>

@@ -5,7 +5,11 @@
 #define _FORMULA_NAME normal
 
 #define _FORMULA formula_normalPower
+#define _FORMULA4_1 formula_normalPower4_1
+#define _FORMULA4_2 formula_normalPower4_2
 #define _DERIVATIVE derivative_normalPower
+#define _DERIVATIVE4_1 derivative_normalPower4_1
+#define _DERIVATIVE4_2 derivative_normalPower4_2
 
 #elif _FORMULA_TYPE == 1
 

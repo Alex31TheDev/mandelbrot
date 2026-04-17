@@ -61,6 +61,22 @@ FORCE_INLINE void _initCoords_vec(
     di = SIMD_ZERO_F;
 }
 
+#define _INVALID_VAR(sym, n) _CONCAT2(sym, n)
+
+#define _INVALID_POWER(n) \
+    _INVALID_VAR(zr, n) = _INVALID_VAR(cr, n); \
+    _INVALID_VAR(zi, n) = _INVALID_VAR(ci, n); \
+    _INVALID_VAR(dr, n) = _INVALID_VAR(di, n) = SIMD_ZERO_F; \
+    _INVALID_VAR(mag, n) = SIMD_ADDXX_F( \
+        _INVALID_VAR(zr, n), _INVALID_VAR(zr, n), \
+        _INVALID_VAR(zi, n), _INVALID_VAR(zi, n) \
+    ); \
+    _INVALID_VAR(iter, n) = SIMD_BLEND_F( \
+        _INVALID_VAR(iter, n), SIMD_SET1_F(count), \
+        SIMD_CMP_LT_F(_INVALID_VAR(mag, n), f_bailout_vec) \
+    ); \
+    _INVALID_VAR(active, n) = SIMD_INIT_ZERO_MASK_F;
+
 FORCE_INLINE simd_full_t _iterateFractal_vec(
     simd_full_t cr, simd_full_t ci,
     simd_full_t &zr, simd_full_t &zi,
@@ -77,15 +93,13 @@ FORCE_INLINE simd_full_t _iterateFractal_vec(
     simd_full_t new_dr = dr, new_di = di;
 
     if (invalidPower) {
-        zr = cr;
-        zi = ci;
-        dr = di = SIMD_ZERO_F;
-        mag = SIMD_ADDXX_F(zr, zr, zi, zi);
+        simd_full_t &cr1 = cr, &ci1 = ci;
+        simd_full_t &zr1 = zr, &zi1 = zi;
+        simd_full_t &dr1 = dr, &di1 = di;
+        simd_full_t &iter1 = iter, &mag1 = mag;
+        simd_full_mask_t &active1 = active;
 
-        iter = SIMD_BLEND_F(
-            iter, SIMD_SET1_F(count),
-            SIMD_CMP_LT_F(mag, f_bailout_vec)
-        );
+        _INVALID_POWER(1);
     } else {
         switch (fractalType) {
             case 0:
@@ -105,13 +119,90 @@ FORCE_INLINE simd_full_t _iterateFractal_vec(
 #include "loop/FractalLoop.h"
 #undef _FRACTAL_TYPE
                 break;
+
+            default:
+                break;
         }
     }
 
     outMag = mag;
     outActive = active;
-
     return iter;
+}
+
+#define _QUAD_OUTPUT(n) \
+    _INVALID_VAR(outIter, n) = _INVALID_VAR(iter, n); \
+    _INVALID_VAR(outMag, n) = _INVALID_VAR(mag, n); \
+    _INVALID_VAR(outActive, n) = _INVALID_VAR(active, n);
+
+FORCE_INLINE void _iterateFractal4_vec(
+    simd_full_t cr1, simd_full_t ci1,
+    simd_full_t &zr1, simd_full_t &zi1,
+    simd_full_t &dr1, simd_full_t &di1,
+    simd_full_t &outIter1, simd_full_t &outMag1, simd_full_mask_t &outActive1,
+    simd_full_t cr2, simd_full_t ci2,
+    simd_full_t &zr2, simd_full_t &zi2,
+    simd_full_t &dr2, simd_full_t &di2,
+    simd_full_t &outIter2, simd_full_t &outMag2, simd_full_mask_t &outActive2,
+    simd_full_t cr3, simd_full_t ci3,
+    simd_full_t &zr3, simd_full_t &zi3,
+    simd_full_t &dr3, simd_full_t &di3,
+    simd_full_t &outIter3, simd_full_t &outMag3, simd_full_mask_t &outActive3,
+    simd_full_t cr4, simd_full_t ci4,
+    simd_full_t &zr4, simd_full_t &zi4,
+    simd_full_t &dr4, simd_full_t &di4,
+    simd_full_t &outIter4, simd_full_t &outMag4, simd_full_mask_t &outActive4
+) {
+    simd_full_t iter1 = startIterVal;
+    simd_full_t iter2 = startIterVal;
+    simd_full_t iter3 = startIterVal;
+    simd_full_t iter4 = startIterVal;
+
+    simd_full_mask_t active1 = outActive1;
+    simd_full_mask_t active2 = outActive2;
+    simd_full_mask_t active3 = outActive3;
+    simd_full_mask_t active4 = outActive4;
+
+    simd_full_t zr21, zi21;
+    simd_full_t zr22, zi22;
+    simd_full_t zr23, zi23;
+    simd_full_t zr24, zi24;
+    simd_full_t mag1 = SIMD_ZERO_F;
+    simd_full_t mag2 = SIMD_ZERO_F;
+    simd_full_t mag3 = SIMD_ZERO_F;
+    simd_full_t mag4 = SIMD_ZERO_F;
+
+    simd_full_t new_zr1 = zr1, new_zi1 = zi1;
+    simd_full_t new_dr1 = dr1, new_di1 = di1;
+    simd_full_t new_zr2 = zr2, new_zi2 = zi2;
+    simd_full_t new_dr2 = dr2, new_di2 = di2;
+    simd_full_t new_zr3 = zr3, new_zi3 = zi3;
+    simd_full_t new_dr3 = dr3, new_di3 = di3;
+    simd_full_t new_zr4 = zr4, new_zi4 = zi4;
+    simd_full_t new_dr4 = dr4, new_di4 = di4;
+
+    if (invalidPower) {
+        _INVALID_POWER(1);
+        _INVALID_POWER(2);
+        _INVALID_POWER(3);
+        _INVALID_POWER(4);
+    } else {
+        switch (fractalType) {
+            case 0:
+#define _FRACTAL_TYPE mandelbrot
+#include "loop/FractalLoop4.h"
+#undef _FRACTAL_TYPE
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    _QUAD_OUTPUT(1);
+    _QUAD_OUTPUT(2);
+    _QUAD_OUTPUT(3);
+    _QUAD_OUTPUT(4);
 }
 
 #ifdef USE_VECTOR_STORE
@@ -413,6 +504,57 @@ FORCE_INLINE void _colorPixels_vec(
     );
 }
 
+#define _RENDER_VAR(sym, n) _CONCAT2(sym, n)
+
+#define _RENDER_OFFSET(n) ((n) - 1) * SIMD_FULL_WIDTH
+
+#define _RENDER_WIDTH(n) \
+    const int _RENDER_VAR(width, n) = width > _RENDER_OFFSET(n) \
+        ? ((width - _RENDER_OFFSET(n)) < SIMD_FULL_WIDTH \
+            ? (width - _RENDER_OFFSET(n)) \
+            : SIMD_FULL_WIDTH) \
+        : 0;
+
+#define _RENDER_COORD(n) \
+    simd_full_t _RENDER_VAR(cr, n) = SIMD_ZERO_F; \
+    if (_RENDER_VAR(width, n) > 0) { \
+        _RENDER_VAR(cr, n) = getRealPoints_vec( \
+            _RENDER_VAR(width, n), x + _RENDER_OFFSET(n) \
+        ); \
+    }
+
+#define _RENDER_STATE(n) \
+    simd_full_t _RENDER_VAR(zr, n) = SIMD_ZERO_F; \
+    simd_full_t _RENDER_VAR(zi, n) = SIMD_ZERO_F; \
+    simd_full_t _RENDER_VAR(dr, n) = SIMD_ONE_F; \
+    simd_full_t _RENDER_VAR(di, n) = SIMD_ZERO_F; \
+    simd_full_t _RENDER_VAR(iter, n) = SIMD_ZERO_F; \
+    simd_full_t _RENDER_VAR(mag, n) = SIMD_ZERO_F; \
+    simd_full_mask_t _RENDER_VAR(active, n) = SIMD_INIT_ZERO_MASK_F;
+
+#define _RENDER_INIT(n) \
+    if (_RENDER_VAR(width, n) > 0) { \
+        _initCoords_vec( \
+            _RENDER_VAR(cr, n), ci, \
+            _RENDER_VAR(zr, n), _RENDER_VAR(zi, n), \
+            _RENDER_VAR(dr, n), _RENDER_VAR(di, n) \
+        ); \
+        _RENDER_VAR(active, n) = SIMD_INIT_ONES_MASK_F; \
+    }
+
+#define _RENDER_COLOR(n) \
+    if (_RENDER_VAR(width, n) > 0) { \
+        _colorPixels_vec( \
+            pixels, pos, _RENDER_VAR(width, n), \
+            _RENDER_VAR(iter, n), _RENDER_VAR(mag, n), \
+            _RENDER_VAR(active, n), \
+            _RENDER_VAR(zr, n), _RENDER_VAR(zi, n), \
+            _RENDER_VAR(dr, n), _RENDER_VAR(di, n) \
+        ); \
+    }
+
+#define _RENDER_ITER_SUM(n) SIMD_HORIZ_ADD_F(_RENDER_VAR(iter, n))
+
 namespace VectorRenderer {
     void VECTOR_CALL initCoordsSIMD(
         simd_full_t &cr, simd_full_t &ci,
@@ -474,36 +616,79 @@ namespace VectorRenderer {
         uint8_t *pixels, size_t &pos, int width,
         scalar_full_t x, simd_full_t ci, uint64_t *totalIterCount
     ) {
-        simd_full_t cr = getRealPoints_vec(width, x);
+        if (!useQuadPath) {
+            _RENDER_WIDTH(1);
+            _RENDER_COORD(1);
+            _RENDER_STATE(1);
+            _RENDER_INIT(1);
 
-        simd_full_t zr, zi;
-        simd_full_t dr, di;
-        _initCoords_vec(
-            cr, ci,
-            zr, zi,
-            dr, di
-        );
+            if (width1 > 0) {
+                iter1 = _iterateFractal_vec(
+                    cr1, ci,
+                    zr1, zi1,
+                    dr1, di1,
+                    mag1, active1
+                );
+            }
+            _RENDER_COLOR(1);
 
-        simd_full_t mag;
-        simd_full_mask_t active;
-        const simd_full_t iter = _iterateFractal_vec(
-            cr, ci,
-            zr, zi,
-            dr, di,
-            mag, active
-        );
+            if (totalIterCount) {
+                const scalar_full_t sum = _RENDER_ITER_SUM(1);
+                *totalIterCount = static_cast<uint64_t>(sum) + width;
+            }
+        } else {
+            _RENDER_WIDTH(1);
+            _RENDER_WIDTH(2);
+            _RENDER_WIDTH(3);
+            _RENDER_WIDTH(4);
 
-        _colorPixels_vec(
-            pixels, pos, width,
-            iter, mag,
-            active,
-            zr, zi,
-            dr, di
-        );
+            _RENDER_COORD(1);
+            _RENDER_COORD(2);
+            _RENDER_COORD(3);
+            _RENDER_COORD(4);
 
-        if (totalIterCount) {
-            const scalar_full_t sum = SIMD_HORIZ_ADD_F(iter);
-            *totalIterCount = static_cast<uint64_t>(sum) + width;
+            _RENDER_STATE(1);
+            _RENDER_STATE(2);
+            _RENDER_STATE(3);
+            _RENDER_STATE(4);
+
+            _RENDER_INIT(1);
+            _RENDER_INIT(2);
+            _RENDER_INIT(3);
+            _RENDER_INIT(4);
+
+            _iterateFractal4_vec(
+                cr1, ci,
+                zr1, zi1,
+                dr1, di1,
+                iter1, mag1, active1,
+                cr2, ci,
+                zr2, zi2,
+                dr2, di2,
+                iter2, mag2, active2,
+                cr3, ci,
+                zr3, zi3,
+                dr3, di3,
+                iter3, mag3, active3,
+                cr4, ci,
+                zr4, zi4,
+                dr4, di4,
+                iter4, mag4, active4
+            );
+
+            _RENDER_COLOR(1);
+            _RENDER_COLOR(2);
+            _RENDER_COLOR(3);
+            _RENDER_COLOR(4);
+
+            if (totalIterCount) {
+                const scalar_full_t sum =
+                    _RENDER_ITER_SUM(1) +
+                    _RENDER_ITER_SUM(2) +
+                    _RENDER_ITER_SUM(3) +
+                    _RENDER_ITER_SUM(4);
+                *totalIterCount = static_cast<uint64_t>(sum) + width;
+            }
         }
     }
 }

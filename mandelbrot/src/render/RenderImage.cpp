@@ -25,6 +25,7 @@ constexpr auto renderPixel = &ScalarRenderer::renderPixelScalar;
 
 #elif defined(USE_VECTORS)
 
+#include "../scalar/ScalarGlobals.h"
 #include "../vector/VectorTypes.h"
 
 #include "../vector/VectorCoords.h"
@@ -82,6 +83,11 @@ static void renderStrip(
     uint64_t *iterPtr = totalIterCount ? &iterCount : nullptr;
 
     const unsigned rowWidth = xend - xstart + 1;
+#if defined(USE_VECTORS)
+    const int chunkWidth = ScalarGlobals::useQuadPath
+        ? 4 * SIMD_FULL_WIDTH
+        : SIMD_FULL_WIDTH;
+#endif
 
     for (unsigned y = ystart; y <= yend; ++y) {
         size_t pos = static_cast<size_t>(y) * image->strideWidth() +
@@ -97,11 +103,11 @@ static void renderStrip(
 #elif defined(USE_VECTORS)
         const simd_full_t ci = imagCenterCoord(SIMD_SET1_F(y));
 
-        for (unsigned x = xstart; x <= xend; x += SIMD_FULL_WIDTH) {
+        for (unsigned x = xstart; x <= xend; x += chunkWidth) {
             const int pixelsLeft = static_cast<int>(xend - x + 1);
             const int simdWidth =
-                pixelsLeft < SIMD_FULL_WIDTH ?
-                pixelsLeft : SIMD_FULL_WIDTH;
+                pixelsLeft < chunkWidth ?
+                pixelsLeft : chunkWidth;
 
             renderPixel(
                 image->pixels(), pos,

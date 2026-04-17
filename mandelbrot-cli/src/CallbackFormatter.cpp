@@ -31,8 +31,11 @@ void CallbackFormatter::bind(Backend::Session &session) const {
             event.percentage, event.opsPerSecond);
 
         if (event.completed) {
-            printf("\n");
+            const std::string elapsed =
+                FormatUtil::formatDuration(event.elapsedMs);
+            printf(" (completed in: %s)\n", elapsed.c_str());
         }
+
         fflush(stdout);
         };
 

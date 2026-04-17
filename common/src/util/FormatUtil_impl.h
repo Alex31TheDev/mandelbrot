@@ -11,11 +11,18 @@ namespace FormatUtil {
         std::string digits;
 
         if constexpr (std::is_integral_v<T>) {
-            negative = value < 0;
-            digits = std::to_string(negative ? -value : value);
+            if constexpr (std::is_signed_v<T>) {
+                using U = std::make_unsigned_t<T>;
+                U mag;
+
+                if (value < 0) mag = U(0) - static_cast<U>(value);
+                else mag = static_cast<U>(value);
+
+                digits = std::to_string(mag);
+            } else digits = std::to_string(value);
         } else if constexpr (std::is_floating_point_v<T>) {
-            negative = signbit(value);
-            digits = std::to_string(abs(value));
+            negative = std::signbit(value);
+            digits = std::to_string(std::abs(value));
         }
 
         const size_t dotPos = digits.find('.');

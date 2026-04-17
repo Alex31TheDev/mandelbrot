@@ -1,6 +1,9 @@
 #pragma once
 #include "CommonDefs.h"
 
+#include "options/FractalTypes.h"
+#include "options/ColorMethods.h"
+
 #include "ScalarTypes.h"
 #include "util/MathConstants.h"
 
@@ -42,6 +45,7 @@ namespace ScalarGlobals {
     extern bool isJuliaSet, isInverse;
     extern bool normalSeed;
     extern bool invalidPower, normalPower, wholePower, fractionalPower;
+    extern bool useQuadPath;
 
     extern scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     extern scalar_full_t realScale, imagScale;
@@ -64,8 +68,12 @@ namespace ScalarGlobals {
         scalar_full_t pr = DEFAULT_POINT_R, scalar_full_t pi = DEFAULT_POINT_I,
         scalar_full_t sr = DEFAULT_SEED_R, scalar_full_t si = DEFAULT_SEED_I
     );
+    bool setFractalType(
+        int type = FractalTypes::DEFAULT_FRACTAL_TYPE.id,
+        bool julia = false, bool inverse = false
+    );
+    bool setColorMethod(int method = ColorMethods::DEFAULT_COLOR_METHOD.id);
     bool setFractalExponent(scalar_full_t pw = DEFAULT_FRACTAL_EXP);
-    bool setFractalType(bool julia = false, bool inverse = false);
     bool setColorGlobals(
         scalar_half_t freqR = DEFAULT_FREQ_R,
         scalar_half_t freqG = DEFAULT_FREQ_G,
@@ -90,6 +98,7 @@ namespace ScalarGlobals {
         setZoomPoints();
         setFractalExponent();
         setFractalType();
+        setColorMethod();
         setColorGlobals();
         setLightGlobals();
     }
