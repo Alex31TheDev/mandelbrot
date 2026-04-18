@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "BackendApi.h"
+#include "BackendAPI.h"
 
 class PaletteParser {
 public:
@@ -13,7 +13,7 @@ public:
     PaletteParser(const std::string &skipOption);
 
     bool parse(const std::vector<std::string> &args,
-        Backend::PaletteConfig &out, std::string &err
+        Backend::PaletteHexConfig &out, std::string &err
     ) const;
 
 private:
@@ -24,25 +24,25 @@ private:
         float defaultValue
     ) const;
 
-    bool _isValidEntry(const Backend::PaletteEntry &entry) const;
-    bool _validateConfig(const Backend::PaletteConfig &out,
+    bool _isValidEntry(const Backend::PaletteHexEntry &entry) const;
+    bool _validateConfig(const Backend::PaletteHexConfig &out,
         const std::string &context, std::string &err) const;
-    bool _validateEntryCount(const Backend::PaletteConfig &out,
+    bool _validateEntryCount(const Backend::PaletteHexConfig &out,
         const std::string &context, std::string &err) const;
 
     bool _parseCLIEntry(const std::string &str,
-        Backend::PaletteEntry &out) const;
+        Backend::PaletteHexEntry &out) const;
     bool _parseCLI(const std::vector<std::string> &args,
-        Backend::PaletteConfig &out, std::string &err) const;
+        Backend::PaletteHexConfig &out, std::string &err) const;
 
     bool _parseKeyValue(const std::string &str,
         std::string &key, std::string &value) const;
     bool _parseFileLine(const std::string &line,
         KeyValueMap &values, std::string &err) const;
     void _parseFileConfig(const KeyValueMap &values,
-        Backend::PaletteConfig &out) const;
+        Backend::PaletteHexConfig &out) const;
     bool _parseFileEntry(const KeyValueMap &values,
-        Backend::PaletteEntry &entry, std::string &err) const;
+        Backend::PaletteHexEntry &entry, std::string &err) const;
     bool _parseFile(const std::string &filePath,
-        Backend::PaletteConfig &out, std::string &err) const;
+        Backend::PaletteHexConfig &out, std::string &err) const;
 };

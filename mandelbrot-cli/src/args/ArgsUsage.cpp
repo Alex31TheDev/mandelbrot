@@ -20,8 +20,8 @@ namespace ArgsUsage {
         "Mode-specific trailing args: "
         "help iterations | help smooth_iterations | help palette | help light";
 
-    static std::string makeConfigName(std::string_view suffix) {
-        return currentPrefix() + " - " + std::string(suffix);
+    static std::string makeConfigName(const std::string &suffix) {
+        return currentPrefix() + " - " + suffix;
     }
 
     bool isHelpArg(const char *arg) {

@@ -294,11 +294,7 @@ bool Image::_allocate(int32_t width, int32_t height) {
 
     uint8_t *ptr = BufferUtil::bufferAlloc<ALIGNMENT>
         (originalSize, _bufferSize);
-
-    if (!ptr) {
-        return false;
-    }
-
+    if (!ptr) return false;
     _pixels.reset(ptr);
 
     if (_downscaling) {

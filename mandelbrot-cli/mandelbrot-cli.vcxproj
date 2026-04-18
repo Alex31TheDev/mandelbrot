@@ -128,14 +128,18 @@
     <CoreVariant Include="DoubleAVX2" />
     <CoreVariant Include="MPFR" />
   </ItemGroup>
-  <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'">
-    <MSBuild Projects="$(SolutionDir)mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
+  <ItemGroup Condition="'$(Platform)'=='x64'">
+    <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*"
+      Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
+  </ItemGroup>
+  <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
   </Target>
   <Target Name="BundleCoreDlls" AfterTargets="Build">
     <ItemGroup Condition="'$(Platform)'=='x64'">
       <BundledCore Include="@(CoreVariant)">
         <ConfigName>$(Configuration) - %(Identity)</ConfigName>
-        <SourceDir>$(SolutionDir)mandelbrot\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
+        <SourceDir>$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
       </BundledCore>
     </ItemGroup>
     <Copy SourceFiles="@(BundledCore->'%(SourceDir)mandelbrot.dll')" DestinationFiles="@(BundledCore->'$(OutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
@@ -144,7 +148,7 @@
     </ItemGroup>
     <Copy SourceFiles="@(BundledCoreWithPdb->'%(SourceDir)mandelbrot.pdb')" DestinationFiles="@(BundledCoreWithPdb->'$(OutDir)%(ConfigName).pdb')" SkipUnchangedFiles="true" Condition="'@(BundledCoreWithPdb)'!=''" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
-      <BundledSupport Include="$(SolutionDir)mandelbrot\bin\x64\$(Configuration) - MPFR\*.dll" Exclude="$(SolutionDir)mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
+      <BundledSupport Include="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\*.dll" Exclude="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
   </Target>

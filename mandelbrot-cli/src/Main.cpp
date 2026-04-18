@@ -22,8 +22,9 @@ static bool saveImage(Backend::Session &session,
         ? PathUtil::appendSeqnum(baseName, *num)
         : baseName;
 
-    const Backend::Status status = session.saveImage(outName, !num, OUT_FILETYPE);
-    if (!status) {
+    if (const Backend::Status status =
+        session.saveImage(outName, !num, OUT_FILETYPE);
+        !status) {
         fprintf(stderr, "%s\n", status.message.c_str());
         return false;
     }
@@ -32,15 +33,14 @@ static bool saveImage(Backend::Session &session,
 }
 
 static bool runOnce(Backend::Session &session, int argc, char **argv) {
-    const Backend::Status parseStatus = ArgsParser::parse(session, argc, argv);
-    if (!parseStatus) {
-        fprintf(stderr, "%s\n", parseStatus.message.c_str());
+    if (const Backend::Status status = ArgsParser::parse(session, argc, argv);
+        !status) {
+        fprintf(stderr, "%s\n", status.message.c_str());
         return false;
     }
 
-    const Backend::Status renderStatus = session.render();
-    if (!renderStatus) {
-        fprintf(stderr, "%s\n", renderStatus.message.c_str());
+    if (const Backend::Status status = session.render(); !status) {
+        fprintf(stderr, "%s\n", status.message.c_str());
         return false;
     }
 
@@ -71,16 +71,15 @@ static int runRepl(Backend::Session &session, char *progName) {
             continue;
         }
 
-        const Backend::Status parseStatus =
+        if (const Backend::Status status =
             ArgsParser::parse(session, parsedArgs.argc, parsedArgs.argv);
-        if (!parseStatus) {
-            fprintf(stderr, "%s\n", parseStatus.message.c_str());
+            !status) {
+            fprintf(stderr, "%s\n", status.message.c_str());
             continue;
         }
 
-        const Backend::Status renderStatus = session.render();
-        if (!renderStatus) {
-            fprintf(stderr, "%s\n", renderStatus.message.c_str());
+        if (const Backend::Status status = session.render(); !status) {
+            fprintf(stderr, "%s\n", status.message.c_str());
             continue;
         }
 

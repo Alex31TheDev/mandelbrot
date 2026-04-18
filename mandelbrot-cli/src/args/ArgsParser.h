@@ -1,8 +1,9 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
-#include "BackendApi.h"
+#include "BackendAPI.h"
 
 namespace ArgsParser {
     float parseColorValue(

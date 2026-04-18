@@ -161,12 +161,14 @@
   <ItemGroup>
     <ClInclude Include="src\BackendModule.h" />
     <ClInclude Include="src\CPUInfo.h" />
-    <ClInclude Include="src\PaletteParser.h" />
+    <ClInclude Include="src\palette\PaletteParser.h" />
+    <ClInclude Include="src\palette\PaletteWriter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BackendModule.cpp" />
     <ClCompile Include="src\CPUInfo.cpp" />
-    <ClCompile Include="src\PaletteParser.cpp" />
+    <ClCompile Include="src\palette\PaletteParser.cpp" />
+    <ClCompile Include="src\palette\PaletteWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\common.vcxproj">

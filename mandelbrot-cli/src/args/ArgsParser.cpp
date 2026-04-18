@@ -3,13 +3,12 @@
 #include <cstdio>
 #include <cstdio>
 #include <memory>
-#include <optional>
 #include <string_view>
 #include <string>
 #include <stdexcept>
 #include <vector>
 
-#include "BackendApi.h"
+#include "BackendAPI.h"
 #include "options/ColorMethods.h"
 #include "options/FractalTypes.h"
 #include "util/ParserUtil.h"
@@ -17,7 +16,7 @@
 #include "argparse.hpp"
 
 #include "ArgsUsage.h"
-#include "PaletteParser.h"
+#include "palette/PaletteParser.h"
 using namespace ArgsUsage;
 
 using namespace ColorMethods;
@@ -229,8 +228,8 @@ namespace ArgsParser {
             return Backend::Status::failure(err.what());
         }
 
-        if (auto status = session.setImageSize(args.width, args.height, args.aaPixels);
-            !status) return status;
+        if (auto status = session.setImageSize(args.width,
+            args.height, args.aaPixels); !status) return status;
 
         int iterCount = 0;
 
@@ -242,33 +241,32 @@ namespace ArgsParser {
 
         session.setUseThreads(args.useThreads);
 
-        const int parsedColorMethod = parseColorMethod(args.colorMethod);
-        if (parsedColorMethod < 0) {
+        const int colorMethod = parseColorMethod(args.colorMethod);
+        if (colorMethod < 0) {
             return Backend::Status::failure("Unknown color method.");
         }
 
-        const int parsedFractalType = parseFractalType(args.fractalType);
-        if (parsedFractalType < 0) {
+        const int fractalType = parseFractalType(args.fractalType);
+        if (fractalType < 0) {
             return Backend::Status::failure("Unknown fractal type.");
         }
 
         session.setFractalMode(args.isJuliaSet, args.isInverse);
 
-        if (auto status = session.setPoint(args.point_r, args.point_i); !status) return status;
-        if (auto status = session.setSeed(args.seed_r, args.seed_i); !status) return status;
+        if (auto status = session.setPoint(args.point_r, args.point_i); !status)
+            return status;
+        if (auto status = session.setSeed(args.seed_r, args.seed_i); !status)
+            return status;
         if (auto status = session.setFractalType(
-            static_cast<Backend::FractalType>(parsedFractalType)); !status) {
+            static_cast<Backend::FractalType>(fractalType)); !status)
             return status;
-        }
-
-        if (auto status = session.setFractalExponent(args.N); !status) return status;
-
+        if (auto status = session.setFractalExponent(args.N); !status)
+            return status;
         if (auto status = session.setColorMethod(
-            static_cast<Backend::ColorMethod>(parsedColorMethod)); !status) {
+            static_cast<Backend::ColorMethod>(colorMethod)); !status)
             return status;
-        }
 
-        switch (parsedColorMethod) {
+        switch (colorMethod) {
             case 0:
             case 1:
                 return session.setColorFormula(
@@ -280,7 +278,7 @@ namespace ArgsParser {
 
             case 2:
             {
-                Backend::PaletteConfig paletteCfg;
+                Backend::PaletteHexConfig paletteCfg;
                 std::string err;
 
                 std::vector<std::string> paletteArgs;

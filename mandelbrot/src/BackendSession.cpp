@@ -1,8 +1,7 @@
-#include "BackendApi.h"
+#include "BackendAPI.h"
 
 #include <memory>
 #include <string>
-#include <string_view>
 
 #include "util/ParserUtil.h"
 #include "image/Image.h"
@@ -21,29 +20,35 @@ static Backend::Status makeFailure(std::string message) {
     return Backend::Status::failure(std::move(message));
 }
 
-static bool isValidFullInput(std::string_view value) {
+static bool isValidFullInput(const std::string &value) {
     if (value.empty()) return false;
 
 #if defined(USE_MPFR)
     try {
-        static_cast<void>(mpfr::mpreal(std::string(value)));
+        static_cast<void>(mpfr::mpreal(value));
         return true;
     } catch (...) {
         return false;
     }
 #else
     bool ok = false;
-    static_cast<void>(parseNumber<scalar_full_t>(std::string(value), std::ref(ok)));
+    parseNumber<scalar_full_t>(value, std::ref(ok));
     return ok;
 #endif
 }
 
-static ScalarPaletteColor makePaletteColor(const Backend::PaletteEntry &entry) {
+static ScalarPaletteColor makePaletteColor(const Backend::PaletteRGBEntry &entry) {
     ScalarPaletteColor color{};
-    const ScalarColor parsed = ScalarColor::fromString(entry.color);
-    color.R = parsed.R;
-    color.G = parsed.G;
-    color.B = parsed.B;
+    static_cast<ScalarColor &>(color) = { entry.R, entry.G, entry.B };
+
+    color.length = entry.length;
+    return color;
+}
+
+static ScalarPaletteColor makePaletteColor(const Backend::PaletteHexEntry &entry) {
+    ScalarPaletteColor color{};
+    static_cast<ScalarColor &>(color) = ScalarColor::fromString(entry.color);
+
     color.length = entry.length;
     return color;
 }
@@ -85,13 +90,14 @@ public:
         return Backend::Status::success();
     }
 
-    Backend::Status setPoint(std::string_view real, std::string_view imag) override {
+    Backend::Status setPoint(const std::string &real,
+        const std::string &imag) override {
         if (!isValidFullInput(real) || !isValidFullInput(imag)) {
             return makeFailure("Point coordinates must be valid numbers.");
         }
 
-        _pointReal = std::string(real);
-        _pointImag = std::string(imag);
+        _pointReal = real;
+        _pointImag = imag;
 
         setZoomPoints(
             PARSE_F(_pointReal.c_str()),
@@ -103,13 +109,14 @@ public:
         return Backend::Status::success();
     }
 
-    Backend::Status setSeed(std::string_view real, std::string_view imag) override {
+    Backend::Status setSeed(const std::string &real,
+        const std::string &imag) override {
         if (!isValidFullInput(real) || !isValidFullInput(imag)) {
             return makeFailure("Seed coordinates must be valid numbers.");
         }
 
-        _seedReal = std::string(real);
-        _seedImag = std::string(imag);
+        _seedReal = real;
+        _seedImag = imag;
 
         setZoomPoints(
             point_r,
@@ -133,12 +140,12 @@ public:
         ScalarGlobals::setFractalType(fractalType, juliaSet, inverse);
     }
 
-    Backend::Status setFractalExponent(std::string_view exponent) override {
+    Backend::Status setFractalExponent(const std::string &exponent) override {
         if (!isValidFullInput(exponent)) {
             return makeFailure("Fractal exponent must be a valid number.");
         }
 
-        _exponent = std::string(exponent);
+        _exponent = exponent;
         if (!ScalarGlobals::setFractalExponent(PARSE_F(_exponent.c_str()))) {
             return makeFailure("Fractal exponent must be > 1.");
         }
@@ -160,29 +167,18 @@ public:
         return Backend::Status::success();
     }
 
-    Backend::Status setPalette(const Backend::PaletteConfig &paletteConfig) override {
-        if (paletteConfig.totalLength <= ZERO_H || paletteConfig.offset < ZERO_H) {
-            return makeFailure("Palette length must be > 0 and offset must be >= 0.");
-        }
+    Backend::Status setPalette(
+        const Backend::PaletteRGBConfig &paletteConfig
+    ) override {
+        return _setPaletteImpl(paletteConfig,
+            "Palette entries must use valid RGB values and lengths >= 0.");
+    }
 
-        std::vector<ScalarPaletteColor> entries;
-        entries.reserve(paletteConfig.entries.size());
-
-        for (const auto &entry : paletteConfig.entries) {
-            ScalarPaletteColor parsed = makePaletteColor(entry);
-            if (!isValidPaletteColor(parsed)) {
-                return makeFailure(
-                    "Palette entries must use valid #RRGGBB colors and lengths >= 0.");
-            }
-
-            entries.push_back(parsed);
-        }
-
-        if (!setPaletteGlobals(entries, paletteConfig.totalLength, paletteConfig.offset)) {
-            return makeFailure("Palette must contain at least 2 valid entries.");
-        }
-
-        return Backend::Status::success();
+    Backend::Status setPalette(
+        const Backend::PaletteHexConfig &paletteConfig
+    ) override {
+        return _setPaletteImpl(paletteConfig,
+            "Palette entries must use valid #RRGGBB colors and lengths >= 0.");
     }
 
     Backend::Status setLight(float real, float imag) override {
@@ -194,8 +190,8 @@ public:
     }
 
     Backend::Status render() override {
-        auto status = ensureImage();
-        if (!status) return status;
+        if (auto status = _ensureImage(); !status)
+            return status;
 
         VectorGlobals::initVectors();
         MPFRGlobals::initMPFRValues(_pointReal.c_str(), _pointImag.c_str());
@@ -230,13 +226,13 @@ public:
         };
     }
 
-    Backend::Status saveImage(std::string_view path, bool appendDate,
-        std::string_view type) override {
+    Backend::Status saveImage(const std::string &path, bool appendDate,
+        const std::string &type) override {
         if (!_image) {
             return makeFailure("No rendered image is available.");
         }
 
-        if (!_image->saveToFile(std::string(path), appendDate, std::string(type))) {
+        if (!_image->saveToFile(path, appendDate, type)) {
             return makeFailure("Failed to save image.");
         }
 
@@ -246,23 +242,54 @@ public:
 private:
     Backend::Callbacks _callbacks;
     std::unique_ptr<Image> _image;
+    int _lastAAPixels = 1;
 
     std::string _pointReal = "0";
     std::string _pointImag = "0";
     std::string _seedReal = "0";
     std::string _seedImag = "0";
     std::string _exponent = "2";
-    int _lastAAPixels = 1;
 
-    Backend::Status ensureImage() {
+    template<typename PaletteConfigT>
+    Backend::Status _setPaletteImpl(
+        const PaletteConfigT &paletteConfig,
+        const std::string &invalidEntryMessage
+    ) {
+        if (paletteConfig.totalLength <= ZERO_H || paletteConfig.offset < ZERO_H) {
+            return makeFailure("Palette length must be > 0 and offset must be >= 0.");
+        }
+
+        std::vector<ScalarPaletteColor> entries;
+        entries.reserve(paletteConfig.entries.size());
+
+        for (const auto &entry : paletteConfig.entries) {
+            ScalarPaletteColor parsed = makePaletteColor(entry);
+            if (!isValidPaletteColor(parsed)) {
+                return makeFailure(invalidEntryMessage);
+            }
+
+            entries.push_back(parsed);
+        }
+
+        if (!setPaletteGlobals(entries, paletteConfig.totalLength, paletteConfig.offset)) {
+            return makeFailure("Palette must contain at least 2 valid entries.");
+        }
+
+        return Backend::Status::success();
+    }
+
+    Backend::Status _ensureImage() {
         const bool needsNewImage = !_image ||
             _image->outputWidth() != outputWidth ||
             _image->outputHeight() != outputHeight ||
             _lastAAPixels != aaPixels;
 
         if (needsNewImage) {
-            _image = Image::create(outputWidth, outputHeight, useThreads, aaPixels);
-            if (!_image) return makeFailure("Failed to allocate image.");
+            if (auto image = Image::create(outputWidth, outputHeight,
+                useThreads, aaPixels); !image)
+                return makeFailure("Failed to allocate image.");
+            else _image = std::move(image);
+
             _image->setCallbacks(&_callbacks);
             _lastAAPixels = aaPixels;
         } else {

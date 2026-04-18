@@ -1,5 +1,6 @@
 #include "PaletteParser.h"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -8,7 +9,7 @@
 #include <functional>
 #include <vector>
 
-#include "BackendApi.h"
+#include "BackendAPI.h"
 #include "util/ParserUtil.h"
 
 using namespace ParserUtil;
@@ -24,14 +25,14 @@ float PaletteParser::_parseColorValue(
     return parseNumber<float>(str, defaultValue);
 }
 
-bool PaletteParser::_isValidEntry(const Backend::PaletteEntry &entry) const {
+bool PaletteParser::_isValidEntry(const Backend::PaletteHexEntry &entry) const {
     bool ok = false;
     parseHexString(entry.color, std::ref(ok));
     return ok && entry.length >= 0.0f;
 }
 
 bool PaletteParser::_validateConfig(
-    const Backend::PaletteConfig &out,
+    const Backend::PaletteHexConfig &out,
     const std::string &context, std::string &err
 ) const {
     if (out.totalLength > 0.0f && out.offset >= 0.0f) return true;
@@ -41,7 +42,7 @@ bool PaletteParser::_validateConfig(
 }
 
 bool PaletteParser::_validateEntryCount(
-    const Backend::PaletteConfig &out,
+    const Backend::PaletteHexConfig &out,
     const std::string &context, std::string &err
 ) const {
     if (out.entries.size() >= 2) return true;
@@ -52,11 +53,17 @@ bool PaletteParser::_validateEntryCount(
 
 bool PaletteParser::_parseCLIEntry(
     const std::string &str,
-    Backend::PaletteEntry &out
+    Backend::PaletteHexEntry &out
 ) const {
     const size_t split = str.find(':');
 
-    const std::string hex = str.substr(0, split);
+    std::string hex = str.substr(0, split);
+    hex.erase(
+        std::remove_if(hex.begin(), hex.end(),
+            [](const char c) { return c == '\'' || c == '"'; }),
+        hex.end()
+    );
+
     const std::string length =
         split == std::string::npos ? "1"
         : str.substr(split + 1);
@@ -71,7 +78,7 @@ bool PaletteParser::_parseCLIEntry(
 
 bool PaletteParser::_parseCLI(
     const std::vector<std::string> &args,
-    Backend::PaletteConfig &out, std::string &err
+    Backend::PaletteHexConfig &out, std::string &err
 ) const {
     out = {};
     err.clear();
@@ -90,7 +97,7 @@ bool PaletteParser::_parseCLI(
         const std::string &arg = args[i];
         if (arg == _skipOption) continue;
 
-        Backend::PaletteEntry entry;
+        Backend::PaletteHexEntry entry;
         if (!_parseCLIEntry(arg, entry)) {
             err = "Palette entries must use #RRGGBB or #RRGGBB:length.";
             return false;
@@ -137,7 +144,7 @@ bool PaletteParser::_parseFileLine(
 
 void PaletteParser::_parseFileConfig(
     const KeyValueMap &values,
-    Backend::PaletteConfig &out
+    Backend::PaletteHexConfig &out
 ) const {
     if (const auto it = values.find("totalLength"); it != values.end()) {
         out.totalLength = parseNumber<float>(it->second, out.totalLength);
@@ -150,7 +157,7 @@ void PaletteParser::_parseFileConfig(
 
 bool PaletteParser::_parseFileEntry(
     const KeyValueMap &values,
-    Backend::PaletteEntry &entry, std::string &err
+    Backend::PaletteHexEntry &entry, std::string &err
 ) const {
     const auto colorIt = values.find("color");
     if (colorIt == values.end()) return false;
@@ -171,7 +178,7 @@ bool PaletteParser::_parseFileEntry(
 
 bool PaletteParser::_parseFile(
     const std::string &filePath,
-    Backend::PaletteConfig &out, std::string &err
+    Backend::PaletteHexConfig &out, std::string &err
 ) const {
     out = {};
     err.clear();
@@ -194,7 +201,7 @@ bool PaletteParser::_parseFile(
         _parseFileConfig(values, out);
 
         err.clear();
-        Backend::PaletteEntry entry;
+        Backend::PaletteHexEntry entry;
 
         if (_parseFileEntry(values, entry, err)) {
             out.entries.push_back(entry);
@@ -207,7 +214,7 @@ bool PaletteParser::_parseFile(
 
 bool PaletteParser::parse(
     const std::vector<std::string> &args,
-    Backend::PaletteConfig &out, std::string &err
+    Backend::PaletteHexConfig &out, std::string &err
 ) const {
     if (args.size() == 1 && args[0] != _skipOption) {
         return _parseFile(args[0], out, err);

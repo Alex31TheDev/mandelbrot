@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <functional>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace Backend {
@@ -36,15 +35,28 @@ namespace Backend {
         }
     };
 
-    struct PaletteEntry {
+    struct PaletteRGBEntry {
+        float R = 0.0f;
+        float G = 0.0f;
+        float B = 0.0f;
+        float length = 1.0f;
+    };
+
+    struct PaletteHexEntry {
         std::string color;
         float length = 1.0f;
     };
 
-    struct PaletteConfig {
+    struct PaletteRGBConfig {
         float totalLength = 10.0f;
         float offset = 0.0f;
-        std::vector<PaletteEntry> entries;
+        std::vector<PaletteRGBEntry> entries;
+    };
+
+    struct PaletteHexConfig {
+        float totalLength = 10.0f;
+        float offset = 0.0f;
+        std::vector<PaletteHexEntry> entries;
     };
 
     struct ProgressEvent {
@@ -122,23 +134,26 @@ namespace Backend {
         virtual void setUseThreads(bool useThreads) = 0;
 
         virtual Status setZoom(int iterCount, float zoom) = 0;
-        virtual Status setPoint(std::string_view real, std::string_view imag) = 0;
-        virtual Status setSeed(std::string_view real, std::string_view imag) = 0;
+        virtual Status setPoint(const std::string &real,
+            const std::string &imag) = 0;
+        virtual Status setSeed(const std::string &real,
+            const std::string &imag) = 0;
         virtual Status setFractalType(FractalType fractalType) = 0;
         virtual void setFractalMode(bool isJuliaSet, bool isInverse) = 0;
-        virtual Status setFractalExponent(std::string_view exponent) = 0;
+        virtual Status setFractalExponent(const std::string &exponent) = 0;
 
         virtual Status setColorMethod(ColorMethod colorMethod) = 0;
         virtual Status setColorFormula(float freqR, float freqG, float freqB,
             float freqMult) = 0;
-        virtual Status setPalette(const PaletteConfig &palette) = 0;
+        virtual Status setPalette(const PaletteRGBConfig &palette) = 0;
+        virtual Status setPalette(const PaletteHexConfig &palette) = 0;
         virtual Status setLight(float real, float imag) = 0;
 
         virtual Status render() = 0;
         virtual void clearImage() = 0;
 
         virtual ImageView imageView() const = 0;
-        virtual Status saveImage(std::string_view path, bool appendDate,
-            std::string_view type) = 0;
+        virtual Status saveImage(const std::string &path, bool appendDate,
+            const std::string &type) = 0;
     };
 }

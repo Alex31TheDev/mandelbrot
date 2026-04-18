@@ -68,9 +68,7 @@ namespace ParserUtil {
     std::tuple<uint8_t, uint8_t, uint8_t>
         parseHexString(std::string_view str,
             std::optional<std::reference_wrapper<bool>> ok) {
-        if (!str.empty() && str[0] == '#') {
-            str.remove_prefix(1);
-        }
+        if (!str.empty() && str[0] == '#') str.remove_prefix(1);
 
         const bool fullHex = (str.size() == 6);
         const bool shortHex = (str.size() == 3);

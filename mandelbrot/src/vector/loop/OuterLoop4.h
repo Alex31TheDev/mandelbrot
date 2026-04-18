@@ -6,11 +6,11 @@ else if (_CONCAT2(_FORMULA_NAME, Power)) {
 #define _USE_DERIVATIVE
 #include "InnerLoop4.h"
 #undef _USE_DERIVATIVE
-                break;
+            break;
 
         default:
 #include "InnerLoop4.h"
-                break;
+            break;
     }
 }
 

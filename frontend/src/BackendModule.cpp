@@ -39,15 +39,14 @@ std::filesystem::path executableDir() {
 }
 
 BackendModule loadBackendModule(const std::filesystem::path &exeDir,
-    std::string_view configName, std::string &error) {
-    const std::filesystem::path dllPath = exeDir /
-        (std::string(configName) + ".dll");
+    const std::string &configName, std::string &err) {
+    const std::filesystem::path dllPath = exeDir / (configName + ".dll");
 
     SetDllDirectoryW(exeDir.c_str());
 
     HMODULE module = LoadLibraryW(dllPath.c_str());
     if (!module) {
-        error = "Failed to load core DLL: " + dllPath.string();
+        err = "Failed to load core DLL: " + dllPath.string();
         return {};
     }
 
@@ -57,18 +56,18 @@ BackendModule loadBackendModule(const std::filesystem::path &exeDir,
         GetProcAddress(module, "mandelbrot_backend_destroy"));
 
     if (!createSession || !destroySession) {
-        error = "Core DLL is missing backend factory exports.";
+        err = "Core DLL is missing backend factory exports.";
         FreeLibrary(module);
         return {};
     }
 
     SessionPtr session(createSession(), SessionDeleter{ destroySession });
     if (!session) {
-        error = "Failed to create backend session.";
+        err = "Failed to create backend session.";
         FreeLibrary(module);
         return {};
     }
 
-    error.clear();
+    err.clear();
     return BackendModule(module, std::move(session));
 }

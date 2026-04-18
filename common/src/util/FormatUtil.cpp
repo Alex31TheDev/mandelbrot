@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <algorithm>
 
 #include <sstream>
 #include <string>
@@ -15,6 +16,11 @@ constexpr int timeUnitCount = sizeof(timeUnits) / sizeof(timeUnits[0]);
 
 static const int64_t durFactors[] = { 1000i64, 60i64, 60i64, 24i64 };
 constexpr int durMaxSteps = sizeof(durFactors) / sizeof(durFactors[0]);
+
+static int toChannelByte(float value) {
+    const float clamped = std::clamp(value, 0.0f, 1.0f);
+    return static_cast<int>(clamped * 255.0f + 0.5f);
+}
 
 namespace FormatUtil {
     std::string formatBufferSize(size_t size) {
@@ -69,6 +75,17 @@ namespace FormatUtil {
         }
 
         oss << " " << timeUnits[unitIdx];
+        return oss.str();
+    }
+
+    std::string formatHexColor(float r, float g, float b) {
+        std::ostringstream oss;
+
+        oss << "#" << std::uppercase << std::hex << std::setfill('0')
+            << std::setw(2) << toChannelByte(r)
+            << std::setw(2) << toChannelByte(g)
+            << std::setw(2) << toChannelByte(b);
+
         return oss.str();
     }
 }

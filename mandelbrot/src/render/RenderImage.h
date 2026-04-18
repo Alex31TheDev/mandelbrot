@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../image/Image.h"
-#include "BackendApi.h"
+#include "BackendAPI.h"
 
 void renderImage(Image *image,
     const Backend::Callbacks *callbacks = nullptr,

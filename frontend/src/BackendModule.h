@@ -8,9 +8,8 @@
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <string_view>
 
-#include "BackendApi.h"
+#include "BackendAPI.h"
 
 using CreateBackendFn = Backend::Session *(__cdecl *)();
 using DestroyBackendFn = void(__cdecl *)(Backend::Session *);
@@ -47,4 +46,4 @@ struct BackendModule {
 
 std::filesystem::path executableDir();
 BackendModule loadBackendModule(const std::filesystem::path &exeDir,
-    std::string_view configName, std::string &error);
+    const std::string &configName, std::string &err);

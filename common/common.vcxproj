@@ -156,7 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\BackendApi.h" />
+    <ClInclude Include="src\BackendAPI.h" />
     <ClInclude Include="src\options\ColorMethods.h" />
     <ClInclude Include="src\options\FractalTypes.h" />
     <ClInclude Include="src\prefix.h" />
@@ -188,3 +188,4 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
+

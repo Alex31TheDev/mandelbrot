@@ -11,6 +11,7 @@ namespace FormatUtil {
 
     std::string formatBufferSize(size_t size);
     std::string formatDuration(int64_t millis);
+    std::string formatHexColor(float r, float g, float b);
 }
 
 #include "FormatUtil_impl.h"
