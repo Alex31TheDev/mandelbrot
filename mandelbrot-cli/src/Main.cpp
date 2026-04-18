@@ -5,11 +5,10 @@
 #include <string_view>
 #include <vector>
 
-#include <libcpuid/libcpuid.h>
-
 #include "args/ArgsParser.h"
 #include "args/ArgsUsage.h"
 
+#include "CPUInfo.h"
 #include "BackendModule.h"
 #include "CallbackFormatter.h"
 #include "fullname.h"
@@ -32,20 +31,6 @@ static bool saveImage(Backend::Session &session,
     return true;
 }
 
-static std::string getCpuName() {
-    cpu_raw_data_t raw = {};
-    if (cpuid_get_raw_data(&raw) < 0) {
-        return cpuid_error();
-    }
-
-    cpu_id_t id = {};
-    if (cpu_identify(&raw, &id) < 0) {
-        return cpuid_error();
-    }
-
-    return id.brand_str;
-}
-
 static bool runOnce(Backend::Session &session, int argc, char **argv) {
     const Backend::Status parseStatus = ArgsParser::parse(session, argc, argv);
     if (!parseStatus) {
@@ -62,7 +47,7 @@ static bool runOnce(Backend::Session &session, int argc, char **argv) {
     return saveImage(session, 1);
 }
 
-static int runRepl(Backend::Session &session, char *argv0) {
+static int runRepl(Backend::Session &session, char *progName) {
     int fileCounter = 1;
 
     while (true) {
@@ -74,7 +59,7 @@ static int runRepl(Backend::Session &session, char *argv0) {
             continue;
         }
 
-        ArgsVec parsedArgs = ArgsVec::fromParsed(argv0,
+        ArgsVec parsedArgs = ArgsVec::fromParsed(progName,
             ParserUtil::parseCommandLine(line));
 
         if (ArgsUsage::argsCount(parsedArgs.argc) == 1 &&
@@ -121,21 +106,20 @@ static std::vector<char *> makeForwardedArgs(int argc, char **argv) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        ArgsUsage::printTopLevelUsage(argv ? argv[0] : nullptr);
+        ArgsUsage::printTopLevelUsage(argv[0]);
         return 1;
     }
 
-    const std::string_view selector = argv[1] ? argv[1] : "";
-    if (selector == "-h" || selector == "--help" || selector == "help") {
-        ArgsUsage::printTopLevelUsage(argv ? argv[0] : nullptr);
+    const char *variantArg = argv[1];
+    if (ArgsUsage::isHelpArg(variantArg)) {
+        ArgsUsage::printTopLevelUsage(argv[0]);
         return 0;
     }
 
-    const std::string configName = ArgsUsage::resolveVariant(selector);
+    const std::string configName = ArgsUsage::resolveVariant(variantArg);
     if (configName.empty()) {
-        fprintf(stderr, "Unknown variant: %.*s\n\n",
-            static_cast<int>(selector.size()), selector.data());
-        ArgsUsage::printTopLevelUsage(argv ? argv[0] : nullptr);
+        fprintf(stderr, "Unknown variant: %s\n\n", variantArg);
+        ArgsUsage::printTopLevelUsage(argv[0]);
         return 1;
     }
 
@@ -155,7 +139,9 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    printf("CPU: %s\n", getCpuName().c_str());
+    const CPUInfo cpuInfo = queryCPUInfo();
+    printf("CPU: %s (%dc/%dt)\n", cpuInfo.name.c_str(),
+        cpuInfo.cores, cpuInfo.threads);
 
     if (ArgsUsage::argsCount(static_cast<int>(forwardedArgs.size())) == 1 &&
         std::string_view(forwardedArgs[1]) == ArgsUsage::replOption) {

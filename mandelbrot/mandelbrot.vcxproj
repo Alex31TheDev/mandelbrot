@@ -357,11 +357,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\include;$(VcpkgInstalledDir)x64-windows\include;$(ProjectDir)src;$(MSBuildProjectDirectory)\..\common\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(MSBuildProjectDirectory)\..\common\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <Link>
-      <AdditionalLibraryDirectories>$(VcpkgInstalledDir)x64-windows\x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\x64-windows\lib;$(VcpkgInstalledDir)x64-windows\debug\lib;$(VcpkgInstalledDir)x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
   </ItemDefinitionGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnabled>true</VcpkgEnabled>

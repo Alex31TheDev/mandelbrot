@@ -1,51 +1,59 @@
 #include "PaletteParser.h"
-#include "ArgsParser.h"
 
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <functional>
 #include <vector>
 
 #include "BackendApi.h"
 #include "util/ParserUtil.h"
 
-#include "ArgsUsage.h"
-using namespace ArgsUsage;
 using namespace ParserUtil;
 
-using KeyValueMap = std::unordered_map<std::string, std::string>;
+PaletteParser::PaletteParser(const std::string &skipOption)
+    : _skipOption(skipOption) {}
 
-static bool isValidEntry(const Backend::PaletteEntry &entry) {
+float PaletteParser::_parseColorValue(
+    const std::string &str,
+    float defaultValue
+) const {
+    if (str == _skipOption) return defaultValue;
+    return parseNumber<float>(str, defaultValue);
+}
+
+bool PaletteParser::_isValidEntry(const Backend::PaletteEntry &entry) const {
     bool ok = false;
     parseHexString(entry.color, std::ref(ok));
     return ok && entry.length >= 0.0f;
 }
 
-static bool validateConfig(
+bool PaletteParser::_validateConfig(
     const Backend::PaletteConfig &out,
     const std::string &context, std::string &err
-) {
+) const {
     if (out.totalLength > 0.0f && out.offset >= 0.0f) return true;
 
     err = context + " length must be > 0 and offset must be >= 0.";
     return false;
 }
 
-static bool validateEntryCount(
+bool PaletteParser::_validateEntryCount(
     const Backend::PaletteConfig &out,
     const std::string &context, std::string &err
-) {
+) const {
     if (out.entries.size() >= 2) return true;
 
     err = context + " must contain at least 2 color entries.";
     return false;
 }
 
-static bool parseCLIEntry(
+bool PaletteParser::_parseCLIEntry(
     const std::string &str,
     Backend::PaletteEntry &out
-) {
+) const {
     const size_t split = str.find(':');
 
     const std::string hex = str.substr(0, split);
@@ -57,32 +65,33 @@ static bool parseCLIEntry(
         .color = hex,
         .length = parseNumber<float>(length, 1.0f)
     };
-    return isValidEntry(out);
+
+    return _isValidEntry(out);
 }
 
-static bool parseCLI(
+bool PaletteParser::_parseCLI(
     const std::vector<std::string> &args,
     Backend::PaletteConfig &out, std::string &err
-) {
+) const {
     out = {};
     err.clear();
 
-    if (args.size() > 0) {
-        out.totalLength = ArgsParser::parseColorValue(args[0], out.totalLength);
+    if (!args.empty()) {
+        out.totalLength = _parseColorValue(args[0], out.totalLength);
     }
 
     if (args.size() > 1) {
-        out.offset = ArgsParser::parseColorValue(args[1], out.offset);
+        out.offset = _parseColorValue(args[1], out.offset);
     }
 
-    if (!validateConfig(out, "Palette", err)) return false;
+    if (!_validateConfig(out, "Palette", err)) return false;
 
     for (size_t i = 2; i < args.size(); ++i) {
         const std::string &arg = args[i];
-        if (arg == skipOption) continue;
+        if (arg == _skipOption) continue;
 
         Backend::PaletteEntry entry;
-        if (!parseCLIEntry(arg, entry)) {
+        if (!_parseCLIEntry(arg, entry)) {
             err = "Palette entries must use #RRGGBB or #RRGGBB:length.";
             return false;
         }
@@ -90,13 +99,13 @@ static bool parseCLI(
         out.entries.push_back(entry);
     }
 
-    return validateEntryCount(out, "Palette", err);
+    return _validateEntryCount(out, "Palette", err);
 }
 
-static bool parseKeyValue(
+bool PaletteParser::_parseKeyValue(
     const std::string &str,
     std::string &key, std::string &value
-) {
+) const {
     const size_t split = str.find('=');
     if (split == std::string::npos) return false;
 
@@ -105,17 +114,17 @@ static bool parseKeyValue(
     return !key.empty();
 }
 
-static bool parseFileLine(
+bool PaletteParser::_parseFileLine(
     const std::string &line,
-    KeyValueMap &values,
-    std::string &err
-) {
+    KeyValueMap &values, std::string &err
+) const {
     std::istringstream iss{ line };
     std::string token;
 
     while (iss >> token) {
-        std::string key, value;
-        if (!parseKeyValue(token, key, value)) {
+        std::string key;
+        std::string value;
+        if (!_parseKeyValue(token, key, value)) {
             err = "Invalid palette file token: " + token;
             return false;
         }
@@ -126,7 +135,10 @@ static bool parseFileLine(
     return true;
 }
 
-static void parseFileConfig(const KeyValueMap &values, Backend::PaletteConfig &out) {
+void PaletteParser::_parseFileConfig(
+    const KeyValueMap &values,
+    Backend::PaletteConfig &out
+) const {
     if (const auto it = values.find("totalLength"); it != values.end()) {
         out.totalLength = parseNumber<float>(it->second, out.totalLength);
     }
@@ -136,10 +148,10 @@ static void parseFileConfig(const KeyValueMap &values, Backend::PaletteConfig &o
     }
 }
 
-static bool parseFileEntry(
+bool PaletteParser::_parseFileEntry(
     const KeyValueMap &values,
     Backend::PaletteEntry &entry, std::string &err
-) {
+) const {
     const auto colorIt = values.find("color");
     if (colorIt == values.end()) return false;
 
@@ -151,16 +163,16 @@ static bool parseFileEntry(
         .color = colorIt->second,
         .length = parseNumber<float>(length, 1.0f)
     };
-    if (isValidEntry(entry)) return true;
+    if (_isValidEntry(entry)) return true;
 
     err = "Invalid palette file color entry.";
     return false;
 }
 
-static bool parseFile(
+bool PaletteParser::_parseFile(
     const std::string &filePath,
     Backend::PaletteConfig &out, std::string &err
-) {
+) const {
     out = {};
     err.clear();
 
@@ -172,34 +184,34 @@ static bool parseFile(
 
     std::string line;
     while (std::getline(fin, line)) {
-        if (line.empty() || line[0] == PaletteParser::commentToken) {
+        if (line.empty() || line[0] == _commentToken) {
             continue;
         }
 
         KeyValueMap values;
-        if (!parseFileLine(line, values, err)) return false;
+        if (!_parseFileLine(line, values, err)) return false;
 
-        parseFileConfig(values, out);
+        _parseFileConfig(values, out);
 
         err.clear();
         Backend::PaletteEntry entry;
 
-        if (parseFileEntry(values, entry, err)) {
+        if (_parseFileEntry(values, entry, err)) {
             out.entries.push_back(entry);
         } else if (!err.empty()) return false;
     }
 
-    if (!validateConfig(out, "Palette file", err)) return false;
-    return validateEntryCount(out, "Palette file", err);
+    if (!_validateConfig(out, "Palette file", err)) return false;
+    return _validateEntryCount(out, "Palette file", err);
 }
 
 bool PaletteParser::parse(
     const std::vector<std::string> &args,
     Backend::PaletteConfig &out, std::string &err
-) {
-    if (args.size() == 1 && args[0] != skipOption) {
-        return parseFile(args[0], out, err);
-    } else {
-        return parseCLI(args, out, err);
+) const {
+    if (args.size() == 1 && args[0] != _skipOption) {
+        return _parseFile(args[0], out, err);
     }
+
+    return _parseCLI(args, out, err);
 }

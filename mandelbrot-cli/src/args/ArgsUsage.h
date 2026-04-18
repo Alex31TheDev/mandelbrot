@@ -18,7 +18,7 @@ namespace ArgsUsage {
     [[nodiscard]] inline int argsCount(int argc) { return argc - 1; }
 
     bool isHelpArg(const char *arg);
-    void printTopLevelUsage(const char *argv0);
+    void printTopLevelUsage(const char *progName);
     bool printDetailedHelp(int argc, char **argv);
     std::string resolveVariant(std::string_view input);
 }

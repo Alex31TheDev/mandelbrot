@@ -296,7 +296,8 @@ namespace ArgsParser {
                     args.paletteArgs.begin(), args.paletteArgs.end()
                 );
 
-                if (!PaletteParser::parse(paletteArgs, paletteCfg, err)) {
+                PaletteParser paletteParser(skipOption);
+                if (!paletteParser.parse(paletteArgs, paletteCfg, err)) {
                     return Backend::Status::failure(err);
                 }
 

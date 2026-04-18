@@ -7,7 +7,7 @@ namespace FormatUtil {
     template<typename T>
         requires std::is_arithmetic_v<T>
     std::string formatNumber(T value) {
-        bool negative;
+        bool negative = false;
         std::string digits;
 
         if constexpr (std::is_integral_v<T>) {

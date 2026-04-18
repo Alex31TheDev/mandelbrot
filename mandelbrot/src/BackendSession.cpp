@@ -11,7 +11,7 @@
 #include "scalar/ScalarGlobals.h"
 #include "scalar/ScalarColors.h"
 #include "vector/VectorGlobals.h"
-#include "mpfr/MpfrGlobals.h"
+#include "mpfr/MPFRGlobals.h"
 
 using namespace RenderGlobals;
 using namespace ScalarGlobals;

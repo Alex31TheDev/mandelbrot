@@ -29,7 +29,7 @@ namespace ArgsUsage {
             [arg](const char *opt) { return std::string_view(arg) == opt; });
     }
 
-    void printTopLevelUsage(const char *argv0) {
+    void printTopLevelUsage(const char *progName) {
         const std::string prefix = currentPrefix();
 
         fprintf(stderr,
@@ -43,7 +43,7 @@ namespace ArgsUsage {
             "  %s - MPFR\n\n"
             "Short aliases:\n"
             "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr\n",
-            argv0 ? argv0 : "mandelbrot-cli",
+            progName ? progName : "mandelbrot-cli",
             prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),

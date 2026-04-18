@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{3152a3cb-1150-412c-a89f-5ce415183276}</ProjectGuid>
-    <RootNamespace>common</RootNamespace>
+    <ProjectGuid>{73c18da8-e813-4bd3-a6c2-dd30a0af81c6}</ProjectGuid>
+    <RootNamespace>frontend</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -70,6 +70,11 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\common\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
@@ -81,19 +86,19 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -101,7 +106,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,7 +120,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,33 +159,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\BackendApi.h" />
-    <ClInclude Include="src\options\ColorMethods.h" />
-    <ClInclude Include="src\options\FractalTypes.h" />
-    <ClInclude Include="src\prefix.h" />
-    <ClInclude Include="src\util\AssertUtil.h" />
-    <ClInclude Include="src\util\BufferUtil.h" />
-    <ClInclude Include="src\util\BufferUtil_impl.h" />
-    <ClInclude Include="src\util\fnv1a.h" />
-    <ClInclude Include="src\util\FormatUtil.h" />
-    <ClInclude Include="src\util\FormatUtil_impl.h" />
-    <ClInclude Include="src\util\InlineUtil.h" />
-    <ClInclude Include="src\util\MacroUtil.h" />
-    <ClInclude Include="src\util\MathConstants.h" />
-    <ClInclude Include="src\util\ParserUtil.h" />
-    <ClInclude Include="src\util\ParserUtil_impl.h" />
-    <ClInclude Include="src\util\PathUtil.h" />
-    <ClInclude Include="src\util\RangeUtil.h" />
-    <ClInclude Include="src\util\StringUtil.h" />
-    <ClInclude Include="src\util\WarningUtil.h" />
+    <ClInclude Include="src\BackendModule.h" />
+    <ClInclude Include="src\CPUInfo.h" />
+    <ClInclude Include="src\PaletteParser.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\options\ColorMethods.cpp" />
-    <ClCompile Include="src\options\FractalTypes.cpp" />
-    <ClCompile Include="src\util\FormatUtil.cpp" />
-    <ClCompile Include="src\util\ParserUtil.cpp" />
-    <ClCompile Include="src\util\PathUtil.cpp" />
-    <ClCompile Include="src\util\StringUtil.cpp" />
+    <ClCompile Include="src\BackendModule.cpp" />
+    <ClCompile Include="src\CPUInfo.cpp" />
+    <ClCompile Include="src\PaletteParser.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\common\common.vcxproj">
+      <Project>{3152a3cb-1150-412c-a89f-5ce415183276}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
