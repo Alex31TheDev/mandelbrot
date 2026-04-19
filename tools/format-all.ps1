@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = Split-Path -Parent $scriptDir
 $excludeFile = Join-Path $root ".format-exclude"
 
 if (-not (Get-Command clang-format -ErrorAction SilentlyContinue)) {
@@ -26,6 +27,10 @@ if (Test-Path $excludeFile) {
 
 $sourceRoot = Join-Path $root "mandelbrot/src"
 $extensions = @(".cpp", ".h", ".hpp", ".hh", ".cxx", ".cc", ".inl")
+
+if (-not (Test-Path -LiteralPath $sourceRoot)) {
+    Write-Error "Source root not found: $sourceRoot"
+}
 
 $files = Get-ChildItem -Path $sourceRoot -Recurse -File | Where-Object {
     $extensions -contains $_.Extension

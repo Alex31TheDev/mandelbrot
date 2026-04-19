@@ -219,6 +219,12 @@
     </PropertyGroup>
     <Exec Command="&quot;$(_ZVcpkgExecutable)&quot; z-applocal --target-binary=&quot;$(TargetPath)&quot; --installed-bin-dir=&quot;$(_IntelVcpkgInstalledBinDir)&quot; --tlog-file=&quot;$(_IntelVcpkgApplocalTlog)&quot; --copied-files-log=&quot;$(_IntelVcpkgApplocalLog)&quot;" UseUtf8Encoding="Always" StdOutEncoding="utf-8" StdErrEncoding="utf-8" UseCommandProcessor="false" />
   </Target>
+  <Target Name="IntelCompilerRuntimeAppLocal" AfterTargets="QtDeployCustom;IntelVcpkgAppLocal" Condition="'$(Platform)'=='x64' and '$(PlatformToolset)' == 'Intel C++ Compiler 2025' and Exists('$(TargetPath)') and Exists('$(MSBuildThisFileDirectory)..\tools\copy-intel-runtime.ps1')">
+    <PropertyGroup>
+      <_IntelRuntimeOutDir>$([System.String]::Copy('$(OutDir)').TrimEnd('\'))</_IntelRuntimeOutDir>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\tools\copy-intel-runtime.ps1&quot; -OutputDir &quot;$(_IntelRuntimeOutDir)&quot;" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
