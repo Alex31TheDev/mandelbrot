@@ -5,17 +5,17 @@
 #endif
 #include <Windows.h>
 
+#include <string>
 #include <filesystem>
 #include <memory>
-#include <string>
 
 #include "BackendAPI.h"
 
-using CreateBackendFn = Backend::Session *(__cdecl *)();
-using DestroyBackendFn = void(__cdecl *)(Backend::Session *);
+using CreateBackendFunc = Backend::Session *(__cdecl *)();
+using DestroyBackendFunc = void(__cdecl *)(Backend::Session *);
 
 struct SessionDeleter {
-    DestroyBackendFn destroy = nullptr;
+    DestroyBackendFunc destroy = nullptr;
 
     void operator()(Backend::Session *session) const {
         if (destroy && session) destroy(session);

@@ -1,28 +1,22 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "BackendAPI.h"
+#include "../KeyValueParser.h"
 
-class PaletteParser {
+class PaletteParser
+    : public KeyValueParser<Backend::PaletteHexConfig> {
 public:
-    using KeyValueMap = std::unordered_map<std::string, std::string>;
-
     PaletteParser(const std::string &skipOption);
 
     bool parse(const std::vector<std::string> &args,
         Backend::PaletteHexConfig &out, std::string &err
-    ) const;
+    );
 
 private:
-    static constexpr char _commentToken = '#';
     std::string _skipOption;
-
-    float _parseColorValue(const std::string &str,
-        float defaultValue
-    ) const;
 
     bool _isValidEntry(const Backend::PaletteHexEntry &entry) const;
     bool _validateConfig(const Backend::PaletteHexConfig &out,
@@ -35,14 +29,20 @@ private:
     bool _parseCLI(const std::vector<std::string> &args,
         Backend::PaletteHexConfig &out, std::string &err) const;
 
-    bool _parseKeyValue(const std::string &str,
-        std::string &key, std::string &value) const;
-    bool _parseFileLine(const std::string &line,
-        KeyValueMap &values, std::string &err) const;
     void _parseFileConfig(const KeyValueMap &values,
         Backend::PaletteHexConfig &out) const;
     bool _parseFileEntry(const KeyValueMap &values,
         Backend::PaletteHexEntry &entry, std::string &err) const;
     bool _parseFile(const std::string &filePath,
-        Backend::PaletteHexConfig &out, std::string &err) const;
+        Backend::PaletteHexConfig &out, std::string &err);
+
+    bool _handleFileValues(const KeyValueMap &values,
+        Backend::PaletteHexConfig &out, std::string &err) override;
+
+    std::string _openFileError() const override {
+        return "Failed to open palette file.";
+    }
+    std::string _invalidTokenErrorPrefix() const override {
+        return "Invalid palette file token: ";
+    }
 };

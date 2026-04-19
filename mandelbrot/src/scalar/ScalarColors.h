@@ -21,7 +21,6 @@ struct ScalarPaletteColor : public ScalarColor {
     );
 };
 
-#if USE_SCALAR_COLORING
 #include "util/InlineUtil.h"
 
 #define lerp(a, b, t) ((a) + ((b) - (a)) * (t))
@@ -36,5 +35,3 @@ FORCE_INLINE ScalarColor colorLerp(
         lerp(a.B, b.B, t)
     };
 }
-
-#endif

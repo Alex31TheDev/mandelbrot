@@ -136,21 +136,25 @@
     <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
   </Target>
   <Target Name="BundleCoreDlls" AfterTargets="Build">
+    <PropertyGroup Condition="'$(Platform)'=='x64'">
+      <BackendOutDir>$(OutDir)backends\</BackendOutDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(BackendOutDir)" Condition="'$(Platform)'=='x64'" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
       <BundledCore Include="@(CoreVariant)">
         <ConfigName>$(Configuration) - %(Identity)</ConfigName>
         <SourceDir>$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
       </BundledCore>
     </ItemGroup>
-    <Copy SourceFiles="@(BundledCore->'%(SourceDir)mandelbrot.dll')" DestinationFiles="@(BundledCore->'$(OutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
+    <Copy SourceFiles="@(BundledCore->'%(SourceDir)mandelbrot.dll')" DestinationFiles="@(BundledCore->'$(BackendOutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
       <BundledCoreWithPdb Include="@(BundledCore)" Condition="Exists('%(BundledCore.SourceDir)mandelbrot.pdb')" />
     </ItemGroup>
-    <Copy SourceFiles="@(BundledCoreWithPdb->'%(SourceDir)mandelbrot.pdb')" DestinationFiles="@(BundledCoreWithPdb->'$(OutDir)%(ConfigName).pdb')" SkipUnchangedFiles="true" Condition="'@(BundledCoreWithPdb)'!=''" />
+    <Copy SourceFiles="@(BundledCoreWithPdb->'%(SourceDir)mandelbrot.pdb')" DestinationFiles="@(BundledCoreWithPdb->'$(BackendOutDir)%(ConfigName).pdb')" SkipUnchangedFiles="true" Condition="'@(BundledCoreWithPdb)'!=''" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
       <BundledSupport Include="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\*.dll" Exclude="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
     </ItemGroup>
-    <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
+    <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(BackendOutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="IntelVcpkgAppLocal" AfterTargets="CopyFilesToOutputDirectory" BeforeTargets="CopyLocalFilesOutputGroup;RegisterOutput" Condition="'$(VcpkgEnabled)' == 'true' and '$(VcpkgApplocalDeps)' == 'true' and '$(PlatformToolset)' == 'Intel C++ Compiler 2025' and Exists('$(TargetPath)') and '$(_ZVcpkgExecutable)' != '' and '$(_ZVcpkgCurrentInstalledDir)' != ''">

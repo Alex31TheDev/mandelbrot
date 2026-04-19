@@ -16,9 +16,10 @@ namespace VectorGlobals {
 
     simd_half_t h_invCount_vec, h_invLnPow_vec;
 
-    simd_half_t h_freq_r_vec, h_freq_g_vec, h_freq_b_vec;
-    simd_half_t h_phase_r_vec, h_phase_g_vec, h_phase_b_vec;
     simd_half_t h_light_r_vec, h_light_i_vec, h_light_h_vec;
+    simd_half_t h_lightColor_r_vec, h_lightColor_g_vec, h_lightColor_b_vec;
+
+    VectorSinePalette sinePalette_vec(sinePalette);
     VectorColorPalette palette_vec(palette);
 
     static void _calcCoordConsts() {
@@ -49,6 +50,7 @@ namespace VectorGlobals {
 
     void initVectors() {
         _calcCoordConsts();
+        sinePalette_vec = VectorSinePalette(sinePalette);
         palette_vec = VectorColorPalette(palette);
 
         f_seed_r_vec = SIMD_SET1_F(seed_r);
@@ -59,17 +61,13 @@ namespace VectorGlobals {
         h_invCount_vec = SIMD_SET1_H(invCount);
         h_invLnPow_vec = SIMD_SET1_H(invLnPow);
 
-        h_freq_r_vec = SIMD_SET1_H(freq_r);
-        h_freq_g_vec = SIMD_SET1_H(freq_g);
-        h_freq_b_vec = SIMD_SET1_H(freq_b);
-
-        h_phase_r_vec = SIMD_SET1_H(phase_r);
-        h_phase_g_vec = SIMD_SET1_H(phase_g);
-        h_phase_b_vec = SIMD_SET1_H(phase_b);
-
         h_light_r_vec = SIMD_SET1_H(light_r);
         h_light_i_vec = SIMD_SET1_H(light_i);
         h_light_h_vec = SIMD_SET1_H(light_h);
+
+        h_lightColor_r_vec = SIMD_SET1_H(lightColor.R);
+        h_lightColor_g_vec = SIMD_SET1_H(lightColor.G);
+        h_lightColor_b_vec = SIMD_SET1_H(lightColor.B);
     }
 }
 

@@ -274,16 +274,16 @@ FORCE_INLINE void getPixelColor_vec(
     simd_half_t &outR, simd_half_t &outG, simd_half_t &outB
 ) {
     outR = normCos_vec(SIMD_MULADD_H(
-        val, h_freq_r_vec,
-        h_phase_r_vec
+        val, sinePalette_vec.getFreqR(),
+        sinePalette_vec.getPhaseR()
     ));
     outG = normCos_vec(SIMD_MULADD_H(
-        val, h_freq_g_vec,
-        h_phase_g_vec
+        val, sinePalette_vec.getFreqG(),
+        sinePalette_vec.getPhaseG()
     ));
     outB = normCos_vec(SIMD_MULADD_H(
-        val, h_freq_b_vec,
-        h_phase_b_vec
+        val, sinePalette_vec.getFreqB(),
+        sinePalette_vec.getPhaseB()
     ));
 }
 
@@ -489,7 +489,10 @@ FORCE_INLINE void _colorPixels_vec(
                 SIMD_FULL_TO_HALF_CONV(dr),
                 SIMD_FULL_TO_HALF_CONV(di)
             );
-            r_vec = g_vec = b_vec = vals;
+
+            r_vec = SIMD_MUL_H(vals, h_lightColor_r_vec);
+            g_vec = SIMD_MUL_H(vals, h_lightColor_g_vec);
+            b_vec = SIMD_MUL_H(vals, h_lightColor_b_vec);
         }
         break;
 
@@ -616,7 +619,7 @@ namespace VectorRenderer {
         uint8_t *pixels, size_t &pos, int width,
         scalar_full_t x, simd_full_t ci, uint64_t *totalIterCount
     ) {
-        if (!useQuadPath) {
+        if (!useQuadPath()) {
             _RENDER_WIDTH(1);
             _RENDER_COORD(1);
             _RENDER_STATE(1);
@@ -630,6 +633,7 @@ namespace VectorRenderer {
                     mag1, active1
                 );
             }
+
             _RENDER_COLOR(1);
 
             if (totalIterCount) {

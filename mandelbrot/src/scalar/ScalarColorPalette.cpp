@@ -66,8 +66,6 @@ ScalarColorPalette::ScalarColorPalette(
     _epsilon = NEXTAFTER_H(_totalLength, 0);
 }
 
-#if USE_SCALAR_COLORING
-
 FORCE_INLINE ScalarColorPalette::_Segment
 ScalarColorPalette::_locate(scalar_half_t x) const {
     if (_numSegments == 0) return { 0, 0, ZERO_H };
@@ -119,5 +117,3 @@ void ScalarColorPalette::sample(
     outG = lerp(color1.G, color2.G, seg.u);
     outB = lerp(color1.B, color2.B, seg.u);
 }
-
-#endif

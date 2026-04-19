@@ -1,6 +1,9 @@
 #include "FractalTypes.h"
 
+#include <string_view>
 #include <algorithm>
+
+#include "../util/RangeUtil.h"
 
 namespace FractalTypes {
     DEFINE_RANGE_ARRAY(FractalType, fractalTypes,

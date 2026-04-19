@@ -20,13 +20,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
@@ -36,12 +36,12 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
-    <QtInstall>6.11.0_msvc2022_64</QtInstall>
+    <QtInstall>6.11.0_intel_icx_64</QtInstall>
     <QtModules>core;gui;widgets</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
-    <QtInstall>6.11.0_msvc2022_64</QtInstall>
+    <QtInstall>6.11.0_intel_icx_64</QtInstall>
     <QtModules>core;gui;widgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
@@ -59,10 +59,35 @@
     <Import Project="$(QtMsBuild)\Qt.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), vcpkg.json))\</VcpkgManifestRoot>
+    <VcpkgInstalledDir>$(VcpkgManifestRoot)vcpkg_installed\</VcpkgInstalledDir>
+    <VcpkgConfiguration Condition="'$(UseDebugLibraries)'=='true'">Debug</VcpkgConfiguration>
+    <VcpkgConfiguration Condition="'$(UseDebugLibraries)'!='true'">Release</VcpkgConfiguration>
+    <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(MSBuildProjectDirectory)\bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <QtDeploy>false</QtDeploy>
+    <QtDeployDebugRelease>debug</QtDeployDebugRelease>
+    <QtDeployPdb>true</QtDeployPdb>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(MSBuildProjectDirectory)\bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <QtDeploy>false</QtDeploy>
+    <QtDeployDebugRelease>release</QtDeployDebugRelease>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\common\src;$(MSBuildProjectDirectory)\..\frontend\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdcpp20</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -93,20 +118,98 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <QtRcc Include="mandelbrotgui.qrc" />
-    <QtUic Include="mandelbrotgui.ui" />
     <QtMoc Include="mandelbrotgui.h" />
     <ClCompile Include="mandelbrotgui.cpp" />
     <ClCompile Include="main.cpp" />
+    <ResourceCompile Include="mandelbrot-gui.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <PaletteAsset Include="palettes\*.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <SineAsset Include="sines\*.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\common.vcxproj">
       <Project>{3152a3cb-1150-412c-a89f-5ce415183276}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\frontend\frontend.vcxproj">
+      <Project>{73c18da8-e813-4bd3-a6c2-dd30a0af81c6}</Project>
+    </ProjectReference>
   </ItemGroup>
+  <ItemGroup Condition="'$(Platform)'=='x64'">
+    <CoreVariant Include="FloatScalar" />
+    <CoreVariant Include="DoubleScalar" />
+    <CoreVariant Include="FloatAVX2" />
+    <CoreVariant Include="DoubleAVX2" />
+    <CoreVariant Include="MPFR" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Platform)'=='x64'">
+    <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*"
+      Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
+  </ItemGroup>
+  <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
+  </Target>
+  <Target Name="BundleCoreDlls" AfterTargets="Build">
+    <PropertyGroup Condition="'$(Platform)'=='x64'">
+      <BackendOutDir>$(OutDir)backends\</BackendOutDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(BackendOutDir)" Condition="'$(Platform)'=='x64'" />
+    <ItemGroup Condition="'$(Platform)'=='x64'">
+      <BundledCore Include="@(CoreVariant)">
+        <ConfigName>$(Configuration) - %(Identity)</ConfigName>
+        <SourceDir>$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
+      </BundledCore>
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledCore->'%(SourceDir)mandelbrot.dll')" DestinationFiles="@(BundledCore->'$(BackendOutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
+    <ItemGroup Condition="'$(Platform)'=='x64'">
+      <BundledCoreWithPdb Include="@(BundledCore)" Condition="Exists('%(BundledCore.SourceDir)mandelbrot.pdb')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledCoreWithPdb->'%(SourceDir)mandelbrot.pdb')" DestinationFiles="@(BundledCoreWithPdb->'$(BackendOutDir)%(ConfigName).pdb')" SkipUnchangedFiles="true" Condition="'@(BundledCoreWithPdb)'!=''" />
+    <ItemGroup Condition="'$(Platform)'=='x64'">
+      <BundledSupport Include="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\*.dll" Exclude="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(BackendOutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
+  </Target>
+  <Target Name="BundlePaletteFiles" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)palettes" />
+    <Copy SourceFiles="@(PaletteAsset)"
+          DestinationFiles="@(PaletteAsset->'$(OutDir)palettes\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(PaletteAsset)'!=''" />
+  </Target>
+  <Target Name="BundleSineFiles" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)sines" />
+    <Copy SourceFiles="@(SineAsset)"
+          DestinationFiles="@(SineAsset->'$(OutDir)sines\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(SineAsset)'!=''" />
+  </Target>
+  <Target Name="QtDeployCustom" AfterTargets="IntelVcpkgAppLocal" Condition="Exists('$(TargetPath)')">
+    <PropertyGroup>
+      <_QtDeployDebugReleaseArg Condition="'$(QtDeployDebugRelease)' == 'debug'">--debug</_QtDeployDebugReleaseArg>
+      <_QtDeployDebugReleaseArg Condition="'$(QtDeployDebugRelease)' == 'release'">--release</_QtDeployDebugReleaseArg>
+      <_QtDeployPdbArg Condition="'$(QtDeployPdb)' == 'true'">--pdb</_QtDeployPdbArg>
+      <_QtDeployDir>$([System.String]::Copy('$(OutDir)').TrimEnd('\'))</_QtDeployDir>
+      <_QtQmlDir>$([System.String]::Copy('$(MSBuildProjectDirectory)').TrimEnd('\'))</_QtQmlDir>
+      <_QtDeployCmd>"$(QtToolsPath)\windeployqt.exe" --dir "$(_QtDeployDir)" --qmldir "$(_QtQmlDir)" $(_QtDeployDebugReleaseArg) $(_QtDeployPdbArg) --no-network --skip-plugin-types imageformats,networkinformation,tls "$(TargetPath)"</_QtDeployCmd>
+    </PropertyGroup>
+    <Message Importance="high" Text="Qt Deploy (custom): $(_QtDeployCmd)" />
+    <Exec Command="$(_QtDeployCmd)" EnvironmentVariables="VCINSTALLDIR=$(VCInstallDir)" />
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
     <Import Project="$(QtMsBuild)\qt.targets" />
   </ImportGroup>
+  <Target Name="IntelVcpkgAppLocal" AfterTargets="CopyFilesToOutputDirectory" BeforeTargets="CopyLocalFilesOutputGroup;RegisterOutput" Condition="'$(VcpkgEnabled)' == 'true' and '$(VcpkgApplocalDeps)' == 'true' and '$(PlatformToolset)' == 'Intel C++ Compiler 2025' and Exists('$(TargetPath)') and '$(_ZVcpkgExecutable)' != '' and '$(_ZVcpkgCurrentInstalledDir)' != ''">
+    <PropertyGroup>
+      <_IntelVcpkgInstalledBinDir>$(_ZVcpkgCurrentInstalledDir)$(_ZVcpkgConfigSubdir)bin</_IntelVcpkgInstalledBinDir>
+      <_IntelVcpkgApplocalLog>$(IntDir)vcpkg.applocal.log</_IntelVcpkgApplocalLog>
+      <_IntelVcpkgApplocalTlog>$(TLogLocation)$(ProjectName).write.1u.tlog</_IntelVcpkgApplocalTlog>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_ZVcpkgExecutable)&quot; z-applocal --target-binary=&quot;$(TargetPath)&quot; --installed-bin-dir=&quot;$(_IntelVcpkgInstalledBinDir)&quot; --tlog-file=&quot;$(_IntelVcpkgApplocalTlog)&quot; --copied-files-log=&quot;$(_IntelVcpkgApplocalLog)&quot;" UseUtf8Encoding="Always" StdOutEncoding="utf-8" StdErrEncoding="utf-8" UseCommandProcessor="false" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

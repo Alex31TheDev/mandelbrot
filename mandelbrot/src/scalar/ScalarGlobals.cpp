@@ -1,6 +1,8 @@
 #include "CommonDefs.h"
 #include "ScalarGlobals.h"
 
+#include <vector>
+
 #include "ScalarTypes.h"
 
 #include "../render/RenderGlobals.h"
@@ -12,7 +14,6 @@ namespace ScalarGlobals {
     bool isJuliaSet, isInverse;
     bool normalSeed;
     bool invalidPower, normalPower, wholePower, fractionalPower;
-    bool useQuadPath;
 
     scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     scalar_full_t realScale, imagScale;
@@ -23,10 +24,18 @@ namespace ScalarGlobals {
     scalar_half_t zoom, aspect;
     scalar_half_t invCount, invLnPow;
 
-    scalar_half_t freq_r, freq_g, freq_b, freqMult;
-    scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     scalar_half_t light_r, light_i, light_h;
+    ScalarColor lightColor = DEFAULT_LIGHT_COLOR;
 
+    ScalarSinePalette sinePalette(
+        DEFAULT_FREQ_R,
+        DEFAULT_FREQ_G,
+        DEFAULT_FREQ_B,
+        DEFAULT_FREQ_MULT,
+        DEFAULT_PHASE_R,
+        DEFAULT_PHASE_G,
+        DEFAULT_PHASE_B,
+        DEFAULT_COS_PHASE);
     ScalarColorPalette palette({}, SC_SYM_H(10.0));
 
     void initImageValues() {
@@ -79,7 +88,6 @@ namespace ScalarGlobals {
         fractalType = type;
         isJuliaSet = julia;
         isInverse = inverse;
-        useQuadPath = fractalType == 0 && normalPower;
         return true;
     }
 
@@ -94,14 +102,13 @@ namespace ScalarGlobals {
 
         invalidPower = N <= ONE_F;
         normalPower = N == SC_SYM_F(2.0);
-        wholePower = ISWHOLE_F(N);
+        wholePower = !normalPower && ISWHOLE_F(N);
         fractionalPower = !wholePower;
-        useQuadPath = fractalType == 0 && normalPower;
 
         return !invalidPower;
     }
 
-    bool setColorGlobals(
+    bool setSinePaletteGlobals(
         scalar_half_t freqR, scalar_half_t freqG, scalar_half_t freqB,
         scalar_half_t totalMult,
         scalar_half_t phaseR, scalar_half_t phaseG, scalar_half_t phaseB,
@@ -111,39 +118,50 @@ namespace ScalarGlobals {
             return false;
         }
 
-        freqMult = totalMult;
-        freq_r = freqR * freqMult;
-        freq_g = freqG * freqMult;
-        freq_b = freqB * freqMult;
-
-        cosPhase = totalPhase;
-        phase_r = phaseR + cosPhase;
-        phase_g = phaseG + cosPhase;
-        phase_b = phaseB + cosPhase;
+        sinePalette = ScalarSinePalette(
+            freqR,
+            freqG,
+            freqB,
+            totalMult,
+            phaseR,
+            phaseG,
+            phaseB,
+            totalPhase
+        );
 
         return true;
     }
 
-    bool setLightGlobals(scalar_half_t lr, scalar_half_t li) {
+    bool setLightGlobals(
+        scalar_half_t lr, scalar_half_t li,
+        const ScalarColor &color
+    ) {
         const scalar_half_t mag = SQRT_H(lr * lr + li * li);
-        if (ISNEG0_H(mag)) return false;
 
-        light_r = li / mag;
+        light_r = lr / mag;
         light_i = li / mag;
         light_h = mag;
 
+        const bool valid =
+            color.R >= ZERO_H && color.R <= ONE_H &&
+            color.G >= ZERO_H && color.G <= ONE_H &&
+            color.B >= ZERO_H && color.B <= ONE_H;
+        if (ISNEG0_H(mag) || !valid) return false;
+
+        lightColor = color;
         return true;
     }
 
     bool setPaletteGlobals(
         const std::vector<ScalarPaletteColor> &entries,
-        scalar_half_t totalLength, scalar_half_t offset
+        scalar_half_t totalLength, scalar_half_t offset,
+        bool blendEnds
     ) {
         if (entries.size() < 2 || ISNEG0_H(totalLength) || offset < ZERO_H) {
             return false;
         }
 
-        palette = ScalarColorPalette(entries, totalLength, offset);
+        palette = ScalarColorPalette(entries, totalLength, offset, blendEnds);
         return true;
     }
 }

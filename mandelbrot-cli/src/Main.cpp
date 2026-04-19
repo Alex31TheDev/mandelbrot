@@ -5,15 +5,18 @@
 #include <string_view>
 #include <vector>
 
+#include "BackendAPI.h"
+#include "BackendModule.h"
+
 #include "args/ArgsParser.h"
 #include "args/ArgsUsage.h"
 
-#include "CPUInfo.h"
-#include "BackendModule.h"
-#include "CallbackFormatter.h"
-#include "fullname.h"
 #include "util/ParserUtil.h"
 #include "util/PathUtil.h"
+
+#include "CPUInfo.h"
+#include "CallbackFormatter.h"
+#include "fullname.h"
 
 static bool saveImage(Backend::Session &session,
     std::optional<int> num = std::nullopt) {

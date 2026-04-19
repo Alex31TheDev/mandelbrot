@@ -3,11 +3,12 @@
 #include <cstdint>
 
 #include <string>
+#include <memory>
 #include <tuple>
 #include <optional>
 #include <functional>
-#include <memory>
-#include <iosfwd>
+
+#include <iostream>
 
 #ifdef USE_VECTORS
 #include "../vector/VectorTypes.h"
@@ -42,6 +43,10 @@ public:
 
     void setCallbacks(const Backend::Callbacks *callbacks) {
         _callbacks = callbacks;
+
+        if (_callbacks && _pixels) {
+            _emitImageEvent(Backend::ImageEventKind::allocated);
+        }
     }
 
     [[nodiscard]] int32_t width() const { return _width; }

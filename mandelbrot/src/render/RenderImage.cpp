@@ -84,7 +84,7 @@ static void renderStrip(
 
     const unsigned rowWidth = xend - xstart + 1;
 #if defined(USE_VECTORS)
-    const int chunkWidth = ScalarGlobals::useQuadPath
+    const int chunkWidth = ScalarGlobals::useQuadPath()
         ? 4 * SIMD_FULL_WIDTH
         : SIMD_FULL_WIDTH;
 #endif

@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 #include <tuple>
+#include <optional>
+#include <functional>
 
 ArgsVec::ArgsVec(int count)
     : argc(count), argv(new char *[count + 1]) {

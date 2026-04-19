@@ -1,6 +1,10 @@
 #include "BackendModule.h"
 
+#include <string>
+#include <filesystem>
 #include <utility>
+
+#include "BackendAPI.h"
 
 BackendModule::BackendModule(HMODULE moduleHandle, SessionPtr sessionPtr)
     : module(moduleHandle), session(std::move(sessionPtr)) {}
@@ -23,6 +27,7 @@ BackendModule &BackendModule::operator=(BackendModule &&other) noexcept {
 
 void BackendModule::reset() {
     session.reset();
+
     if (module) {
         FreeLibrary(module);
         module = nullptr;
@@ -40,23 +45,22 @@ std::filesystem::path executableDir() {
 
 BackendModule loadBackendModule(const std::filesystem::path &exeDir,
     const std::string &configName, std::string &err) {
-    const std::filesystem::path dllPath = exeDir / (configName + ".dll");
+    const std::filesystem::path dllPath = (exeDir / "backends") / (configName + ".dll");
+    HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr,
+        LOAD_WITH_ALTERED_SEARCH_PATH);
 
-    SetDllDirectoryW(exeDir.c_str());
-
-    HMODULE module = LoadLibraryW(dllPath.c_str());
     if (!module) {
-        err = "Failed to load core DLL: " + dllPath.string();
+        err = "Failed to load backend DLL: " + dllPath.string();
         return {};
     }
 
-    const auto createSession = reinterpret_cast<CreateBackendFn>(
+    const auto createSession = reinterpret_cast<CreateBackendFunc>(
         GetProcAddress(module, "mandelbrot_backend_create"));
-    const auto destroySession = reinterpret_cast<DestroyBackendFn>(
+    const auto destroySession = reinterpret_cast<DestroyBackendFunc>(
         GetProcAddress(module, "mandelbrot_backend_destroy"));
 
     if (!createSession || !destroySession) {
-        err = "Core DLL is missing backend factory exports.";
+        err = "Backend DLL is missing backend factory exports.";
         FreeLibrary(module);
         return {};
     }

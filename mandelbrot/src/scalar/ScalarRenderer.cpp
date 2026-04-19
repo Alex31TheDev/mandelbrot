@@ -94,6 +94,18 @@ FORCE_INLINE int _iterateFractal(
 
 #endif
 
+#define normCos(x) \
+    ((COS_H(x) + ONE_H) * ONEHALF_H);
+
+FORCE_INLINE void getPixelColor(
+    scalar_half_t val,
+    scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
+) {
+    outR = normCos(val * sinePalette.getFreqR() + sinePalette.getPhaseR());
+    outG = normCos(val * sinePalette.getFreqG() + sinePalette.getPhaseG());
+    outB = normCos(val * sinePalette.getFreqB() + sinePalette.getPhaseB());
+}
+
 #if USE_SCALAR_COLORING
 
 FORCE_INLINE scalar_half_t getIterVal(int i) {
@@ -108,18 +120,6 @@ FORCE_INLINE scalar_half_t getSmoothIterVal(int i, scalar_half_t mag) {
     const scalar_half_t sqrt_mag = SQRT_H(mag);
     const scalar_half_t m = LOG_H(LOG_H(sqrt_mag) * invLnBail) * invLnPow;
     return i - m;
-}
-
-#define normCos(x) \
-    ((COS_H(x) + ONE_H) * ONEHALF_H);
-
-FORCE_INLINE void getPixelColor(
-    scalar_half_t val,
-    scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
-) {
-    outR = normCos(val * freq_r + phase_r);
-    outG = normCos(val * freq_g + phase_g);
-    outB = normCos(val * freq_b + phase_b);
 }
 
 FORCE_INLINE void getPaletteColor(
@@ -220,7 +220,10 @@ FORCE_INLINE void _colorPixel(
 
         case 3:
             val = getLightVal(zr, zi, dr, di);
-            R = G = B = val;
+
+            R = val * lightColor.R;
+            G = val * lightColor.G;
+            B = val * lightColor.B;
             break;
 
         default:
@@ -272,6 +275,13 @@ namespace ScalarRenderer {
             pixels, pos,
             R, G, B
         );
+    }
+
+    void sampleColorFormula(
+        scalar_half_t val,
+        scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
+    ) {
+        getPixelColor(val, outR, outG, outB);
     }
 
 #if USE_SCALAR_COLORING

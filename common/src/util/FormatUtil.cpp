@@ -23,6 +23,10 @@ static int toChannelByte(float value) {
 }
 
 namespace FormatUtil {
+    std::string formatBool(bool value) {
+        return value ? "true" : "false";
+    }
+
     std::string formatBufferSize(size_t size) {
         std::ostringstream oss;
         oss << std::fixed;

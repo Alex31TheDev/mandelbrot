@@ -1,12 +1,15 @@
 #include "ArgsParser.h"
 
 #include <cstdio>
-#include <cstdio>
 #include <memory>
 #include <string_view>
 #include <string>
-#include <stdexcept>
 #include <vector>
+#include <optional>
+#include <functional>
+
+#include <exception>
+#include <stdexcept>
 
 #include "BackendAPI.h"
 #include "options/ColorMethods.h"
@@ -16,19 +19,17 @@
 #include "argparse.hpp"
 
 #include "ArgsUsage.h"
-#include "palette/PaletteParser.h"
+#include "parsers/palette/PaletteParser.h"
+#include "parsers/sine/SineParser.h"
 using namespace ArgsUsage;
 
 using namespace ColorMethods;
 using namespace FractalTypes;
 using namespace ParserUtil;
 
-constexpr float DEFAULT_FREQ_R = 0.98f;
-constexpr float DEFAULT_FREQ_G = 0.91f;
-constexpr float DEFAULT_FREQ_B = 0.86f;
-constexpr float DEFAULT_FREQ_MULT = 0.128f;
 constexpr float DEFAULT_LIGHT_R = 1.0f;
 constexpr float DEFAULT_LIGHT_I = 1.0f;
+constexpr float DEFAULT_LIGHT_COLOR = 1.0f;
 
 struct ParsedArgs {
     int width = 0;
@@ -50,7 +51,7 @@ struct ParsedArgs {
     std::string colorArg2 = skipOption;
     std::string colorArg3 = skipOption;
     std::string colorArg4 = skipOption;
-    std::vector<std::string> paletteArgs;
+    std::vector<std::string> colorArgs;
 };
 
 static void addArgumentString(
@@ -175,7 +176,7 @@ static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) 
     addArgumentString(parser, "color2", args.colorArg2, skipOption);
     addArgumentString(parser, "color3", args.colorArg3, skipOption);
     addArgumentString(parser, "color4", args.colorArg4, skipOption);
-    parser.add_argument("paletteArgs").remaining().store_into(args.paletteArgs);
+    parser.add_argument("colorArgs").remaining().store_into(args.colorArgs);
 }
 
 static std::unique_ptr<argparse::ArgumentParser> makeParser(
@@ -190,6 +191,23 @@ static std::unique_ptr<argparse::ArgumentParser> makeParser(
 
     configureParser(*parser, args);
     return parser;
+}
+
+static std::vector<std::string> collectColorArgs(const ParsedArgs &args) {
+    std::vector<std::string> colorArgs;
+
+    for (const std::string *arg : {
+        &args.colorArg1, &args.colorArg2,
+        &args.colorArg3, &args.colorArg4
+        }) {
+        if (*arg != skipOption) colorArgs.push_back(*arg);
+    }
+
+    colorArgs.insert(
+        colorArgs.end(),
+        args.colorArgs.begin(), args.colorArgs.end()
+    );
+    return colorArgs;
 }
 
 namespace ArgsParser {
@@ -269,37 +287,29 @@ namespace ArgsParser {
         switch (colorMethod) {
             case 0:
             case 1:
-                return session.setColorFormula(
-                    parseColorValue(args.colorArg1, DEFAULT_FREQ_R),
-                    parseColorValue(args.colorArg2, DEFAULT_FREQ_G),
-                    parseColorValue(args.colorArg3, DEFAULT_FREQ_B),
-                    parseColorValue(args.colorArg4, DEFAULT_FREQ_MULT)
-                );
+            {
+                Backend::SinePaletteConfig sineCfg;
+                std::string err;
+
+                SineParser sineParser(skipOption);
+                if (!sineParser.parse(collectColorArgs(args), sineCfg, err)) {
+                    return Backend::Status::failure(err);
+                }
+
+                return session.setSinePalette(sineCfg);
+            }
 
             case 2:
             {
                 Backend::PaletteHexConfig paletteCfg;
                 std::string err;
 
-                std::vector<std::string> paletteArgs;
-                for (const std::string *arg : {
-                    &args.colorArg1, &args.colorArg2,
-                    &args.colorArg3, &args.colorArg4
-                    }) {
-                    if (*arg != skipOption) paletteArgs.push_back(*arg);
-                }
-
-                paletteArgs.insert(
-                    paletteArgs.end(),
-                    args.paletteArgs.begin(), args.paletteArgs.end()
-                );
-
                 PaletteParser paletteParser(skipOption);
-                if (!paletteParser.parse(paletteArgs, paletteCfg, err)) {
+                if (!paletteParser.parse(collectColorArgs(args), paletteCfg, err)) {
                     return Backend::Status::failure(err);
                 }
 
-                return session.setPalette(paletteCfg);
+                return session.setColorPalette(paletteCfg);
             }
 
             case 3:
@@ -309,7 +319,19 @@ namespace ArgsParser {
                 const float imag =
                     parseColorValue(args.colorArg2, DEFAULT_LIGHT_I);
 
-                return session.setLight(real, imag);
+                if (auto status = session.setLight(real, imag); !status) {
+                    return status;
+                }
+
+                if (args.colorArg3 != skipOption) {
+                    return session.setLightColor(args.colorArg3);
+                }
+
+                return session.setLightColor({
+                    .R = DEFAULT_LIGHT_COLOR,
+                    .G = DEFAULT_LIGHT_COLOR,
+                    .B = DEFAULT_LIGHT_COLOR
+                    });
             }
 
             default:

@@ -1,5 +1,7 @@
 #include "RenderGlobals.h"
 
+#include <tuple>
+
 #include "../image/Image.h"
 
 namespace RenderGlobals {

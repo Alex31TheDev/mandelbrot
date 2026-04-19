@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include <functional>
 
 #include "ScalarTypes.h"
 

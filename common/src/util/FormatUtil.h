@@ -8,6 +8,7 @@ namespace FormatUtil {
     template<typename T>
         requires std::is_arithmetic_v<T>
     std::string formatNumber(T x);
+    std::string formatBool(bool value);
 
     std::string formatBufferSize(size_t size);
     std::string formatDuration(int64_t millis);

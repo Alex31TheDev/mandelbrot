@@ -1,0 +1,9 @@
+# Default GUI palette
+totalLength=10
+offset=0
+blendEnds=true
+color=#1C0F52 length=1
+color=#2F67C8 length=1
+color=#BDE9FF length=1
+color=#FFD86B length=1
+color=#A62F14 length=1

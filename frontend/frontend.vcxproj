@@ -161,14 +161,22 @@
   <ItemGroup>
     <ClInclude Include="src\BackendModule.h" />
     <ClInclude Include="src\CPUInfo.h" />
-    <ClInclude Include="src\palette\PaletteParser.h" />
-    <ClInclude Include="src\palette\PaletteWriter.h" />
+    <ClInclude Include="src\parsers\KeyValueParser.h" />
+    <ClInclude Include="src\parsers\KeyValueParser_impl.h" />
+    <ClInclude Include="src\parsers\KeyValueWriter.h" />
+    <ClInclude Include="src\parsers\KeyValueWriter_impl.h" />
+    <ClInclude Include="src\parsers\palette\PaletteParser.h" />
+    <ClInclude Include="src\parsers\palette\PaletteWriter.h" />
+    <ClInclude Include="src\parsers\sine\SineParser.h" />
+    <ClInclude Include="src\parsers\sine\SineWriter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BackendModule.cpp" />
     <ClCompile Include="src\CPUInfo.cpp" />
-    <ClCompile Include="src\palette\PaletteParser.cpp" />
-    <ClCompile Include="src\palette\PaletteWriter.cpp" />
+    <ClCompile Include="src\parsers\palette\PaletteParser.cpp" />
+    <ClCompile Include="src\parsers\palette\PaletteWriter.cpp" />
+    <ClCompile Include="src\parsers\sine\SineParser.cpp" />
+    <ClCompile Include="src\parsers\sine\SineWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\common.vcxproj">

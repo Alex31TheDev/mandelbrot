@@ -1,6 +1,8 @@
 #pragma once
 #include "CommonDefs.h"
 
+#include <vector>
+
 #include "options/FractalTypes.h"
 #include "options/ColorMethods.h"
 
@@ -9,6 +11,7 @@
 
 #include "../image/Image.h"
 #include "ScalarColorPalette.h"
+#include "ScalarSinePalette.h"
 
 namespace ScalarGlobals {
     constexpr int MIN_ITERATIONS = 500;
@@ -32,6 +35,11 @@ namespace ScalarGlobals {
 
     constexpr scalar_half_t DEFAULT_LIGHT_R = SC_SYM_H(1.0);
     constexpr scalar_half_t DEFAULT_LIGHT_I = SC_SYM_H(1.0);
+    inline constexpr ScalarColor DEFAULT_LIGHT_COLOR{
+        SC_SYM_H(1.0),
+        SC_SYM_H(1.0),
+        SC_SYM_H(1.0)
+    };
 
     const scalar_half_t HALF_EPSILON =
         NEXTAFTER_H(1, 2) - SC_SYM_H(1.0);
@@ -45,7 +53,6 @@ namespace ScalarGlobals {
     extern bool isJuliaSet, isInverse;
     extern bool normalSeed;
     extern bool invalidPower, normalPower, wholePower, fractionalPower;
-    extern bool useQuadPath;
 
     extern scalar_full_t halfWidth, halfHeight, invWidth, invHeight;
     extern scalar_full_t realScale, imagScale;
@@ -56,11 +63,15 @@ namespace ScalarGlobals {
     extern scalar_half_t zoom, aspect;
     extern scalar_half_t invCount, invLnPow;
 
-    extern scalar_half_t freq_r, freq_g, freq_b, freqMult;
-    extern scalar_half_t phase_r, phase_g, phase_b, cosPhase;
     extern scalar_half_t light_r, light_i, light_h;
+    extern ScalarColor lightColor;
 
+    extern ScalarSinePalette sinePalette;
     extern ScalarColorPalette palette;
+
+    inline bool useQuadPath() {
+        return fractalType == 0 && normalPower && !isJuliaSet && !isInverse;
+    }
 
     void initImageValues();
     bool setZoomGlobals(int iterCount = 0, scalar_half_t zoomScale = 0);
@@ -74,7 +85,7 @@ namespace ScalarGlobals {
     );
     bool setColorMethod(int method = ColorMethods::DEFAULT_COLOR_METHOD.id);
     bool setFractalExponent(scalar_full_t pw = DEFAULT_FRACTAL_EXP);
-    bool setColorGlobals(
+    bool setSinePaletteGlobals(
         scalar_half_t freqR = DEFAULT_FREQ_R,
         scalar_half_t freqG = DEFAULT_FREQ_G,
         scalar_half_t freqB = DEFAULT_FREQ_B,
@@ -85,12 +96,14 @@ namespace ScalarGlobals {
         scalar_half_t totalPhase = DEFAULT_COS_PHASE
     );
     bool setLightGlobals(
-        scalar_half_t lr = DEFAULT_LIGHT_R, scalar_half_t li = DEFAULT_LIGHT_I
+        scalar_half_t lr = DEFAULT_LIGHT_R, scalar_half_t li = DEFAULT_LIGHT_I,
+        const ScalarColor &color = DEFAULT_LIGHT_COLOR
     );
     bool setPaletteGlobals(
         const std::vector<ScalarPaletteColor> &entries,
         scalar_half_t totalLength = SC_SYM_H(10.0),
-        scalar_half_t offset = ZERO_H
+        scalar_half_t offset = ZERO_H,
+        bool blendEnds = true
     );
 
     [[maybe_unused]] static void setAllDefaults() {
@@ -99,7 +112,7 @@ namespace ScalarGlobals {
         setFractalExponent();
         setFractalType();
         setColorMethod();
-        setColorGlobals();
+        setSinePaletteGlobals();
         setLightGlobals();
     }
 }

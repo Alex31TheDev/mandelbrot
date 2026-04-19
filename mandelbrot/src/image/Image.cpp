@@ -1,15 +1,19 @@
 #include "Image.h"
 
-#include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <cmath>
 
 #include <string>
 #include <memory>
+#include <tuple>
+#include <optional>
+#include <functional>
 
 #include <iostream>
 #include <fstream>
+
+#include "BackendAPI.h"
 
 #include "util/WarningUtil.h"
 
@@ -24,7 +28,6 @@ POP_DISABLE_WARNINGS
 #include "util/fnv1a.h"
 #include "util/BufferUtil.h"
 #include "util/PathUtil.h"
-#include "util/FormatUtil.h"
 
 inline float clampf(float x, float a, float b) {
     return fmaxf(a, fminf(x, b));

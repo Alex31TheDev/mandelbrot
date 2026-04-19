@@ -1,6 +1,8 @@
 #include "StringUtil.h"
 
 #include <cctype>
+#include <string>
+#include <string_view>
 
 namespace StringUtil {
     std::string toLower(std::string_view str) {

@@ -883,6 +883,7 @@
     <ClInclude Include="src\scalar\ScalarCoords.h" />
     <ClInclude Include="src\render\RenderImage.h" />
     <ClInclude Include="src\scalar\ScalarGlobals.h" />
+    <ClInclude Include="src\scalar\ScalarSinePalette.h" />
     <ClInclude Include="src\scalar\ScalarTypes.h" />
     <ClInclude Include="src\vector\CommonDefs.h" />
     <ClInclude Include="src\vector\loop\FractalLoop.h" />
@@ -895,6 +896,7 @@
     <ClInclude Include="src\vector\VectorColorPalette.h" />
     <ClInclude Include="src\vector\VectorCoords.h" />
     <ClInclude Include="src\vector\VectorGlobals.h" />
+    <ClInclude Include="src\vector\VectorSinePalette.h" />
     <ClInclude Include="src\image\Image.h" />
     <ClInclude Include="src\scalar\ScalarRenderer.h" />
     <ClInclude Include="src\image\stb_image_write.h" />
@@ -913,8 +915,10 @@
     <ClCompile Include="src\render\RenderImage.cpp" />
     <ClCompile Include="src\render\ProgressTracker.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
+    <ClCompile Include="src\scalar\ScalarSinePalette.cpp" />
     <ClCompile Include="src\vector\VectorColorPalette.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />
+    <ClCompile Include="src\vector\VectorSinePalette.cpp" />
     <ClCompile Include="src\image\Image.cpp" />
     <ClCompile Include="src\scalar\ScalarRenderer.cpp" />
     <ClCompile Include="src\vector\VectorRenderer.cpp" />

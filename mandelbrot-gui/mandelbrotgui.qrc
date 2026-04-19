@@ -1,4 +1,5 @@
 <RCC>
     <qresource prefix="mandelbrotgui">
+        <file>mandelbrot.ico</file>
     </qresource>
 </RCC>

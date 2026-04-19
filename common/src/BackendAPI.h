@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <string>
 #include <vector>
+#include <functional>
+#include <utility>
 
 namespace Backend {
     enum class ColorMethod {
@@ -50,13 +50,28 @@ namespace Backend {
     struct PaletteRGBConfig {
         float totalLength = 10.0f;
         float offset = 0.0f;
+        bool blendEnds = true;
         std::vector<PaletteRGBEntry> entries;
     };
 
     struct PaletteHexConfig {
         float totalLength = 10.0f;
         float offset = 0.0f;
+        bool blendEnds = true;
         std::vector<PaletteHexEntry> entries;
+    };
+
+    struct SinePaletteConfig {
+        float freqR = 0.98f;
+        float freqG = 0.91f;
+        float freqB = 0.86f;
+        float freqMult = 0.128f;
+    };
+
+    struct LightColor {
+        float R = 1.0f;
+        float G = 1.0f;
+        float B = 1.0f;
     };
 
     struct ProgressEvent {
@@ -136,8 +151,10 @@ namespace Backend {
         virtual Status setZoom(int iterCount, float zoom) = 0;
         virtual Status setPoint(const std::string &real,
             const std::string &imag) = 0;
+        virtual Status setPoint(int pixelX, int pixelY) = 0;
         virtual Status setSeed(const std::string &real,
             const std::string &imag) = 0;
+        virtual Status setSeed(int pixelX, int pixelY) = 0;
         virtual Status setFractalType(FractalType fractalType) = 0;
         virtual void setFractalMode(bool isJuliaSet, bool isInverse) = 0;
         virtual Status setFractalExponent(const std::string &exponent) = 0;
@@ -145,9 +162,16 @@ namespace Backend {
         virtual Status setColorMethod(ColorMethod colorMethod) = 0;
         virtual Status setColorFormula(float freqR, float freqG, float freqB,
             float freqMult) = 0;
-        virtual Status setPalette(const PaletteRGBConfig &palette) = 0;
-        virtual Status setPalette(const PaletteHexConfig &palette) = 0;
+        virtual Status setSinePalette(const SinePaletteConfig &palette) = 0;
+        virtual Status setColorPalette(const PaletteRGBConfig &palette) = 0;
+        virtual Status setColorPalette(const PaletteHexConfig &palette) = 0;
+        virtual Status setLightColor(const LightColor &color) = 0;
+        virtual Status setLightColor(const std::string &colorHex) = 0;
         virtual Status setLight(float real, float imag) = 0;
+        virtual Status setLight(int pixelX, int pixelY) = 0;
+        virtual ImageView renderPalettePreview(int width, int height) = 0;
+        virtual ImageView renderSinePreview(int width, int height,
+            float rangeMin, float rangeMax) = 0;
 
         virtual Status render() = 0;
         virtual void clearImage() = 0;

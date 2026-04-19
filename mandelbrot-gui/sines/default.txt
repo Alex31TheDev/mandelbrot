@@ -1,0 +1,5 @@
+# Default GUI sine color
+freqR=0.98
+freqG=0.91
+freqB=0.86
+freqMult=0.128

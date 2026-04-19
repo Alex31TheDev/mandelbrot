@@ -1,11 +1,15 @@
 #include "ArgsUsage.h"
 
 #include <cstdio>
+#include <string>
+#include <string_view>
 #include <algorithm>
 #include <unordered_map>
 
-#include "util/fnv1a.h"
+#include "util/RangeUtil.h"
 #include "util/StringUtil.h"
+#include "util/fnv1a.h"
+
 #include "prefix.h"
 
 namespace ArgsUsage {
@@ -65,7 +69,10 @@ namespace ArgsUsage {
                     "Color method '%s':\n"
                     "\n"
                     "After N, pass:\n"
-                    "  [freq_r] [freq_g] [freq_b] [freqMult]\n",
+                    "  [freq_r] [freq_g] [freq_b] [freqMult]\n"
+                    "  or a sine file path as the first trailing arg\n"
+                    "Sine files use key=value lines for freqR, freqG, "
+                    "freqB, and freqMult\n",
                     mode
                 );
             return true;
@@ -89,7 +96,8 @@ namespace ArgsUsage {
                     "Color method '%s':\n"
                     "\n"
                     "After N, pass:\n"
-                    "  [light_r] [light_i]\n",
+                    "  [light_r] [light_i] [#RRGGBB]\n"
+                    "The light color is optional and defaults to white.\n",
                     mode
                 );
             return true;

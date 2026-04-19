@@ -112,22 +112,31 @@
     mag4_step2 = NUM_ADDXX(zr4_step2, zr4_step2, zi4_step2, zi4_step2);
 
 #define formula_wholePower \
+    number_t f_pzr = zr; \
+    number_t f_pzi = zi; \
+    \
+    number_t f_pzr2 = zr2; \
+    number_t f_pzi2 = zi2; \
+    \
+    new_zr = f_pzr; \
+    new_zi = f_pzi; \
+    \
     for (int k = N - 1; k > 0; k >>= 1) { \
         if ((k & 1) == 1) { \
-            const number_t zrzi = NUM_MUL(new_zr, zi); \
-            new_zr = NUM_SUBXX(zr, new_zr, zi, new_zi); \
-            new_zi = NUM_MULADD(zr, new_zi, zrzi); \
+            const number_t zrzi = NUM_MUL(new_zr, f_pzi); \
+            new_zr = NUM_SUBXX(f_pzr, new_zr, f_pzi, new_zi); \
+            new_zi = NUM_MULADD(f_pzr, new_zi, zrzi); \
         } \
     \
-        zi = NUM_DOUBLE(NUM_MUL(zr, zi)); \
-        zr = NUM_SUB(zr2, zi2); \
+        f_pzi = NUM_DOUBLE(NUM_MUL(f_pzr, f_pzi)); \
+        f_pzr = NUM_SUB(f_pzr2, f_pzi2); \
     \
-        zr2 = NUM_MUL(zr, zr); \
-        zi2 = NUM_MUL(zi, zi); \
+        f_pzr2 = NUM_MUL(f_pzr, f_pzr); \
+        f_pzi2 = NUM_MUL(f_pzi, f_pzi); \
     } \
     \
-        new_zr = NUM_ADD(new_zr, cr); \
-        new_zi = NUM_ADD(new_zi, ci);
+    new_zr = NUM_ADD(new_zr, cr); \
+    new_zi = NUM_ADD(new_zi, ci);
 
 #define formula_fractionalPower \
     const number_t m_rp = NUM_POW(NUM_ADD(zr2, zi2), NUM_HALF(N_VAR)); \
