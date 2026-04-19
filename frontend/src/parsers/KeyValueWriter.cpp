@@ -1,9 +1,8 @@
-#pragma once
+#include "KeyValueWriter.h"
 
 #include <fstream>
 
-template<typename Derived>
-bool KeyValueWriter<Derived>::writeKeyValue(
+bool KeyValueWriter::writeKeyValue(
     const std::string &filePath,
     std::string &err
 ) const {
@@ -11,20 +10,22 @@ bool KeyValueWriter<Derived>::writeKeyValue(
 
     std::ofstream fout(filePath);
     if (!fout.is_open()) {
-        err = Derived::_openFileError;
+        err = _openFileError();
         return false;
     }
 
-    if (!Derived::_headerLine.empty()) {
-        fout << _commentToken << ' ' << Derived::_headerLine << '\n';
+    const std::string header = _headerLine();
+    if (!header.empty()) {
+        fout << _commentToken << ' ' << header << '\n';
     }
 
     _writeBody(fout);
 
     if (!fout.good()) {
-        err = Derived::_writeFileError;
+        err = _writeFileError();
         return false;
     }
 
     return true;
 }
+

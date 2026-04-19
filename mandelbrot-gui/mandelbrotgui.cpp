@@ -57,6 +57,8 @@
 #include "CPUInfo.h"
 #include "parsers/palette/PaletteParser.h"
 #include "parsers/palette/PaletteWriter.h"
+#include "parsers/point/PointParser.h"
+#include "parsers/point/PointWriter.h"
 #include "parsers/sine/SineParser.h"
 #include "parsers/sine/SineWriter.h"
 #include "prefix.h"
@@ -67,6 +69,7 @@ namespace {
     constexpr auto kDefaultSineName = "default";
     constexpr double kMinGuiZoom = -3.2499;
     constexpr int kControlScrollBarWidth = 10;
+    constexpr int kControlWindowScreenPadding = 48;
 
     constexpr std::array<double, 21> kZoomStepTable = {
         1.000625, 1.00125, 1.0025, 1.005, 1.01, 1.015, 1.02, 1.025, 1.03, 1.04,
@@ -175,6 +178,10 @@ namespace {
     std::filesystem::path paletteFilePath(const QString &name) {
         return paletteDirectoryPath() /
             std::filesystem::path((name + ".txt").toStdString());
+    }
+
+    std::filesystem::path pointDirectoryPath() {
+        return executableDir() / "points";
     }
 
     bool ensurePaletteDirectory(QString &errorMessage) {
@@ -348,6 +355,44 @@ namespace {
     bool savePaletteToPath(const std::filesystem::path &path,
         const Backend::PaletteHexConfig &palette, QString &errorMessage) {
         PaletteWriter writer(palette);
+        std::string err;
+        if (writer.write(path.string(), err)) {
+            errorMessage.clear();
+            return true;
+        }
+
+        errorMessage = QString::fromStdString(err);
+        return false;
+    }
+
+    bool ensurePointDirectory(QString &errorMessage) {
+        errorMessage.clear();
+
+        std::error_code ec;
+        std::filesystem::create_directories(pointDirectoryPath(), ec);
+        if (!ec) return true;
+
+        errorMessage = QString("Failed to create points directory: %1")
+            .arg(QString::fromStdString(ec.message()));
+        return false;
+    }
+
+    bool loadPointFromPath(const std::filesystem::path &path,
+        PointConfig &point, QString &errorMessage) {
+        PointParser parser;
+        std::string err;
+        if (parser.parse(path.string(), point, err)) {
+            errorMessage.clear();
+            return true;
+        }
+
+        errorMessage = QString::fromStdString(err);
+        return false;
+    }
+
+    bool savePointToPath(const std::filesystem::path &path,
+        const PointConfig &point, QString &errorMessage) {
+        PointWriter writer(point);
         std::string err;
         if (writer.write(path.string(), err)) {
             errorMessage.clear();
@@ -2147,9 +2192,7 @@ namespace {
                 }
 
                 if (commitSelection) {
-                    if (rect.width() < 8 || rect.height() < 8) {
-                        _owner->zoomAtPixel(mapToOutputPixel(_lastMousePos), true);
-                    } else {
+                    if (rect.width() >= 8 && rect.height() >= 8) {
                         _owner->boxZoom(rect);
                     }
                 }
@@ -2456,8 +2499,8 @@ void mandelbrotgui::buildUi() {
     root->setSpacing(3);
     const auto onSectionToggled = [this]() { updateControlWindowSize(); };
 
-    auto *cpuGroup = new CollapsibleGroupBox("CPU", true, onSectionToggled);
-    auto *cpuLayout = new QGridLayout(cpuGroup);
+    _cpuGroup = new CollapsibleGroupBox("CPU", true, onSectionToggled);
+    auto *cpuLayout = new QGridLayout(_cpuGroup);
     cpuLayout->addWidget(new QLabel("Name"), 0, 0);
     _cpuNameEdit = new QLineEdit();
     _cpuNameEdit->setReadOnly(true);
@@ -2475,11 +2518,12 @@ void mandelbrotgui::buildUi() {
     cpuLayout->addWidget(_cpuThreadsEdit, 1, 3);
     _useThreadsCheckBox = new QCheckBox("Use Threads");
     cpuLayout->addWidget(_useThreadsCheckBox, 1, 4, 1, 2);
-    root->addWidget(cpuGroup);
-    cpuGroup->applyExpandedState(cpuGroup->isChecked());
+    root->addWidget(_cpuGroup);
+    static_cast<CollapsibleGroupBox *>(_cpuGroup)->applyExpandedState(
+        _cpuGroup->isChecked());
 
-    auto *renderGroup = new CollapsibleGroupBox("Render", true, onSectionToggled);
-    auto *renderLayout = new QGridLayout(renderGroup);
+    _renderGroup = new CollapsibleGroupBox("Render", true, onSectionToggled);
+    auto *renderLayout = new QGridLayout(_renderGroup);
     renderLayout->addWidget(new QLabel("Variant"), 0, 0);
     _variantCombo = new QComboBox();
     _variantCombo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
@@ -2507,11 +2551,12 @@ void mandelbrotgui::buildUi() {
     _inverseCheck = new QCheckBox("Inverse");
     renderLayout->addWidget(_juliaCheck, 4, 1);
     renderLayout->addWidget(_inverseCheck, 4, 2);
-    root->addWidget(renderGroup);
-    renderGroup->applyExpandedState(renderGroup->isChecked());
+    root->addWidget(_renderGroup);
+    static_cast<CollapsibleGroupBox *>(_renderGroup)->applyExpandedState(
+        _renderGroup->isChecked());
 
-    auto *infoGroup = new CollapsibleGroupBox("Info", true, onSectionToggled);
-    auto *infoLayout = new QFormLayout(infoGroup);
+    _infoGroup = new CollapsibleGroupBox("Info", true, onSectionToggled);
+    auto *infoLayout = new QFormLayout(_infoGroup);
     _infoRealEdit = new QLineEdit();
     _infoRealEdit->setReadOnly(true);
     _infoRealEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
@@ -2524,11 +2569,21 @@ void mandelbrotgui::buildUi() {
     _infoZoomEdit->setReadOnly(true);
     _infoZoomEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     infoLayout->addRow("Zoom", _infoZoomEdit);
-    root->addWidget(infoGroup);
-    infoGroup->applyExpandedState(infoGroup->isChecked());
+    auto *pointButtonsLayout = new QHBoxLayout();
+    pointButtonsLayout->setContentsMargins(0, 0, 0, 0);
+    _savePointButton = new QPushButton("Save View");
+    _loadPointButton = new QPushButton("Load View");
+    stabilizePushButton(_savePointButton);
+    stabilizePushButton(_loadPointButton);
+    pointButtonsLayout->addWidget(_savePointButton);
+    pointButtonsLayout->addWidget(_loadPointButton);
+    infoLayout->addRow(QString(), pointButtonsLayout);
+    root->addWidget(_infoGroup);
+    static_cast<CollapsibleGroupBox *>(_infoGroup)->applyExpandedState(
+        _infoGroup->isChecked());
 
-    auto *navGroup = new CollapsibleGroupBox("Viewport", true, onSectionToggled);
-    auto *navLayout = new QGridLayout(navGroup);
+    _viewportGroup = new CollapsibleGroupBox("Viewport", true, onSectionToggled);
+    auto *navLayout = new QGridLayout(_viewportGroup);
     navLayout->setColumnStretch(0, 0);
     navLayout->setColumnStretch(1, 1);
     navLayout->setColumnStretch(2, 0);
@@ -2580,8 +2635,9 @@ void mandelbrotgui::buildUi() {
     _exponentSpin->setFixedWidth(72);
     navLayout->addWidget(_exponentSlider, 4, 1);
     navLayout->addWidget(_exponentSpin, 4, 2);
-    root->addWidget(navGroup);
-    navGroup->applyExpandedState(navGroup->isChecked());
+    root->addWidget(_viewportGroup);
+    static_cast<CollapsibleGroupBox *>(_viewportGroup)->applyExpandedState(
+        _viewportGroup->isChecked());
 
     _sineGroup = new CollapsibleGroupBox("Sine Color", false, onSectionToggled);
     auto *sineLayout = new QGridLayout(_sineGroup);
@@ -2782,8 +2838,9 @@ void mandelbrotgui::populateControls() {
         prefix + " - DoubleScalar",
         prefix + " - FloatAVX2",
         prefix + " - DoubleAVX2",
-        prefix + " - MPFR"
-    });
+        prefix + " - MPFR",
+        prefix + " - QD"
+        });
 
     _colorMethodCombo->addItems({
         "Iterations",
@@ -2798,7 +2855,7 @@ void mandelbrotgui::populateControls() {
     });
     _navModeCombo->addItems({
         "Realtime Zoom",
-        "Zoom",
+        "Box Zoom",
         "Pan"
     });
     _pickTargetCombo->addItems({
@@ -2862,6 +2919,7 @@ void mandelbrotgui::initializeState() {
     _mouseText = "Mouse: -";
     _viewportRenderTimeText.clear();
     _imageMemoryText = "Render: -  Output: -";
+    syncPointTextFromState();
 }
 
 void mandelbrotgui::connectUi() {
@@ -2985,6 +3043,10 @@ void mandelbrotgui::connectUi() {
         this, [this]() { saveSine(); });
     QObject::connect(_importSineButton, &QPushButton::clicked,
         this, [this]() { importSine(); });
+    QObject::connect(_savePointButton, &QPushButton::clicked,
+        this, [this]() { savePointView(); });
+    QObject::connect(_loadPointButton, &QPushButton::clicked,
+        this, [this]() { loadPointView(); });
 
     QObject::connect(_paletteCombo, &QComboBox::currentTextChanged,
         this, [this](const QString &name) {
@@ -3189,7 +3251,12 @@ void mandelbrotgui::startRenderWorker() {
             });
 
             QString error;
-            if (!applyStateToSession(request.state, request.pickAction, error)) {
+            if (!applyStateToSession(
+                    request.state,
+                    request.pointRealText,
+                    request.pointImagText,
+                    request.pickAction,
+                    error)) {
                 {
                     const std::scoped_lock lock(_renderMutex);
                     _queuedRenderRequest.reset();
@@ -3266,6 +3333,8 @@ bool mandelbrotgui::ensureBackendReady(QString &errorMessage) const {
 }
 
 bool mandelbrotgui::applyStateToSession(const UiState &state,
+    const QString &pointRealText,
+    const QString &pointImagText,
     const std::optional<PendingPickAction> &pickAction,
     QString &errorMessage) {
     if (!ensureBackendReady(errorMessage)) return false;
@@ -3285,8 +3354,8 @@ bool mandelbrotgui::applyStateToSession(const UiState &state,
             static_cast<float>(clampGuiZoom(state.zoom)))))
         return false;
     if (failIfNeeded(_backend.session->setPoint(
-            stateToString(state.point.x()).toStdString(),
-            stateToString(state.point.y()).toStdString())))
+            pointRealText.toStdString(),
+            pointImagText.toStdString())))
         return false;
     if (failIfNeeded(_backend.session->setSeed(
             stateToString(state.seed.x()).toStdString(),
@@ -3376,6 +3445,8 @@ void mandelbrotgui::requestRender(bool force) {
         const std::scoped_lock lock(_renderMutex);
         _queuedRenderRequest = RenderRequest{
             .state = _state,
+            .pointRealText = _pointRealText,
+            .pointImagText = _pointImagText,
             .pickAction = pickAction,
             .id = requestId
         };
@@ -3398,6 +3469,7 @@ void mandelbrotgui::applyHomeView() {
     _state.point = QPointF(0.0, 0.0);
     _state.seed = QPointF(0.0, 0.0);
     _state.light = QPointF(1.0, 1.0);
+    syncPointTextFromState();
     syncControlsFromState();
     requestRender(true);
 }
@@ -3410,23 +3482,22 @@ void mandelbrotgui::scaleAtPixel(
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     const QPoint clampedPixel = clampPixelToOutput(pixel);
-    const QPointF target = outputPixelToComplex(clampedPixel);
     const double nextZoom = clampGuiZoom(_state.zoom - std::log10(scaleMultiplier));
     if (nextZoom == _state.zoom) return;
 
-    const QSize size = outputSize();
-    const double dx = (clampedPixel.x() - size.width() / 2.0) /
-        std::max(1, size.width());
-    const double dy = (clampedPixel.y() - size.height() / 2.0) /
-        std::max(1, size.height());
-    const double aspect = static_cast<double>(size.width()) /
-        std::max(1, size.height());
-    const double realScale = 1.0 / std::pow(10.0, nextZoom);
-    const double imagScale = realScale / aspect;
+    QString real;
+    QString imag;
+    QString errorMessage;
+    if (!backendComputeZoomPointForPixel(
+            clampedPixel, nextZoom, real, imag, errorMessage)) {
+        handleRenderFailure(errorMessage);
+        return;
+    }
 
     _state.zoom = nextZoom;
-    _state.point.setX(target.x() - dx * realScale);
-    _state.point.setY(dy * imagScale - target.y());
+    _pointRealText = real;
+    _pointImagText = imag;
+    syncStatePointFromText();
     syncStateReadouts();
     requestRender();
 }
@@ -3450,13 +3521,21 @@ void mandelbrotgui::boxZoom(const QRect &selectionRect) {
     const double yScale = static_cast<double>(size.height()) / rect.height();
     const double factor = std::max(1.01, std::min(xScale, yScale));
     const QPoint center = clampPixelToOutput(rect.center());
-    const QPointF target = outputPixelToComplex(center);
     const double nextZoom = clampGuiZoom(_state.zoom + std::log10(factor));
 
+    QString targetReal;
+    QString targetImag;
+    QString errorMessage;
+    if (!backendPointAtPixel(center, targetReal, targetImag, errorMessage)) {
+        handleRenderFailure(errorMessage);
+        return;
+    }
+
     _state.zoom = nextZoom;
-    // For box zoom we re-center on the selected area, unlike anchored wheel/click zoom.
-    _state.point.setX(target.x());
-    _state.point.setY(-target.y());
+    _pointRealText = targetReal;
+    _pointImagText = targetImag.startsWith('-') ? targetImag.mid(1)
+                                                : QString("-%1").arg(targetImag);
+    syncStatePointFromText();
     syncStateReadouts();
     requestRender();
 }
@@ -3469,22 +3548,34 @@ void mandelbrotgui::panByPixels(const QPoint &delta) {
         std::max(1, size.width()) * currentRealScale();
     _state.point.ry() += static_cast<double>(delta.y()) /
         std::max(1, size.height()) * currentImagScale();
+    syncPointTextFromState();
     syncStateReadouts();
     requestRender();
 }
 
 void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
     const QPoint clampedPixel = clampPixelToOutput(pixel);
-    const QPointF complex = outputPixelToComplex(clampedPixel);
     switch (_selectionTarget) {
         case SelectionTarget::zoomPoint:
-            _state.point = complex;
+        {
+            QString real;
+            QString imag;
+            QString errorMessage;
+            if (!backendPointAtPixel(clampedPixel, real, imag, errorMessage)) {
+                handleRenderFailure(errorMessage);
+                return;
+            }
+
+            _pointRealText = real;
+            _pointImagText = imag;
+            syncStatePointFromText();
             break;
+        }
         case SelectionTarget::seedPoint:
-            _state.seed = complex;
+            _state.seed = outputPixelToComplex(clampedPixel);
             break;
         case SelectionTarget::lightPoint:
-            _state.light = complex;
+            _state.light = outputPixelToComplex(clampedPixel);
             break;
     }
 
@@ -3495,12 +3586,20 @@ void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
 
 void mandelbrotgui::updateMouseCoords(const QPoint &pixel) {
     _lastMousePixel = clampPixelToOutput(pixel);
-    const QPointF complex = outputPixelToComplex(_lastMousePixel);
-    _mouseText = QString("Mouse: %1, %2  |  %3  %4")
-        .arg(_lastMousePixel.x())
-        .arg(_lastMousePixel.y())
-        .arg(stateToString(complex.x(), 10))
-        .arg(stateToString(complex.y(), 10));
+    QString real;
+    QString imag;
+    QString errorMessage;
+    if (backendPointAtPixel(_lastMousePixel, real, imag, errorMessage)) {
+        _mouseText = QString("Mouse: %1, %2  |  %3  %4")
+            .arg(_lastMousePixel.x())
+            .arg(_lastMousePixel.y())
+            .arg(real)
+            .arg(imag);
+    } else {
+        _mouseText = QString("Mouse: %1, %2  |  -")
+            .arg(_lastMousePixel.x())
+            .arg(_lastMousePixel.y());
+    }
     if (_viewport) _viewport->update();
 }
 
@@ -3690,10 +3789,19 @@ void mandelbrotgui::updateControlWindowSize() {
 
     QSize target = sizeHint().expandedTo(minimumSizeHint());
     const QMargins outerMargins = layout() ? layout()->contentsMargins() : QMargins();
+    int controlContentHeight = 0;
+    int defaultVisibleContentHeight = 0;
     if (_controlScrollContent) {
-        const int contentWidth = _controlScrollContent->sizeHint()
-            .expandedTo(_controlScrollContent->minimumSizeHint())
-            .width();
+        const QSize contentSize = _controlScrollContent->sizeHint()
+            .expandedTo(_controlScrollContent->minimumSizeHint());
+        const int contentWidth = contentSize.width();
+        controlContentHeight = contentSize.height();
+        if (_viewportGroup) {
+            const QMargins contentMargins = _controlScrollContent->contentsMargins();
+            defaultVisibleContentHeight = std::max(
+                0,
+                _viewportGroup->geometry().bottom() + 1 + contentMargins.bottom());
+        }
         target.setWidth(std::max(
             target.width(),
             contentWidth +
@@ -3710,7 +3818,42 @@ void mandelbrotgui::updateControlWindowSize() {
     setMaximumHeight(QWIDGETSIZE_MAX);
 
     if (!_controlWindowSized) {
-        resize(target.width(), target.height() * 2);
+        int fixedPanelsHeight = 0;
+        if (QLayout *outerLayout = layout()) {
+            const QMargins margins = outerLayout->contentsMargins();
+            fixedPanelsHeight += margins.top() + margins.bottom();
+
+            int visibleWidgets = 0;
+            for (int i = 0; i < outerLayout->count(); ++i) {
+                QLayoutItem *item = outerLayout->itemAt(i);
+                if (!item) continue;
+
+                QWidget *widget = item->widget();
+                if (!widget) continue;
+
+                ++visibleWidgets;
+                if (widget == _controlScrollArea) continue;
+                fixedPanelsHeight += item->sizeHint().height();
+            }
+
+            fixedPanelsHeight += std::max(0, visibleWidgets - 1) * outerLayout->spacing();
+        }
+
+        const int desiredContentHeight = defaultVisibleContentHeight > 0 ?
+            defaultVisibleContentHeight :
+            controlContentHeight;
+        int desiredHeight = std::max(minHeight, fixedPanelsHeight + desiredContentHeight);
+        if (const QScreen *screen =
+            (windowHandle() && windowHandle()->screen()) ?
+            windowHandle()->screen() :
+            (this->screen() ? this->screen() : QApplication::primaryScreen())) {
+            const int maxOnScreenHeight = std::max(
+                minHeight,
+                screen->availableGeometry().height() - kControlWindowScreenPadding);
+            desiredHeight = std::min(desiredHeight, maxOnScreenHeight);
+        }
+
+        resize(target.width(), desiredHeight);
     } else if (width() != target.width()) {
         resize(target.width(), std::max(height(), minHeight));
     }
@@ -3828,8 +3971,8 @@ void mandelbrotgui::syncControlsFromState() {
 }
 
 void mandelbrotgui::syncStateReadouts() {
-    if (_infoRealEdit) _infoRealEdit->setText(stateToString(_state.point.x(), 12));
-    if (_infoImagEdit) _infoImagEdit->setText(stateToString(_state.point.y(), 12));
+    if (_infoRealEdit) _infoRealEdit->setText(_pointRealText);
+    if (_infoImagEdit) _infoImagEdit->setText(_pointImagText);
     if (_infoZoomEdit) _infoZoomEdit->setText(stateToString(_state.zoom, 12));
     if (_lightRealEdit) _lightRealEdit->setText(stateToString(_state.light.x(), 12));
     if (_lightImagEdit) _lightImagEdit->setText(stateToString(_state.light.y(), 12));
@@ -3920,6 +4063,66 @@ void mandelbrotgui::saveSine() {
     _state.sineName = normalizedName;
     refreshSineList(_state.sineName);
     syncControlsFromState();
+}
+
+void mandelbrotgui::savePointView() {
+    syncStateFromControls();
+    _state.zoom = clampGuiZoom(_state.zoom);
+
+    QString errorMessage;
+    if (!ensurePointDirectory(errorMessage)) {
+        QMessageBox::warning(this, "Save View", errorMessage);
+        return;
+    }
+
+    const QString defaultPath = QString::fromStdWString(
+        (pointDirectoryPath() / "view.txt").wstring());
+    const QString selectedPath = QFileDialog::getSaveFileName(
+        this,
+        "Save View",
+        defaultPath,
+        "View Files (*.txt);;All Files (*.*)");
+    if (selectedPath.isEmpty()) return;
+
+    PointConfig point = {
+        .real = _pointRealText.toStdString(),
+        .imag = _pointImagText.toStdString(),
+        .zoom = _state.zoom
+    };
+
+    if (!savePointToPath(selectedPath.toStdString(), point, errorMessage)) {
+        QMessageBox::warning(this, "Save View", errorMessage);
+    }
+}
+
+void mandelbrotgui::loadPointView() {
+    QString errorMessage;
+    if (!ensurePointDirectory(errorMessage)) {
+        QMessageBox::warning(this, "Load View", errorMessage);
+        return;
+    }
+
+    const QString defaultPath = QString::fromStdWString(
+        pointDirectoryPath().wstring());
+    const QString selectedPath = QFileDialog::getOpenFileName(
+        this,
+        "Load View",
+        defaultPath,
+        "View Files (*.txt);;All Files (*.*)");
+    if (selectedPath.isEmpty()) return;
+
+    PointConfig point;
+    if (!loadPointFromPath(selectedPath.toStdString(), point, errorMessage)) {
+        QMessageBox::warning(this, "Load View", errorMessage);
+        return;
+    }
+
+    _state.zoom = clampGuiZoom(point.zoom);
+    _pointRealText = QString::fromStdString(point.real);
+    _pointImagText = QString::fromStdString(point.imag);
+    syncStatePointFromText();
+    syncControlsFromState();
+    requestRender();
 }
 
 void mandelbrotgui::importSine() {
@@ -4124,6 +4327,110 @@ QString mandelbrotgui::stateToString(double value, int precision) const {
     return QString::number(value, 'g', precision);
 }
 
+void mandelbrotgui::syncPointTextFromState() {
+    _pointRealText = stateToString(_state.point.x());
+    _pointImagText = stateToString(_state.point.y());
+}
+
+void mandelbrotgui::syncStatePointFromText() {
+    bool okReal = false;
+    bool okImag = false;
+    const double real = _pointRealText.toDouble(&okReal);
+    const double imag = _pointImagText.toDouble(&okImag);
+    if (okReal) _state.point.setX(real);
+    if (okImag) _state.point.setY(imag);
+}
+
+bool mandelbrotgui::syncPreviewSessionForCoords(const UiState &state,
+    QString &errorMessage) {
+    Backend::Session *session = nullptr;
+    if (_backend && _backend.session) {
+        session = _backend.session.get();
+    } else if (_previewBackend && _previewBackend.session) {
+        session = _previewBackend.session.get();
+    }
+    if (!session) {
+        errorMessage = "Backend not loaded.";
+        return false;
+    }
+
+    auto failIfNeeded = [&errorMessage](const Backend::Status &status) {
+        if (status) return false;
+        errorMessage = QString::fromStdString(status.message);
+        return true;
+    };
+
+    if (failIfNeeded(session->setImageSize(
+            state.outputWidth, state.outputHeight, state.aaPixels)))
+        return false;
+    if (failIfNeeded(session->setZoom(
+            state.iterations, static_cast<float>(clampGuiZoom(state.zoom)))))
+        return false;
+    if (failIfNeeded(session->setPoint(
+            _pointRealText.toStdString(), _pointImagText.toStdString())))
+        return false;
+
+    return true;
+}
+
+bool mandelbrotgui::backendPointAtPixel(const QPoint &pixel, QString &real,
+    QString &imag, QString &errorMessage) {
+    if (!syncPreviewSessionForCoords(_state, errorMessage)) return false;
+
+    Backend::Session *session = nullptr;
+    if (_backend && _backend.session) {
+        session = _backend.session.get();
+    } else if (_previewBackend && _previewBackend.session) {
+        session = _previewBackend.session.get();
+    }
+    if (!session) {
+        errorMessage = "Backend not loaded.";
+        return false;
+    }
+
+    std::string realOut;
+    std::string imagOut;
+    const Backend::Status status = session->getPointAtPixel(
+        pixel.x(), pixel.y(), realOut, imagOut);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    real = QString::fromStdString(realOut);
+    imag = QString::fromStdString(imagOut);
+    return true;
+}
+
+bool mandelbrotgui::backendComputeZoomPointForPixel(const QPoint &pixel,
+    double targetZoom, QString &real, QString &imag, QString &errorMessage) {
+    if (!syncPreviewSessionForCoords(_state, errorMessage)) return false;
+
+    Backend::Session *session = nullptr;
+    if (_backend && _backend.session) {
+        session = _backend.session.get();
+    } else if (_previewBackend && _previewBackend.session) {
+        session = _previewBackend.session.get();
+    }
+    if (!session) {
+        errorMessage = "Backend not loaded.";
+        return false;
+    }
+
+    std::string realOut;
+    std::string imagOut;
+    const Backend::Status status = session->computeZoomPointForPixel(
+        pixel.x(), pixel.y(), static_cast<float>(targetZoom), realOut, imagOut);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    real = QString::fromStdString(realOut);
+    imag = QString::fromStdString(imagOut);
+    return true;
+}
+
 QPoint mandelbrotgui::clampPixelToOutput(const QPoint &pixel) const {
     const QSize size = outputSize();
     return {
@@ -4143,21 +4450,6 @@ QPointF mandelbrotgui::outputPixelToComplex(const QPoint &pixel) const {
     return {
         dx * currentRealScale() + _state.point.x(),
         dy * currentImagScale() - _state.point.y()
-    };
-}
-
-QPoint mandelbrotgui::complexToPixel(const QPointF &point) const {
-    const QSize size = outputSize();
-    const double x = ((point.x() - _state.point.x()) /
-        std::max(currentRealScale(), 1e-18)) * size.width() +
-        size.width() / 2.0;
-    const double y = ((point.y() + _state.point.y()) /
-        std::max(currentImagScale(), 1e-18)) * size.height() +
-        size.height() / 2.0;
-
-    return {
-        static_cast<int>(std::round(x)),
-        static_cast<int>(std::round(y))
     };
 }
 

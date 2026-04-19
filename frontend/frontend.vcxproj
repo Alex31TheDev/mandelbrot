@@ -106,6 +106,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,6 +121,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +137,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,6 +153,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -164,17 +168,21 @@
     <ClInclude Include="src\parsers\KeyValueParser.h" />
     <ClInclude Include="src\parsers\KeyValueParser_impl.h" />
     <ClInclude Include="src\parsers\KeyValueWriter.h" />
-    <ClInclude Include="src\parsers\KeyValueWriter_impl.h" />
     <ClInclude Include="src\parsers\palette\PaletteParser.h" />
     <ClInclude Include="src\parsers\palette\PaletteWriter.h" />
+    <ClInclude Include="src\parsers\point\PointParser.h" />
+    <ClInclude Include="src\parsers\point\PointWriter.h" />
     <ClInclude Include="src\parsers\sine\SineParser.h" />
     <ClInclude Include="src\parsers\sine\SineWriter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BackendModule.cpp" />
     <ClCompile Include="src\CPUInfo.cpp" />
+    <ClCompile Include="src\parsers\KeyValueWriter.cpp" />
     <ClCompile Include="src\parsers\palette\PaletteParser.cpp" />
     <ClCompile Include="src\parsers\palette\PaletteWriter.cpp" />
+    <ClCompile Include="src\parsers\point\PointParser.cpp" />
+    <ClCompile Include="src\parsers\point\PointWriter.cpp" />
     <ClCompile Include="src\parsers\sine\SineParser.cpp" />
     <ClCompile Include="src\parsers\sine\SineWriter.cpp" />
   </ItemGroup>

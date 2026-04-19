@@ -88,6 +88,46 @@ typedef simd_full_t number_param_t;
 #define NUM_ATAN2 SIMD_ATAN2_F
 #define NUM_SINCOS SIMD_SINCOS_F
 
+#elif defined(FORMULA_QD)
+#include "../qd/QDTypes.h"
+
+typedef qd_number_t number_t;
+typedef qd_num_2_t number_2_t;
+typedef qd_param_t number_param_t;
+
+#define NUM_CONST(x) qd_number_t(x)
+#define NUM_VAR NUM_CONST
+
+#define NUM_ADD(a, b) ((a) + (b))
+#define NUM_SUB(a, b) ((a) - (b))
+#define NUM_MUL(a, b) ((a) * (b))
+#define NUM_DIV(a, b) ((a) / (b))
+
+#define NUM_DOUBLE(x) ((x) * 2.0)
+#define NUM_HALF(x) ((x) * 0.5)
+#define NUM_SQUARE(x) ((x) * (x))
+
+#define NUM_MULADD(a, b, c) ((a) * (b) + (c))
+#define NUM_MULSUB(a, b, c) ((a) * (b) - (c))
+
+#define NUM_ADDXX(a, b, c, d) ((a) * (b) + (c) * (d))
+#define NUM_SUBXX(a, b, c, d) ((a) * (b) - (c) * (d))
+
+#define NUM_ADDSQ(a, b) ((a) * (a) + (b) * (b))
+#define NUM_SUBSQ(a, b) ((a) * (a) - (b) * (b))
+
+#define NUM_NEG(x) -(x)
+#define NUM_ABS(x) abs(x)
+#define NUM_SGN(x) ((x) > 0.0 ? NUM_CONST(1.0) : ((x) < 0.0 ? NUM_CONST(-1.0) : NUM_CONST(0.0)))
+
+#define NUM_SQRT(x) sqrt(x)
+#define NUM_POW(a, b) pow(a, b)
+
+#define NUM_SIN(x) sin(x)
+#define NUM_COS(x) cos(x)
+#define NUM_ATAN2(a, b) atan2(a, b)
+#define NUM_SINCOS sincos_qd
+
 #elif defined(FORMULA_MPFR)
 #include "../mpfr/MPFRTypes.h"
 

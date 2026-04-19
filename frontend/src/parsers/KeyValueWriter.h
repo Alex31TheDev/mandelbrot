@@ -3,7 +3,6 @@
 #include <iosfwd>
 #include <string>
 
-template<typename Derived>
 class KeyValueWriter {
 public:
     virtual ~KeyValueWriter() = default;
@@ -13,8 +12,10 @@ protected:
 
     virtual void _writeBody(std::ostream &out) const = 0;
 
+    virtual std::string _headerLine() const { return ""; }
+    virtual std::string _openFileError() const = 0;
+    virtual std::string _writeFileError() const = 0;
+
 private:
     static constexpr char _commentToken = '#';
 };
-
-#include "KeyValueWriter_impl.h"

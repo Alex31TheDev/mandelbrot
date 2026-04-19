@@ -39,7 +39,7 @@ namespace ScalarRenderer {
     void sampleColorFormula(scalar_half_t val,
         scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB);
 
-#if defined(USE_MPFR)
+#if defined(USE_MPFR) || defined(USE_QD)
     void colorPixelScalar(uint8_t *pixels, size_t &pos,
         int i, scalar_full_t mag,
         scalar_full_t zr, scalar_full_t zi,

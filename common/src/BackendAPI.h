@@ -145,6 +145,11 @@ namespace Backend {
 
         virtual void setCallbacks(const Callbacks &callbacks) = 0;
 
+        virtual Status getPointAtPixel(int pixelX, int pixelY,
+            std::string &real, std::string &imag) = 0;
+        virtual Status computeZoomPointForPixel(int pixelX, int pixelY,
+            float targetZoom, std::string &real, std::string &imag) = 0;
+
         virtual Status setImageSize(int width, int height, int aaPixels) = 0;
         virtual void setUseThreads(bool useThreads) = 0;
 

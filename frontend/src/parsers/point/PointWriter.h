@@ -3,27 +3,27 @@
 #include <iosfwd>
 #include <string>
 
-#include "BackendAPI.h"
+#include "PointParser.h"
 #include "../KeyValueWriter.h"
 
-class SineWriter : public KeyValueWriter {
+class PointWriter : public KeyValueWriter {
 public:
-    explicit SineWriter(const Backend::SinePaletteConfig &palette);
+    explicit PointWriter(const PointConfig &point);
 
     bool write(const std::string &filePath, std::string &err) const;
 
 private:
-    Backend::SinePaletteConfig _palette;
+    PointConfig _point;
 
     void _writeBody(std::ostream &out) const override;
 
     std::string _headerLine() const override {
-        return "Sine file";
+        return "Point file";
     }
     std::string _openFileError() const override {
-        return "Failed to open sine file for writing.";
+        return "Failed to open point file for writing.";
     }
     std::string _writeFileError() const override {
-        return "Failed while writing sine file.";
+        return "Failed while writing point file.";
     }
 };

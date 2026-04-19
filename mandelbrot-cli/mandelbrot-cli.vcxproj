@@ -77,6 +77,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -92,6 +93,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,8 +131,7 @@
     <CoreVariant Include="MPFR" />
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='x64'">
-    <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*"
-      Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
+    <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*" Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
   </ItemGroup>
   <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
     <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />

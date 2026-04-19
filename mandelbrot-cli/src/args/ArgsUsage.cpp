@@ -44,10 +44,12 @@ namespace ArgsUsage {
             "  %s - DoubleScalar\n"
             "  %s - FloatAVX2\n"
             "  %s - DoubleAVX2\n"
-            "  %s - MPFR\n\n"
+            "  %s - MPFR\n"
+            "  %s - QD\n\n"
             "Short aliases:\n"
-            "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr\n",
+            "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr, qd\n",
             progName ? progName : "mandelbrot-cli",
+            prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),
@@ -116,7 +118,8 @@ namespace ArgsUsage {
             { "float-avx2", "FloatAVX2" },
             { "doubleavx2", "DoubleAVX2" },
             { "double-avx2", "DoubleAVX2" },
-            { "mpfr", "MPFR" }
+            { "mpfr", "MPFR" },
+            { "qd", "QD" }
         };
 
         const std::string lower = StringUtil::toLower(input);

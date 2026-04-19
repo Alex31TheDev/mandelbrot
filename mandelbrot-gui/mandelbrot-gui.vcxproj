@@ -127,6 +127,9 @@
     <PaletteAsset Include="palettes\*.txt" />
   </ItemGroup>
   <ItemGroup>
+    <IconAsset Include="mandelbrot.ico" />
+  </ItemGroup>
+  <ItemGroup>
     <SineAsset Include="sines\*.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -179,6 +182,12 @@
           SkipUnchangedFiles="true"
           Condition="'@(PaletteAsset)'!=''" />
   </Target>
+  <Target Name="BundleIconFile" AfterTargets="Build">
+    <Copy SourceFiles="@(IconAsset)"
+          DestinationFiles="@(IconAsset->'$(OutDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(IconAsset)'!=''" />
+  </Target>
   <Target Name="BundleSineFiles" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)sines" />
     <Copy SourceFiles="@(SineAsset)"
@@ -193,7 +202,7 @@
       <_QtDeployPdbArg Condition="'$(QtDeployPdb)' == 'true'">--pdb</_QtDeployPdbArg>
       <_QtDeployDir>$([System.String]::Copy('$(OutDir)').TrimEnd('\'))</_QtDeployDir>
       <_QtQmlDir>$([System.String]::Copy('$(MSBuildProjectDirectory)').TrimEnd('\'))</_QtQmlDir>
-      <_QtDeployCmd>"$(QtToolsPath)\windeployqt.exe" --dir "$(_QtDeployDir)" --qmldir "$(_QtQmlDir)" $(_QtDeployDebugReleaseArg) $(_QtDeployPdbArg) --no-network --skip-plugin-types imageformats,networkinformation,tls "$(TargetPath)"</_QtDeployCmd>
+      <_QtDeployCmd>"$(QtToolsPath)\windeployqt.exe" --dir "$(_QtDeployDir)" --qmldir "$(_QtQmlDir)" $(_QtDeployDebugReleaseArg) $(_QtDeployPdbArg) --no-network --skip-plugin-types networkinformation,tls "$(TargetPath)"</_QtDeployCmd>
     </PropertyGroup>
     <Message Importance="high" Text="Qt Deploy (custom): $(_QtDeployCmd)" />
     <Exec Command="$(_QtDeployCmd)" EnvironmentVariables="VCINSTALLDIR=$(VCInstallDir)" />

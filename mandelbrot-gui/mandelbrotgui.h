@@ -123,6 +123,8 @@ private:
     void bindBackendCallbacks();
     void startRenderWorker();
     bool applyStateToSession(const UiState &state,
+                             const QString &pointRealText,
+                             const QString &pointImagText,
                              const std::optional<PendingPickAction> &pickAction,
                              QString &errorMessage);
     void finishRenderThread();
@@ -143,6 +145,8 @@ private:
     void refreshPaletteList(const QString &preferredName = QString());
     void importSine();
     void saveSine();
+    void savePointView();
+    void loadPointView();
     void openPaletteEditor();
     void saveImage();
     void resizeViewportImage();
@@ -157,7 +161,14 @@ private:
                            QString *errorMessage = nullptr);
 
     [[nodiscard]] QString stateToString(double value, int precision = 17) const;
-    [[nodiscard]] QPoint complexToPixel(const QPointF &point) const;
+    void syncPointTextFromState();
+    void syncStatePointFromText();
+    bool syncPreviewSessionForCoords(const UiState &state, QString &errorMessage);
+    bool backendPointAtPixel(const QPoint &pixel, QString &real, QString &imag,
+                             QString &errorMessage);
+    bool backendComputeZoomPointForPixel(const QPoint &pixel, double targetZoom,
+                                         QString &real, QString &imag,
+                                         QString &errorMessage);
     [[nodiscard]] QPoint clampPixelToOutput(const QPoint &pixel) const;
     [[nodiscard]] QPointF outputPixelToComplex(const QPoint &pixel) const;
     [[nodiscard]] double currentRealScale() const;
@@ -168,6 +179,8 @@ private:
     struct RenderRequest
     {
         UiState state;
+        QString pointRealText;
+        QString pointImagText;
         std::optional<PendingPickAction> pickAction;
         uint64_t id = 0;
     };
@@ -186,6 +199,8 @@ private:
     QString _statusText;
     QString _lastRenderFailureMessage;
     QString _mouseText;
+    QString _pointRealText = "0";
+    QString _pointImagText = "0";
     QString _viewportFpsText = "FPS -";
     QString _viewportRenderTimeText;
     QString _imageMemoryText;
@@ -209,9 +224,15 @@ private:
     QLabel *_statusRightLabel = nullptr;
     QScrollArea *_controlScrollArea = nullptr;
     QWidget *_controlScrollContent = nullptr;
+    QGroupBox *_cpuGroup = nullptr;
+    QGroupBox *_renderGroup = nullptr;
+    QGroupBox *_infoGroup = nullptr;
+    QGroupBox *_viewportGroup = nullptr;
     QLineEdit *_infoRealEdit = nullptr;
     QLineEdit *_infoImagEdit = nullptr;
     QLineEdit *_infoZoomEdit = nullptr;
+    QPushButton *_savePointButton = nullptr;
+    QPushButton *_loadPointButton = nullptr;
     QLineEdit *_cpuNameEdit = nullptr;
     QLineEdit *_cpuCoresEdit = nullptr;
     QLineEdit *_cpuThreadsEdit = nullptr;

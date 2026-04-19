@@ -106,8 +106,32 @@ struct RowRenderer {
     }
 };
 
+#elif defined(USE_QD)
+
+#include "../qd/QDCoords.h"
+#include "../qd/QDRenderer.h"
+
+struct RowRenderer {
+    qd_real ci;
+
+    void operator()(
+        Image *image, size_t &pos, unsigned xstart, unsigned xend,
+        unsigned y, uint64_t *iterPtr, uint64_t &totalCount
+    ) {
+        getCenterImag_qd(ci, static_cast<int>(y));
+
+        for (unsigned x = xstart; x <= xend; ++x) {
+            QDRenderer::renderPixelQD(
+                image->pixels(), pos,
+                static_cast<int>(x), ci, iterPtr
+            );
+            if (iterPtr) totalCount += *iterPtr;
+        }
+    }
+};
+
 #else
-#error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, or USE_MPFR)"
+#error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, USE_MPFR, or USE_QD)"
 #endif
 
 #include "util/FormatUtil.h"

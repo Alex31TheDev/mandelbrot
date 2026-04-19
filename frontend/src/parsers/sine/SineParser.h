@@ -17,6 +17,7 @@ public:
 
 private:
     std::string _skipOption;
+
     bool _validate(const Backend::SinePaletteConfig &out,
         const std::string &context, std::string &err) const;
 
