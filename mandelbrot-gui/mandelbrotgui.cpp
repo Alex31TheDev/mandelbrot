@@ -2838,8 +2838,7 @@ void mandelbrotgui::populateControls() {
         prefix + " - DoubleScalar",
         prefix + " - FloatAVX2",
         prefix + " - DoubleAVX2",
-        prefix + " - MPFR",
-        prefix + " - QD"
+        prefix + " - MPFR"
         });
 
     _colorMethodCombo->addItems({

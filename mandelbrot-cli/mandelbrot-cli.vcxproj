@@ -141,6 +141,7 @@
       <BackendOutDir>$(OutDir)backends\</BackendOutDir>
     </PropertyGroup>
     <MakeDir Directories="$(BackendOutDir)" Condition="'$(Platform)'=='x64'" />
+    <Delete Files="$(BackendOutDir)$(Configuration) - QD.dll;$(BackendOutDir)$(Configuration) - QD.pdb" Condition="'$(Platform)'=='x64'" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
       <BundledCore Include="@(CoreVariant)">
         <ConfigName>$(Configuration) - %(Identity)</ConfigName>

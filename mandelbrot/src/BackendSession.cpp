@@ -115,7 +115,7 @@ static std::string toQdString(const qd_real &value) {
 
     int exp10 = static_cast<int>(
         std::floor(std::log10(std::abs(to_double(v))))
-    );
+        );
 
     qd_real scaled = v / pow(qd_real(10.0), exp10);
     while (scaled >= qd_real(10.0)) {
@@ -208,7 +208,7 @@ public:
         std::string targetReal;
         std::string targetImag;
         if (auto status = _pointFromPixelString(
-                pixelX, pixelY, targetReal, targetImag); !status) {
+            pixelX, pixelY, targetReal, targetImag); !status) {
             return status;
         }
 
@@ -263,7 +263,7 @@ public:
         std::string targetReal;
         std::string targetImag;
         if (auto status = _pointFromPixelString(
-                pixelX, pixelY, targetReal, targetImag); !status) {
+            pixelX, pixelY, targetReal, targetImag); !status) {
             return status;
         }
 
@@ -377,8 +377,6 @@ public:
         _pointImag = imag;
 
 #if defined(USE_MPFR)
-        // Keep MPFR strings as the authoritative full-precision representation.
-        // Also sync scalar globals from parsed MPFR values for legacy scalar codepaths.
         MPFRGlobals::initMPFRValues(_pointReal.c_str(), _pointImag.c_str());
         setZoomPoints(
             static_cast<scalar_full_t>(mpfr_get_d(MPFRGlobals::point_r_mp, MPFRTypes::ROUNDING)),
@@ -410,7 +408,7 @@ public:
     Backend::Status setPoint(int pixelX, int pixelY) override {
 #if defined(USE_MPFR) || defined(USE_QD)
         if (auto status = _pointFromPixelString(
-                pixelX, pixelY, _pointReal, _pointImag); !status) {
+            pixelX, pixelY, _pointReal, _pointImag); !status) {
             return status;
         }
 
@@ -494,7 +492,7 @@ public:
     Backend::Status setSeed(int pixelX, int pixelY) override {
 #if defined(USE_MPFR) || defined(USE_QD)
         if (auto status = _pointFromPixelString(
-                pixelX, pixelY, _seedReal, _seedImag); !status) {
+            pixelX, pixelY, _seedReal, _seedImag); !status) {
             return status;
         }
 
@@ -565,10 +563,10 @@ public:
         const Backend::SinePaletteConfig &paletteConfig
     ) override {
         if (!setSinePaletteGlobals(
-                paletteConfig.freqR,
-                paletteConfig.freqG,
-                paletteConfig.freqB,
-                paletteConfig.freqMult
+            paletteConfig.freqR,
+            paletteConfig.freqG,
+            paletteConfig.freqB,
+            paletteConfig.freqMult
         )) {
             return makeFailure("Frequency multiplier must be non-zero.");
         }
@@ -598,9 +596,9 @@ public:
         };
 
         if (!setLightGlobals(
-                light_r * light_h,
-                light_i * light_h,
-                scalarColor
+            light_r * light_h,
+            light_i * light_h,
+            scalarColor
         )) {
             return makeFailure(
                 "Light color components must be between 0 and 1.");
@@ -803,7 +801,7 @@ private:
         }
 
         if (!setPaletteGlobals(entries, paletteConfig.totalLength,
-                paletteConfig.offset, paletteConfig.blendEnds)) {
+            paletteConfig.offset, paletteConfig.blendEnds)) {
             return makeFailure("Palette must contain at least 2 valid entries.");
         }
 
