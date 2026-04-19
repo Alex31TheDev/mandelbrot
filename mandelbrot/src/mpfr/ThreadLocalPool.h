@@ -5,11 +5,10 @@ class ThreadLocalPool {
     static_assert(PoolSize > 0, "Pool size must be greater than zero");
 
 public:
+    ThreadLocalPool() = default;
     T &getNextItem();
 
 private:
-    ThreadLocalPool() = default;
-
     static T(&_getThreadPool())[PoolSize];
     static size_t &_getThreadIndex();
 };

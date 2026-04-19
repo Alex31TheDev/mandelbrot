@@ -53,6 +53,7 @@ public:
 
     void requestRender(bool force = false);
     void applyHomeView();
+    void scaleAtPixel(const QPoint &pixel, double scaleMultiplier, bool realtimeStep = false);
     void zoomAtPixel(const QPoint &pixel, bool zoomIn, bool realtimeStep = false);
     void boxZoom(const QRect &selectionRect);
     void panByPixels(const QPoint &delta);

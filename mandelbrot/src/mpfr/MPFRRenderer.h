@@ -9,21 +9,21 @@
 #include "util/InlineUtil.h"
 
 namespace MPFRRenderer {
-    void initCoordsMPFR(mpfr_number_t &cr, mpfr_number_t &ci,
-        mpfr_number_t &zr, mpfr_number_t &zi,
-        mpfr_number_t &dr, mpfr_number_t &di);
-    int iterateFractalMPFR(mpfr_param_t cr, mpfr_param_t ci,
-        mpfr_number_t &zr, mpfr_number_t &zi,
-        mpfr_number_t &dr, mpfr_number_t &di,
-        mpfr_number_t &mag);
+    void initCoordsMPFR(mpfr_t cr, mpfr_t ci,
+        mpfr_t zr, mpfr_t zi,
+        mpfr_t dr, mpfr_t di);
+    int iterateFractalMPFR(mpfr_srcptr cr, mpfr_srcptr ci,
+        mpfr_t zr, mpfr_t zi,
+        mpfr_t dr, mpfr_t di,
+        mpfr_t mag);
 
     void colorPixelMPFR(uint8_t *pixels, size_t &pos,
-        int i, mpfr_param_t mag,
-        mpfr_param_t zr, mpfr_param_t zi,
-        mpfr_param_t dr, mpfr_param_t di);
+        int i, mpfr_srcptr mag,
+        mpfr_srcptr zr, mpfr_srcptr zi,
+        mpfr_srcptr dr, mpfr_srcptr di);
 
     void renderPixelMPFR(uint8_t *pixels, size_t &pos,
-        int x, mpfr_number_t ci, uint64_t *totalIterCount = nullptr);
+        int x, mpfr_srcptr ci, uint64_t *totalIterCount = nullptr);
 }
 
 #endif

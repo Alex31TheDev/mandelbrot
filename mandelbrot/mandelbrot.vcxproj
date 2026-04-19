@@ -854,9 +854,6 @@
     <ClInclude Include="src\formula\fractals\perpendicular.h" />
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\mpfr\CommonDefs.h" />
-    <ClInclude Include="src\mpfr\loop\FractalLoop.h" />
-    <ClInclude Include="src\mpfr\loop\InnerLoop.h" />
-    <ClInclude Include="src\mpfr\loop\OuterLoop.h" />
     <ClInclude Include="src\mpfr\MPFRTypes.h" />
     <ClInclude Include="src\mpfr\ThreadLocalPool.h" />
     <ClInclude Include="src\mpfr\ThreadLocalPool_impl.h" />
@@ -878,7 +875,7 @@
     <ClInclude Include="src\mpfr\MPFRCoords.h" />
     <ClInclude Include="src\mpfr\MPFRGlobals.h" />
     <ClInclude Include="src\mpfr\MPFRRenderer.h" />
-    <ClInclude Include="src\mpfr\mpreal.h" />
+    <ClInclude Include="src\mpfr\MPFRScratch.h" />
     <ClInclude Include="src\render\ProgressTracker.h" />
     <ClInclude Include="src\scalar\ScalarCoords.h" />
     <ClInclude Include="src\render\RenderImage.h" />

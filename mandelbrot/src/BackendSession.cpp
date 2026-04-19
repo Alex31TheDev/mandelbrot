@@ -32,12 +32,7 @@ static bool isValidFullInput(const std::string &value) {
     if (value.empty()) return false;
 
 #if defined(USE_MPFR)
-    try {
-        static_cast<void>(mpfr::mpreal(value));
-        return true;
-    } catch (...) {
-        return false;
-    }
+    return MPFRTypes::isValidNumber(value.c_str());
 #else
     bool ok = false;
     parseNumber<scalar_full_t>(value, std::ref(ok));
@@ -77,12 +72,6 @@ static std::string toScalarString(const T &value) {
     oss << value;
     return oss.str();
 }
-
-#if defined(USE_MPFR)
-static std::string toScalarString(const mpfr::mpreal &value) {
-    return value.toString();
-}
-#endif
 
 static uint8_t toColorByte(scalar_half_t value) {
     const double clamped = std::clamp(static_cast<double>(value), 0.0, 1.0);

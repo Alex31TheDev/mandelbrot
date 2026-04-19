@@ -95,38 +95,110 @@ typedef mpfr_number_t number_t;
 typedef mpfr_num_2_t number_2_t;
 typedef mpfr_param_t number_param_t;
 
-#define NUM_CONST(x) mpfr_number_t(x)
+#define NUM_CONST(x) MPFRTypes::toNumber(static_cast<double>(x))
 #define NUM_VAR NUM_CONST
 
-#define NUM_ADD(a, b) ((a) + (b))
-#define NUM_SUB(a, b) ((a) - (b))
-#define NUM_MUL(a, b) ((a) * (b))
-#define NUM_DIV(a, b) ((a) / (b))
+#define NUM_ADD(a, b) MPFRTypes::add((a), (b))
+#define NUM_SUB(a, b) MPFRTypes::sub((a), (b))
+#define NUM_MUL(a, b) MPFRTypes::mul((a), (b))
+#define NUM_DIV(a, b) MPFRTypes::div((a), (b))
 
-#define NUM_DOUBLE(x) ((x) * 2.0)
-#define NUM_HALF(x) ((x) * 0.5)
-#define NUM_SQUARE(x) ((x) * (x))
+#define NUM_DOUBLE(x) MPFRTypes::add((x), (x))
+#define NUM_HALF(x) MPFRTypes::mul((x), NUM_CONST(0.5))
+#define NUM_SQUARE(x) MPFRTypes::mul((x), (x))
 
-#define NUM_MULADD(a, b, c) ((a) * (b) + (c))
-#define NUM_MULSUB(a, b, c) ((a) * (b) - (c))
+#define NUM_MULADD(a, b, c) MPFRTypes::muladd((a), (b), (c))
+#define NUM_MULSUB(a, b, c) MPFRTypes::mulsub((a), (b), (c))
 
-#define NUM_ADDXX(a, b, c, d) ((a) * (b) + (c) * (d))
-#define NUM_SUBXX(a, b, c, d) ((a) * (b) - (c) * (d))
+#define NUM_ADDXX(a, b, c, d) MPFRTypes::addxx((a), (b), (c), (d))
+#define NUM_SUBXX(a, b, c, d) MPFRTypes::subxx((a), (b), (c), (d))
 
-#define NUM_ADDSQ(a, b) ((a) * (a) + (b) * (b))
-#define NUM_SUBSQ(a, b) ((a) * (a) - (b) * (b))
+#define NUM_ADDSQ(a, b) MPFRTypes::add(MPFRTypes::mul((a), (a)), MPFRTypes::mul((b), (b)))
+#define NUM_SUBSQ(a, b) MPFRTypes::sub(MPFRTypes::mul((a), (a)), MPFRTypes::mul((b), (b)))
 
-#define NUM_NEG(x) -(x)
-#define NUM_ABS(x) abs(x)
-#define NUM_SGN(x) ((x) > 0.0 ? NUM_CONST(1.0) : ((x) < 0.0 ? NUM_CONST(-1.0) : NUM_CONST(0.0)))
+#define NUM_NEG(x) MPFRTypes::neg((x))
+#define NUM_ABS(x) MPFRTypes::abs((x))
+#define NUM_SGN(x) MPFRTypes::sgn((x))
 
-#define NUM_SQRT(x) sqrt(x)
-#define NUM_POW(a, b) pow(a, b)
+#define NUM_SQRT(x) MPFRTypes::sqrt((x))
+#define NUM_POW(a, b) MPFRTypes::pow((a), (b))
 
-#define NUM_SIN(x) sin(x)
-#define NUM_COS(x) cos(x)
-#define NUM_ATAN2(a, b) atan2(a, b)
+#define NUM_SIN(x) MPFRTypes::sin((x))
+#define NUM_COS(x) MPFRTypes::cos((x))
+#define NUM_ATAN2(a, b) MPFRTypes::atan2((a), (b))
 #define NUM_SINCOS sincos_mp
+
+#ifndef MPFR_FORMULA_SHARED_HELPERS
+#define MPFR_FORMULA_SHARED_HELPERS
+
+#include "../../mpfr/MPFRScratch.h"
+
+static FORCE_INLINE void setSign_mp(mpfr_t out, mpfr_srcptr in) {
+    mpfr_set_si(out, mpfr_sgn(in), MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void initFormulaConstants_mp(MPFRScratch &s) {
+    mpfr_set_d(s.nVal, static_cast<double>(ScalarGlobals::N), MPFRTypes::ROUNDING);
+    mpfr_sub_d(s.nMinus1, s.nVal, 1.0, MPFRTypes::ROUNDING);
+    mpfr_mul_d(s.halfN, s.nVal, 0.5, MPFRTypes::ROUNDING);
+    mpfr_mul_d(s.halfNMinus1, s.nMinus1, 0.5, MPFRTypes::ROUNDING);
+
+    mpfr_set_d(s.lightR, static_cast<double>(ScalarGlobals::light_r), MPFRTypes::ROUNDING);
+    mpfr_set_d(s.lightI, static_cast<double>(ScalarGlobals::light_i), MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void wholeFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    mpfr_srcptr pzr, mpfr_srcptr pzi, MPFRScratch &s) {
+    const int wholeN = static_cast<int>(ScalarGlobals::N);
+
+    mpfr_set(s.t[2], pzr, MPFRTypes::ROUNDING);
+    mpfr_set(s.t[3], pzi, MPFRTypes::ROUNDING);
+
+    mpfr_set(s.t[4], pzr, MPFRTypes::ROUNDING);
+    mpfr_set(s.t[5], pzi, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[6], s.t[4], s.t[4], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[5], s.t[5], MPFRTypes::ROUNDING);
+
+    for (int k = wholeN - 1; k > 0; k >>= 1) {
+        if ((k & 1) == 1) {
+            mpfr_mul(s.t[8], s.t[2], s.t[5], MPFRTypes::ROUNDING);
+
+            mpfr_mul(s.t[9], s.t[4], s.t[2], MPFRTypes::ROUNDING);
+            mpfr_mul(s.t[10], s.t[5], s.t[3], MPFRTypes::ROUNDING);
+            mpfr_sub(s.t[9], s.t[9], s.t[10], MPFRTypes::ROUNDING);
+
+            mpfr_mul(s.t[10], s.t[4], s.t[3], MPFRTypes::ROUNDING);
+            mpfr_add(s.t[3], s.t[10], s.t[8], MPFRTypes::ROUNDING);
+            mpfr_set(s.t[2], s.t[9], MPFRTypes::ROUNDING);
+        }
+
+        mpfr_mul(s.t[8], s.t[4], s.t[5], MPFRTypes::ROUNDING);
+        mpfr_mul_2ui(s.t[5], s.t[8], 1, MPFRTypes::ROUNDING);
+        mpfr_sub(s.t[4], s.t[6], s.t[7], MPFRTypes::ROUNDING);
+        mpfr_mul(s.t[6], s.t[4], s.t[4], MPFRTypes::ROUNDING);
+        mpfr_mul(s.t[7], s.t[5], s.t[5], MPFRTypes::ROUNDING);
+    }
+
+    mpfr_add(s.zr, s.t[2], cr, MPFRTypes::ROUNDING);
+    mpfr_add(s.zi, s.t[3], ci, MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void fractionalFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    mpfr_srcptr pzr, mpfr_srcptr pzi, MPFRScratch &s) {
+    mpfr_pow(s.t[2], s.mag, s.halfN, MPFRTypes::ROUNDING);
+    mpfr_atan2(s.t[3], pzi, pzr, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[3], s.t[3], s.nVal, MPFRTypes::ROUNDING);
+
+    mpfr_sin_cos(s.t[4], s.t[5], s.t[3], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[6], s.t[2], s.t[5], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[2], s.t[4], MPFRTypes::ROUNDING);
+
+    mpfr_add(s.zr, s.t[6], cr, MPFRTypes::ROUNDING);
+    mpfr_add(s.zi, s.t[7], ci, MPFRTypes::ROUNDING);
+}
+
+#endif
 
 #else
 #error "Must define a formula type."

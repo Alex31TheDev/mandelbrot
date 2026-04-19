@@ -98,3 +98,135 @@
 _FORMULA_OPS_FUNC({});
 
 _DERIVATIVE_OPS_FUNC({});
+
+#ifdef USE_MPFR
+
+static FORCE_INLINE void normalFormula_burningship_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
+    mpfr_sub(s.t[0], s.zr2, s.zi2, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[0], s.t[0], cr, MPFRTypes::ROUNDING);
+
+    mpfr_abs(s.t[1], s.zr, MPFRTypes::ROUNDING);
+    mpfr_abs(s.t[2], s.zi, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[1], s.t[1], s.t[2], MPFRTypes::ROUNDING);
+    mpfr_mul_si(s.t[1], s.t[1], -2, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[1], s.t[1], ci, MPFRTypes::ROUNDING);
+
+    mpfr_set(s.zr, s.t[0], MPFRTypes::ROUNDING);
+    mpfr_set(s.zi, s.t[1], MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void wholeFormula_burningship_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
+    mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);
+    mpfr_abs(s.t[1], s.zi, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[1], s.t[1], MPFRTypes::ROUNDING);
+    wholeFormulaCore_mp(cr, ci, s.t[0], s.t[1], s);
+}
+
+static FORCE_INLINE void fractionalFormula_burningship_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
+    mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);
+    mpfr_abs(s.t[1], s.zi, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[1], s.t[1], MPFRTypes::ROUNDING);
+    fractionalFormulaCore_mp(cr, ci, s.t[0], s.t[1], s);
+}
+
+static FORCE_INLINE void normalDerivative_burningship_mp(MPFRScratch &s) {
+    mpfr_mul(s.t[0], s.zr, s.dr, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[1], s.zi, s.di, MPFRTypes::ROUNDING);
+    mpfr_sub(s.t[2], s.t[0], s.t[1], MPFRTypes::ROUNDING);
+
+    setSign_mp(s.t[3], s.zr);
+    mpfr_abs(s.t[4], s.zi, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[3], s.t[3], s.t[4], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[3], s.t[3], s.dr, MPFRTypes::ROUNDING);
+
+    mpfr_abs(s.t[5], s.zr, MPFRTypes::ROUNDING);
+    setSign_mp(s.t[6], s.zi);
+    mpfr_mul(s.t[5], s.t[5], s.t[6], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[5], s.t[5], s.di, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[6], s.t[3], s.t[5], MPFRTypes::ROUNDING);
+
+    mpfr_mul_2ui(s.t[7], s.t[2], 1, MPFRTypes::ROUNDING);
+    mpfr_add(s.dr, s.t[7], s.lightR, MPFRTypes::ROUNDING);
+
+    mpfr_mul_2ui(s.t[8], s.t[6], 1, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[8], s.t[8], MPFRTypes::ROUNDING);
+    mpfr_add(s.di, s.t[8], s.lightI, MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void wholeDerivative_burningship_mp(MPFRScratch &s) {
+    const int wholeN = static_cast<int>(ScalarGlobals::N);
+
+    setSign_mp(s.t[0], s.zr);
+    mpfr_mul(s.t[0], s.t[0], s.dr, MPFRTypes::ROUNDING);
+    setSign_mp(s.t[2], s.zi);
+    mpfr_mul(s.t[1], s.t[2], s.di, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[1], s.t[1], MPFRTypes::ROUNDING);
+
+    mpfr_abs(s.t[2], s.zr, MPFRTypes::ROUNDING);
+    mpfr_abs(s.t[3], s.zi, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[3], s.t[3], MPFRTypes::ROUNDING);
+
+    mpfr_set(s.t[4], s.t[2], MPFRTypes::ROUNDING);
+    mpfr_set(s.t[5], s.t[3], MPFRTypes::ROUNDING);
+
+    for (int k = 2; k < wholeN; ++k) {
+        mpfr_mul(s.t[6], s.t[5], s.t[3], MPFRTypes::ROUNDING);
+
+        mpfr_mul(s.t[7], s.t[4], s.t[3], MPFRTypes::ROUNDING);
+        mpfr_mul(s.t[8], s.t[5], s.t[2], MPFRTypes::ROUNDING);
+        mpfr_add(s.t[5], s.t[7], s.t[8], MPFRTypes::ROUNDING);
+
+        mpfr_mul(s.t[7], s.t[4], s.t[2], MPFRTypes::ROUNDING);
+        mpfr_sub(s.t[4], s.t[7], s.t[6], MPFRTypes::ROUNDING);
+    }
+
+    mpfr_mul(s.t[6], s.t[4], s.t[0], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[5], s.t[1], MPFRTypes::ROUNDING);
+    mpfr_sub(s.t[8], s.t[6], s.t[7], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[6], s.t[4], s.t[1], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[5], s.t[0], MPFRTypes::ROUNDING);
+    mpfr_add(s.t[9], s.t[6], s.t[7], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[10], s.t[8], s.nVal, MPFRTypes::ROUNDING);
+    mpfr_add(s.dr, s.t[10], s.lightR, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[10], s.t[9], s.nVal, MPFRTypes::ROUNDING);
+    mpfr_add(s.di, s.t[10], s.lightI, MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void fractionalDerivative_burningship_mp(MPFRScratch &s) {
+    mpfr_pow(s.t[0], s.mag, s.halfNMinus1, MPFRTypes::ROUNDING);
+    mpfr_abs(s.t[2], s.zr, MPFRTypes::ROUNDING);
+    mpfr_abs(s.t[3], s.zi, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[3], s.t[3], MPFRTypes::ROUNDING);
+    mpfr_atan2(s.t[1], s.t[3], s.t[2], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[1], s.t[1], s.nMinus1, MPFRTypes::ROUNDING);
+    mpfr_sin_cos(s.t[4], s.t[5], s.t[1], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[6], s.t[0], s.t[5], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[0], s.t[4], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[6], s.t[6], s.nVal, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[7], s.nVal, MPFRTypes::ROUNDING);
+
+    setSign_mp(s.t[12], s.zr);
+    mpfr_mul(s.t[12], s.t[12], s.dr, MPFRTypes::ROUNDING);
+    setSign_mp(s.t[13], s.zi);
+    mpfr_mul(s.t[13], s.t[13], s.di, MPFRTypes::ROUNDING);
+    mpfr_neg(s.t[13], s.t[13], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[8], s.t[6], s.t[12], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[9], s.t[7], s.t[13], MPFRTypes::ROUNDING);
+    mpfr_sub(s.t[10], s.t[8], s.t[9], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[8], s.t[6], s.t[13], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[9], s.t[7], s.t[12], MPFRTypes::ROUNDING);
+    mpfr_add(s.t[11], s.t[8], s.t[9], MPFRTypes::ROUNDING);
+
+    mpfr_add(s.dr, s.t[10], s.lightR, MPFRTypes::ROUNDING);
+    mpfr_add(s.di, s.t[11], s.lightI, MPFRTypes::ROUNDING);
+}
+
+#endif

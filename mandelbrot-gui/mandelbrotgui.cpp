@@ -1876,10 +1876,24 @@ namespace {
                     _panRedrawTimer.start();
                 }
             });
+
+            _zoomOutRedrawTimer.setSingleShot(true);
+            _zoomOutRedrawTimer.setInterval(_owner ? _owner->panRedrawIntervalMs() : 100);
+            QObject::connect(&_zoomOutRedrawTimer, &QTimer::timeout, this, [this]() {
+                if (!_zoomOutDragActive) return;
+
+                commitZoomOutPreview(false);
+                if (_zoomOutDragActive && _zoomOutPendingCommit) {
+                    _zoomOutRedrawTimer.start();
+                }
+            });
         }
 
         void clearPreviewOffset() {
-            if (_panCommittedOffset.isNull() && (_panning || _panOffset.isNull())) {
+            const bool panNeedsClear =
+                !_panCommittedOffset.isNull() || (!_panning && !_panOffset.isNull());
+            const bool zoomNeedsClear = _zoomOutCommittedScale > 1.0001;
+            if (!panNeedsClear && !zoomNeedsClear) {
                 return;
             }
 
@@ -1887,6 +1901,7 @@ namespace {
             if (!_panning) {
                 _panOffset = {};
             }
+            _zoomOutCommittedScale = 1.0;
             update();
         }
 
@@ -1900,7 +1915,22 @@ namespace {
                 QImage scaledImage = image;
                 scaledImage.setDevicePixelRatio(devicePixelRatioF());
                 const QPoint totalOffset = _panCommittedOffset + _panOffset;
-                painter.drawImage(QPointF(totalOffset), scaledImage);
+                const double previewScale = _zoomOutCommittedScale *
+                    ((_zoomOutDragActive && _zoomOutPreviewScale > 1.0) ?
+                        _zoomOutPreviewScale : 1.0);
+                if (previewScale > 1.0001) {
+                    const qreal previewImageScale = static_cast<qreal>(
+                        1.0 / previewScale);
+                    const QPointF center(width() / 2.0, height() / 2.0);
+                    painter.save();
+                    painter.translate(center);
+                    painter.scale(previewImageScale, previewImageScale);
+                    painter.translate(-center);
+                    painter.drawImage(QPointF(totalOffset), scaledImage);
+                    painter.restore();
+                } else {
+                    painter.drawImage(QPointF(totalOffset), scaledImage);
+                }
             }
 
             painter.setRenderHint(QPainter::Antialiasing, true);
@@ -1909,11 +1939,6 @@ namespace {
                 painter.setPen(QPen(QColor(255, 255, 255, 180),
                     1.0, Qt::DashLine));
                 painter.drawRect(_selectionRect.normalized());
-            } else if (effectiveMode() == mandelbrotgui::NavMode::zoom &&
-                    _zoomPreviewCenter && _zoomPreviewSize > 8) {
-                painter.setPen(QPen(QColor(255, 255, 255, 140),
-                    1.0, Qt::DashLine));
-                painter.drawRect(zoomPreviewRect());
             }
 
             const QString statusText = _owner->viewportStatusText();
@@ -1978,10 +2003,13 @@ namespace {
                 _panCommittedOffset = {};
                 _selectionRect = {};
                 _zoomOutPending = false;
+                _zoomOutDragActive = false;
+                _zoomOutDragMoved = false;
+                _zoomOutPendingCommit = false;
+                _zoomOutPreviewScale = 1.0;
                 _rtZoomTimer.stop();
-                _zoomPreviewCenter.reset();
-                _zoomPreviewSize = 1;
                 _panRedrawTimer.stop();
+                _zoomOutRedrawTimer.stop();
                 _panRedrawTimer.start();
                 grabMouse();
                 setCursor(Qt::ClosedHandCursor);
@@ -2005,12 +2033,25 @@ namespace {
                     _selectionOrigin = event->position().toPoint();
                     _selectionRect = QRect(_selectionOrigin, QSize(1, 1));
                     _zoomOutPending = false;
+                    _zoomOutDragActive = false;
+                    _zoomOutDragMoved = false;
+                    _zoomOutPendingCommit = false;
+                    _zoomOutPreviewScale = 1.0;
+                    _zoomOutRedrawTimer.stop();
                     grabMouse();
                     return;
                 }
 
                 if (event->button() == Qt::RightButton) {
                     _zoomOutPending = true;
+                    _zoomOutDragActive = true;
+                    _zoomOutDragMoved = false;
+                    _zoomOutDragLastPos = _lastMousePos;
+                    _zoomOutPendingCommit = false;
+                    _zoomOutPreviewScale = 1.0;
+                    _selectionRect = {};
+                    _zoomOutRedrawTimer.stop();
+                    grabMouse();
                     return;
                 }
             }
@@ -2023,6 +2064,26 @@ namespace {
             if (_panning) {
                 _panOffset = _lastMousePos - _dragOrigin;
                 update();
+                return;
+            }
+
+            if (_zoomOutDragActive) {
+                const QPoint delta = _lastMousePos - _zoomOutDragLastPos;
+                _zoomOutDragLastPos = _lastMousePos;
+                const int dragMagnitude = std::abs(delta.x()) + std::abs(delta.y());
+                if (dragMagnitude > 0) {
+                    _zoomOutDragMoved = true;
+                    constexpr double kZoomOutDragSensitivity = 0.0025;
+                    const double stepScale =
+                        std::pow(1.0 + kZoomOutDragSensitivity, dragMagnitude);
+                    _zoomOutPreviewScale = std::clamp(
+                        _zoomOutPreviewScale * stepScale, 1.0, 64.0);
+                    _zoomOutPendingCommit = _zoomOutPreviewScale > 1.0001;
+                    if (_zoomOutPendingCommit && !_zoomOutRedrawTimer.isActive()) {
+                        _zoomOutRedrawTimer.start();
+                    }
+                    update();
+                }
                 return;
             }
 
@@ -2053,22 +2114,48 @@ namespace {
                 return;
             }
 
-            if (!_selectionRect.isNull() && event->button() == Qt::LeftButton) {
-                const QRect rect = mapToOutputRect(_selectionRect.normalized());
-                const QRect previewRect = mapToOutputRect(zoomPreviewRect());
-                _selectionRect = {};
-                releaseMouse();
+            if (_zoomOutDragActive &&
+                (event->button() == Qt::RightButton ||
+                    event->button() == Qt::NoButton)) {
+                _zoomOutDragActive = false;
+                _zoomOutPending = false;
+                _zoomOutRedrawTimer.stop();
+                if (mouseGrabber() == this) {
+                    releaseMouse();
+                }
+                if (_zoomOutPendingCommit) {
+                    commitZoomOutPreview(true);
+                } else if (!_zoomOutDragMoved) {
+                    _owner->zoomAtPixel(mapToOutputPixel(_lastMousePos), false);
+                }
+                _zoomOutDragMoved = false;
+                _zoomOutPendingCommit = false;
+                _zoomOutPreviewScale = 1.0;
+                updateCursor();
+                update();
+                return;
+            }
 
-                if (rect.width() < 8 || rect.height() < 8) {
-                    if (_zoomPreviewCenter && _zoomPreviewSize > 8) {
-                        _owner->boxZoom(previewRect);
-                    } else {
-                        _owner->zoomAtPixel(mapToOutputPixel(_lastMousePos), true);
-                    }
-                } else {
-                    _owner->boxZoom(rect);
+            if (!_selectionRect.isNull()) {
+                const bool commitSelection =
+                    event->button() == Qt::LeftButton ||
+                    event->button() == Qt::NoButton;
+                const QRect rect = mapToOutputRect(_selectionRect.normalized());
+                _selectionRect = {};
+                if (mouseGrabber() == this) {
+                    releaseMouse();
                 }
 
+                if (commitSelection) {
+                    if (rect.width() < 8 || rect.height() < 8) {
+                        _owner->zoomAtPixel(mapToOutputPixel(_lastMousePos), true);
+                    } else {
+                        _owner->boxZoom(rect);
+                    }
+                }
+
+                _zoomOutPending = false;
+                updateCursor();
                 update();
                 return;
             }
@@ -2085,6 +2172,14 @@ namespace {
         }
 
         void wheelEvent(QWheelEvent *event) override {
+            _lastMousePos = event->position().toPoint();
+            _owner->updateMouseCoords(mapToOutputPixel(_lastMousePos));
+
+            if (_panning) {
+                event->accept();
+                return;
+            }
+
             const auto mode = effectiveMode();
             const bool zoomIn = event->angleDelta().y() > 0;
 
@@ -2097,21 +2192,37 @@ namespace {
             }
 
             if (mode == mandelbrotgui::NavMode::zoom) {
-                const int baseSize = std::max(16, std::min(width(), height()) / 4);
-                if (!_zoomPreviewCenter) {
-                    _zoomPreviewCenter = _lastMousePos;
-                }
-                if (_zoomPreviewSize <= 8) {
-                    _zoomPreviewSize = baseSize;
+                const bool resizeSelection =
+                    !_selectionRect.isNull() &&
+                    (event->buttons() & Qt::LeftButton);
+                if (!resizeSelection) {
+                    event->accept();
+                    return;
                 }
 
-                const double factor = zoomIn ? 0.85 : 1.15;
-                _zoomPreviewSize = std::clamp(
-                    static_cast<int>(std::lround(_zoomPreviewSize * factor)),
-                    8,
-                    std::max(8, std::min(width(), height()) - 4)
-                );
+                const QRect current = _selectionRect.normalized();
+                const QPointF center = current.center();
+                const double factor = zoomIn ? 0.9 : 1.1;
+                const double maxWidth = std::max(2.0, static_cast<double>(width() - 2));
+                const double maxHeight = std::max(2.0, static_cast<double>(height() - 2));
+                const double nextWidth = std::clamp(current.width() * factor, 2.0, maxWidth);
+                const double nextHeight = std::clamp(current.height() * factor, 2.0, maxHeight);
+                QRect scaled(
+                    static_cast<int>(std::lround(center.x() - nextWidth / 2.0)),
+                    static_cast<int>(std::lround(center.y() - nextHeight / 2.0)),
+                    std::max(2, static_cast<int>(std::lround(nextWidth))),
+                    std::max(2, static_cast<int>(std::lround(nextHeight))));
+                const QRect bounds(0, 0, std::max(1, width()), std::max(1, height()));
+                scaled = scaled.intersected(bounds);
+                if (scaled.width() < 2 || scaled.height() < 2) {
+                    event->accept();
+                    return;
+                }
+
+                _selectionOrigin = scaled.topLeft();
+                _selectionRect = QRect(_selectionOrigin, scaled.bottomRight());
                 update();
+                event->accept();
                 return;
             }
 
@@ -2152,6 +2263,7 @@ namespace {
 
         void closeEvent(QCloseEvent *event) override {
             _panRedrawTimer.stop();
+            _zoomOutRedrawTimer.stop();
             if (mouseGrabber() == this) {
                 releaseMouse();
             }
@@ -2160,13 +2272,6 @@ namespace {
         }
 
     private:
-        QRect zoomPreviewRect() const {
-            const QPoint center = _zoomPreviewCenter.value_or(_lastMousePos);
-            const int half = std::max(1, _zoomPreviewSize / 2);
-            return QRect(center.x() - half, center.y() - half,
-                std::max(1, _zoomPreviewSize), std::max(1, _zoomPreviewSize));
-        }
-
         QPoint mapToOutputPixel(const QPoint &logicalPoint) const {
             const QSize logicalSize = size();
             const QSize outputSize = _owner->outputSize();
@@ -2243,9 +2348,27 @@ namespace {
             update();
         }
 
+        void commitZoomOutPreview(bool force) {
+            if (!_owner) return;
+            if (!_zoomOutPendingCommit || _zoomOutPreviewScale <= 1.0001) return;
+            if (!force && _owner->renderInFlight()) return;
+
+            const QPoint viewportCenter(width() / 2, height() / 2);
+            _owner->scaleAtPixel(
+                mapToOutputPixel(viewportCenter),
+                _zoomOutPreviewScale,
+                !force);
+            _zoomOutCommittedScale = std::clamp(
+                _zoomOutCommittedScale * _zoomOutPreviewScale, 1.0, 1024.0);
+            _zoomOutPreviewScale = 1.0;
+            _zoomOutPendingCommit = false;
+            update();
+        }
+
         mandelbrotgui *_owner = nullptr;
         QTimer _rtZoomTimer;
         QTimer _panRedrawTimer;
+        QTimer _zoomOutRedrawTimer;
         QPoint _lastMousePos;
         QPoint _dragOrigin;
         QPoint _selectionOrigin;
@@ -2253,12 +2376,16 @@ namespace {
         QPoint _panCommittedOffset;
         QRect _selectionRect;
         std::optional<QPoint> _rtZoomAnchorPixel;
-        std::optional<QPoint> _zoomPreviewCenter;
-        int _zoomPreviewSize = 1;
         bool _rtZoomZoomIn = true;
         bool _panning = false;
         bool _spacePan = false;
         bool _zoomOutPending = false;
+        bool _zoomOutDragActive = false;
+        bool _zoomOutDragMoved = false;
+        bool _zoomOutPendingCommit = false;
+        QPoint _zoomOutDragLastPos;
+        double _zoomOutCommittedScale = 1.0;
+        double _zoomOutPreviewScale = 1.0;
     };
 }
 
@@ -3275,15 +3402,18 @@ void mandelbrotgui::applyHomeView() {
     requestRender(true);
 }
 
-void mandelbrotgui::zoomAtPixel(const QPoint &pixel, bool zoomIn, bool realtimeStep) {
+void mandelbrotgui::scaleAtPixel(
+    const QPoint &pixel,
+    double scaleMultiplier,
+    bool realtimeStep) {
     if (realtimeStep && _renderInFlight) return;
+    if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     const QPoint clampedPixel = clampPixelToOutput(pixel);
     const QPointF target = outputPixelToComplex(clampedPixel);
-    const double factor = currentZoomFactor(_state.zoomRate);
-    const double nextZoom = clampGuiZoom(
-        _state.zoom + (zoomIn ? std::log10(factor) : -std::log10(factor)));
+    const double nextZoom = clampGuiZoom(_state.zoom - std::log10(scaleMultiplier));
     if (nextZoom == _state.zoom) return;
+
     const QSize size = outputSize();
     const double dx = (clampedPixel.x() - size.width() / 2.0) /
         std::max(1, size.width());
@@ -3301,6 +3431,13 @@ void mandelbrotgui::zoomAtPixel(const QPoint &pixel, bool zoomIn, bool realtimeS
     requestRender();
 }
 
+void mandelbrotgui::zoomAtPixel(const QPoint &pixel, bool zoomIn, bool realtimeStep) {
+    const QPoint clampedPixel = clampPixelToOutput(pixel);
+    const double factor = currentZoomFactor(_state.zoomRate);
+    const double scaleMultiplier = zoomIn ? (1.0 / factor) : factor;
+    scaleAtPixel(clampedPixel, scaleMultiplier, realtimeStep);
+}
+
 void mandelbrotgui::boxZoom(const QRect &selectionRect) {
     const QRect rect = selectionRect.normalized();
     if (rect.width() < 2 || rect.height() < 2) {
@@ -3315,18 +3452,11 @@ void mandelbrotgui::boxZoom(const QRect &selectionRect) {
     const QPoint center = clampPixelToOutput(rect.center());
     const QPointF target = outputPixelToComplex(center);
     const double nextZoom = clampGuiZoom(_state.zoom + std::log10(factor));
-    const double dx = (center.x() - size.width() / 2.0) /
-        std::max(1, size.width());
-    const double dy = (center.y() - size.height() / 2.0) /
-        std::max(1, size.height());
-    const double aspect = static_cast<double>(size.width()) /
-        std::max(1, size.height());
-    const double realScale = 1.0 / std::pow(10.0, nextZoom);
-    const double imagScale = realScale / aspect;
 
     _state.zoom = nextZoom;
-    _state.point.setX(target.x() - dx * realScale);
-    _state.point.setY(dy * imagScale - target.y());
+    // For box zoom we re-center on the selected area, unlike anchored wheel/click zoom.
+    _state.point.setX(target.x());
+    _state.point.setY(-target.y());
     syncStateReadouts();
     requestRender();
 }

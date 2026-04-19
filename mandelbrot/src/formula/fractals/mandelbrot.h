@@ -305,3 +305,99 @@ _DERIVATIVE_OPS_FUNC(
         }
     }
 );
+
+#ifdef USE_MPFR
+
+static FORCE_INLINE void normalFormula_mandelbrot_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
+    mpfr_sub(s.t[0], s.zr2, s.zi2, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[0], s.t[0], cr, MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[1], s.zr, s.zi, MPFRTypes::ROUNDING);
+    mpfr_mul_2ui(s.t[1], s.t[1], 1, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[1], s.t[1], ci, MPFRTypes::ROUNDING);
+
+    mpfr_set(s.zr, s.t[0], MPFRTypes::ROUNDING);
+    mpfr_set(s.zi, s.t[1], MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void wholeFormula_mandelbrot_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
+    wholeFormulaCore_mp(cr, ci, s.zr, s.zi, s);
+}
+
+static FORCE_INLINE void fractionalFormula_mandelbrot_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
+    fractionalFormulaCore_mp(cr, ci, s.zr, s.zi, s);
+}
+
+static FORCE_INLINE void normalDerivative_mandelbrot_mp(MPFRScratch &s) {
+    mpfr_mul(s.t[0], s.zr, s.dr, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[1], s.zi, s.di, MPFRTypes::ROUNDING);
+    mpfr_sub(s.t[2], s.t[0], s.t[1], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[3], s.zr, s.di, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[4], s.zi, s.dr, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[6], s.t[3], s.t[4], MPFRTypes::ROUNDING);
+
+    mpfr_mul_2ui(s.t[7], s.t[2], 1, MPFRTypes::ROUNDING);
+    mpfr_add_ui(s.dr, s.t[7], 1, MPFRTypes::ROUNDING);
+
+    mpfr_mul_2ui(s.t[8], s.t[6], 1, MPFRTypes::ROUNDING);
+    mpfr_set(s.di, s.t[8], MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void wholeDerivative_mandelbrot_mp(MPFRScratch &s) {
+    const int wholeN = static_cast<int>(ScalarGlobals::N);
+
+    mpfr_set(s.t[0], s.zr, MPFRTypes::ROUNDING);
+    mpfr_set(s.t[1], s.zi, MPFRTypes::ROUNDING);
+
+    for (int k = 2; k < wholeN; ++k) {
+        mpfr_mul(s.t[2], s.t[1], s.zi, MPFRTypes::ROUNDING);
+
+        mpfr_mul(s.t[3], s.t[0], s.zi, MPFRTypes::ROUNDING);
+        mpfr_mul(s.t[4], s.t[1], s.zr, MPFRTypes::ROUNDING);
+        mpfr_add(s.t[1], s.t[3], s.t[4], MPFRTypes::ROUNDING);
+
+        mpfr_mul(s.t[3], s.t[0], s.zr, MPFRTypes::ROUNDING);
+        mpfr_sub(s.t[0], s.t[3], s.t[2], MPFRTypes::ROUNDING);
+    }
+
+    mpfr_mul(s.t[2], s.t[0], s.dr, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[3], s.t[1], s.di, MPFRTypes::ROUNDING);
+    mpfr_sub(s.t[4], s.t[2], s.t[3], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[2], s.t[0], s.di, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[3], s.t[1], s.dr, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[5], s.t[2], s.t[3], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[6], s.t[4], s.nVal, MPFRTypes::ROUNDING);
+    mpfr_add_ui(s.dr, s.t[6], 1, MPFRTypes::ROUNDING);
+    mpfr_mul(s.di, s.t[5], s.nVal, MPFRTypes::ROUNDING);
+}
+
+static FORCE_INLINE void fractionalDerivative_mandelbrot_mp(MPFRScratch &s) {
+    mpfr_pow(s.t[0], s.mag, s.halfNMinus1, MPFRTypes::ROUNDING);
+    mpfr_atan2(s.t[1], s.zi, s.zr, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[1], s.t[1], s.nMinus1, MPFRTypes::ROUNDING);
+    mpfr_sin_cos(s.t[4], s.t[5], s.t[1], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[6], s.t[0], s.t[5], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[0], s.t[4], MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[6], s.t[6], s.nVal, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[7], s.t[7], s.nVal, MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[8], s.t[6], s.dr, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[9], s.t[7], s.di, MPFRTypes::ROUNDING);
+    mpfr_sub(s.t[10], s.t[8], s.t[9], MPFRTypes::ROUNDING);
+
+    mpfr_mul(s.t[8], s.t[6], s.di, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[9], s.t[7], s.dr, MPFRTypes::ROUNDING);
+    mpfr_add(s.t[11], s.t[8], s.t[9], MPFRTypes::ROUNDING);
+
+    mpfr_add_ui(s.dr, s.t[10], 1, MPFRTypes::ROUNDING);
+    mpfr_set(s.di, s.t[11], MPFRTypes::ROUNDING);
+}
+
+#endif
