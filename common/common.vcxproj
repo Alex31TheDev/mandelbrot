@@ -173,6 +173,7 @@
     <ClInclude Include="src\util\InlineUtil.h" />
     <ClInclude Include="src\util\MacroUtil.h" />
     <ClInclude Include="src\util\MathConstants.h" />
+    <ClInclude Include="src\util\NumberUtil.h" />
     <ClInclude Include="src\util\ParserUtil.h" />
     <ClInclude Include="src\util\ParserUtil_impl.h" />
     <ClInclude Include="src\util\PathUtil.h" />
@@ -184,6 +185,7 @@
     <ClCompile Include="src\options\ColorMethods.cpp" />
     <ClCompile Include="src\options\FractalTypes.cpp" />
     <ClCompile Include="src\util\FormatUtil.cpp" />
+    <ClCompile Include="src\util\NumberUtil.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />
     <ClCompile Include="src\util\PathUtil.cpp" />
     <ClCompile Include="src\util\StringUtil.cpp" />

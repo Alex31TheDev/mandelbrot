@@ -9,6 +9,8 @@
 #include <tuple>
 #include <chrono>
 
+#include "StringUtil.h"
+
 using namespace std::chrono;
 
 static bool safeLocaltime(time_t time, tm &out) {
@@ -91,5 +93,27 @@ namespace PathUtil {
         result.append(buf);
         result.append(ext);
         return result;
+    }
+
+    std::string appendExtension(std::string_view filePath,
+        std::string_view extension) {
+        std::string normalizedExt(extension);
+        if (StringUtil::startsWith(normalizedExt, ".")) {
+            normalizedExt.erase(normalizedExt.begin());
+        }
+        if (normalizedExt.empty()) return std::string(filePath);
+
+        const std::string loweredPath = StringUtil::toLower(filePath);
+        const std::string loweredExt = StringUtil::toLower(normalizedExt);
+        const std::string fullExt = "." + loweredExt;
+
+        if (StringUtil::endsWith(loweredPath, fullExt)) return std::string(filePath);
+
+        std::string out;
+        out.reserve(filePath.size() + normalizedExt.size() + 1);
+        out.append(filePath);
+        out.push_back('.');
+        out.append(normalizedExt);
+        return out;
     }
 }

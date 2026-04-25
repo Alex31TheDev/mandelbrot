@@ -7,19 +7,6 @@
 #include <utility>
 
 namespace Backend {
-    enum class ColorMethod {
-        iterations = 0,
-        smooth_iterations = 1,
-        palette = 2,
-        light = 3
-    };
-
-    enum class FractalType {
-        mandelbrot = 0,
-        perpendicular = 1,
-        burningship = 2
-    };
-
     struct Status {
         bool ok = true;
         std::string message;
@@ -35,43 +22,13 @@ namespace Backend {
         }
     };
 
-    struct PaletteRGBEntry {
-        float R = 0.0f;
-        float G = 0.0f;
-        float B = 0.0f;
-        float length = 1.0f;
+    enum class ImageEventKind {
+        allocated,
+        saved
     };
 
-    struct PaletteHexEntry {
-        std::string color;
-        float length = 1.0f;
-    };
-
-    struct PaletteRGBConfig {
-        float totalLength = 10.0f;
-        float offset = 0.0f;
-        bool blendEnds = true;
-        std::vector<PaletteRGBEntry> entries;
-    };
-
-    struct PaletteHexConfig {
-        float totalLength = 10.0f;
-        float offset = 0.0f;
-        bool blendEnds = true;
-        std::vector<PaletteHexEntry> entries;
-    };
-
-    struct SinePaletteConfig {
-        float freqR = 0.98f;
-        float freqG = 0.91f;
-        float freqB = 0.86f;
-        float freqMult = 0.128f;
-    };
-
-    struct LightColor {
-        float R = 1.0f;
-        float G = 1.0f;
-        float B = 1.0f;
+    enum class InfoEventKind {
+        iterations
     };
 
     struct ProgressEvent {
@@ -81,11 +38,6 @@ namespace Backend {
         uint64_t completedWork = 0;
         uint64_t totalWork = 0;
         bool completed = false;
-    };
-
-    enum class ImageEventKind {
-        allocated,
-        saved
     };
 
     struct ImageEvent {
@@ -100,10 +52,6 @@ namespace Backend {
         size_t primaryBytes = 0;
         size_t secondaryBytes = 0;
         const char *path = nullptr;
-    };
-
-    enum class InfoEventKind {
-        iterations
     };
 
     struct InfoEvent {
@@ -139,6 +87,58 @@ namespace Backend {
         float aaScale = 1.0f;
     };
 
+    enum class FractalType {
+        mandelbrot = 0,
+        perpendicular = 1,
+        burningship = 2
+    };
+
+    enum class ColorMethod {
+        iterations = 0,
+        smooth_iterations = 1,
+        palette = 2,
+        light = 3
+    };
+
+    struct LightColor {
+        float R = 1.0f;
+        float G = 1.0f;
+        float B = 1.0f;
+    };
+
+    struct PaletteRGBEntry {
+        float R = 0.0f;
+        float G = 0.0f;
+        float B = 0.0f;
+        float length = 1.0f;
+    };
+
+    struct PaletteHexEntry {
+        std::string color;
+        float length = 1.0f;
+    };
+
+    struct SinePaletteConfig {
+        float freqR = 0.98f;
+        float freqG = 0.91f;
+        float freqB = 0.86f;
+        float freqMult = 0.128f;
+    };
+
+    struct PaletteRGBConfig {
+        float totalLength = 10.0f;
+        float offset = 0.0f;
+        bool blendEnds = true;
+        std::vector<PaletteRGBEntry> entries;
+    };
+
+    struct PaletteHexConfig {
+        float totalLength = 10.0f;
+        float offset = 0.0f;
+        bool blendEnds = true;
+        std::vector<PaletteHexEntry> entries;
+    };
+
     class Session {
     public:
         virtual ~Session() = default;
@@ -149,10 +149,11 @@ namespace Backend {
             std::string &real, std::string &imag) = 0;
         virtual Status computeZoomPointForPixel(int pixelX, int pixelY,
             float targetZoom, std::string &real, std::string &imag) = 0;
+        virtual int currentIterationCount() const = 0;
+        virtual int precisionRank() const = 0;
 
         virtual Status setImageSize(int width, int height, int aaPixels) = 0;
         virtual void setUseThreads(bool useThreads) = 0;
-
         virtual Status setZoom(int iterCount, float zoom) = 0;
         virtual Status setPoint(const std::string &real,
             const std::string &imag) = 0;
@@ -174,12 +175,14 @@ namespace Backend {
         virtual Status setLightColor(const std::string &colorHex) = 0;
         virtual Status setLight(float real, float imag) = 0;
         virtual Status setLight(int pixelX, int pixelY) = 0;
+
         virtual ImageView renderPalettePreview(int width, int height) = 0;
         virtual ImageView renderSinePreview(int width, int height,
             float rangeMin, float rangeMax) = 0;
 
         virtual Status render() = 0;
         virtual void clearImage() = 0;
+        virtual void forceKill() = 0;
 
         virtual ImageView imageView() const = 0;
         virtual Status saveImage(const std::string &path, bool appendDate,

@@ -1,6 +1,7 @@
 #include "CommonDefs.h"
 #include "ScalarGlobals.h"
 
+#include <algorithm>
 #include <vector>
 
 #include "ScalarTypes.h"
@@ -35,7 +36,8 @@ namespace ScalarGlobals {
         DEFAULT_PHASE_R,
         DEFAULT_PHASE_G,
         DEFAULT_PHASE_B,
-        DEFAULT_COS_PHASE);
+        DEFAULT_COS_PHASE
+    );
     ScalarColorPalette palette({}, SC_SYM_H(10.0));
 
     void initImageValues() {
@@ -54,18 +56,13 @@ namespace ScalarGlobals {
     }
 
     bool setZoomGlobals(int iterCount, scalar_half_t zoomScale) {
-        if (iterCount < 1) count = MIN_ITERATIONS;
-        else count = iterCount;
+        count = iterCount < 1
+            ? std::max(MIN_ITERATIONS, count)
+            : std::max(MIN_ITERATIONS, iterCount);
+        invCount = RECIP_H(count);
 
         zoom = zoomScale;
         initImageValues();
-
-        if (iterCount == 0) {
-            const scalar_half_t visualRange = CAST_H(POW_F(10, zoom));
-            count += static_cast<int>(POW_H(LOG10_H(visualRange), 5));
-        }
-
-        invCount = RECIP_H(count);
         return zoomScale > SC_SYM_H(-3.25);
     }
 

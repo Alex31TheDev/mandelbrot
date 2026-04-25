@@ -11,4 +11,6 @@ namespace PathUtil {
 
     std::string appendSeqnum(std::string_view filePath, int x);
     std::string appendIsoDate(std::string_view filePath);
+    std::string appendExtension(std::string_view filePath,
+        std::string_view extension);
 }

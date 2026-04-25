@@ -37,18 +37,16 @@ FORCE_INLINE scalar_full_t getCenterImag(int y) {
 
 FORCE_INLINE scalar_full_t getOutputCenterReal(int x) {
     using namespace RenderGlobals;
-    const int clampedX = clampCoordToImage(x, outputWidth);
     const scalar_full_t halfOutputWidth = CAST_F(outputWidth) / SC_SYM_F(2.0);
     const scalar_full_t invOutputWidth = RECIP_F(outputWidth);
 
-    return getCenterRealForImage(clampedX, halfOutputWidth, invOutputWidth);
+    return getCenterRealForImage(x, halfOutputWidth, invOutputWidth);
 }
 
 FORCE_INLINE scalar_full_t getOutputCenterImag(int y) {
     using namespace RenderGlobals;
-    const int clampedY = clampCoordToImage(y, outputHeight);
     const scalar_full_t halfOutputHeight = CAST_F(outputHeight) / SC_SYM_F(2.0);
     const scalar_full_t invOutputHeight = RECIP_F(outputHeight);
 
-    return getCenterImagForImage(clampedY, halfOutputHeight, invOutputHeight);
+    return getCenterImagForImage(y, halfOutputHeight, invOutputHeight);
 }

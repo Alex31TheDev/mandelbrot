@@ -11,20 +11,21 @@
 #include <exception>
 #include <stdexcept>
 
-#include "BackendAPI.h"
-#include "options/ColorMethods.h"
-#include "options/FractalTypes.h"
-#include "util/ParserUtil.h"
-
 #include "argparse.hpp"
+#include "BackendAPI.h"
 
 #include "ArgsUsage.h"
-#include "parsers/palette/PaletteParser.h"
-#include "parsers/sine/SineParser.h"
 using namespace ArgsUsage;
 
+#include "options/ColorMethods.h"
+#include "options/FractalTypes.h"
 using namespace ColorMethods;
 using namespace FractalTypes;
+
+#include "parsers/palette/PaletteParser.h"
+#include "parsers/sine/SineParser.h"
+
+#include "util/ParserUtil.h"
 using namespace ParserUtil;
 
 constexpr float DEFAULT_LIGHT_R = 1.0f;

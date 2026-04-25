@@ -28,4 +28,3 @@ bool KeyValueWriter::writeKeyValue(
 
     return true;
 }
-

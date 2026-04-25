@@ -489,11 +489,6 @@ constexpr simd_full_mask_t SIMD_INIT_ONES_MASK_H = SIMD_ONES_LANES_H;
 
 #define SIMD_RECIP_F(x) SIMD_DIV_F(SIMD_ONE_F, x)
 
-#if defined(USE_FLOATS) && !AVX512
-#undef SIMD_RECIP_F
-#define SIMD_RECIP_F(x) SIMD_FUNC_DEC_F(rcp, x)
-#endif
-
 #if AVX512
 #define SIMD_RECIP_H(x) SIMD_DIV_H(SIMD_ONE_H, x)
 #else

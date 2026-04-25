@@ -1,6 +1,7 @@
 #include "ProgressTracker.h"
 
 #include <cstdint>
+#include <algorithm>
 #include <numeric>
 #include <chrono>
 #include <tuple>
@@ -14,14 +15,24 @@ using namespace std::chrono;
 
 ProgressTracker::ProgressTracker(
     WU totalWork, bool threadSafe,
-    const ProgressConfig &config
+    const ProgressOptions &options
 )
     : _totalWork(totalWork), _threadSafe(threadSafe),
-    _config(config),
+    _options(options),
     _startTime(steady_clock::now()),
     _opsHistory(OPS_WINDOW_MAX_SIZE) {
     if (_threadSafe) _state.emplace<_AtomicState>();
     else _state.emplace<_PlainState>();
+
+    const HTP now = high_resolution_clock::now();
+    std::visit([&](auto &&state) {
+        using T = std::decay_t<decltype(state)>;
+        if constexpr (std::is_same_v<T, _PlainState>) {
+            state.lastUpdateTime = now;
+        } else if constexpr (std::is_same_v<T, _AtomicState>) {
+            state.lastUpdateTime.store(now, std::memory_order_relaxed);
+        }
+        }, _state);
 
     _emitProgress(0, false);
 }
@@ -99,28 +110,49 @@ double ProgressTracker::opsPerSecond() const {
 }
 
 void ProgressTracker::_emitProgress(int perc, bool completed) {
-    const auto *callbacks = _config.callbacks;
-    if (callbacks && callbacks->onProgress) {
-        const Backend::ProgressEvent event = {
-            .percentage = perc,
-            .opsPerSecond = opsPerSecond(),
-            .elapsedMs = elapsedInt(),
-            .completedWork = completedWork(),
-            .totalWork = _totalWork,
-            .completed = completed
-        };
-
-        callbacks->onProgress(event);
-    }
-
     std::visit(
         [&](auto &&state) {
             using T = std::decay_t<decltype(state)>;
 
             if constexpr (std::is_same_v<T, _PlainState>) {
-                state.lastPrinted = perc;
+                const auto *callbacks = _options.callbacks;
+                if (callbacks && callbacks->onProgress) {
+                    const Backend::ProgressEvent event = {
+                        .percentage = perc,
+                        .opsPerSecond = opsPerSecond(),
+                        .elapsedMs = elapsedInt(),
+                        .completedWork = completedWork(),
+                        .totalWork = _totalWork,
+                        .completed = completed
+                    };
+
+                    callbacks->onProgress(event);
+                }
+
+                state.lastEmitted = perc;
             } else if constexpr (std::is_same_v<T, _AtomicState>) {
-                state.lastPrinted.store(perc, std::memory_order_relaxed);
+                std::scoped_lock lock(state.emitMutex);
+                const int last = state.lastEmitted.load(std::memory_order_relaxed);
+
+                if (!completed && perc <= last) {
+                    return;
+                }
+
+                const auto *callbacks = _options.callbacks;
+                if (callbacks && callbacks->onProgress) {
+                    const Backend::ProgressEvent event = {
+                        .percentage = perc,
+                        .opsPerSecond = opsPerSecond(),
+                        .elapsedMs = elapsedInt(),
+                        .completedWork = completedWork(),
+                        .totalWork = _totalWork,
+                        .completed = completed
+                    };
+
+                    callbacks->onProgress(event);
+                }
+
+                state.lastEmitted.store(perc, std::memory_order_relaxed);
             }
         }, _state
     );
@@ -128,7 +160,7 @@ void ProgressTracker::_emitProgress(int perc, bool completed) {
 
 std::tuple<int, int> ProgressTracker::_updateWork(WU processed) {
     WU current = 0;
-    int last = 0;
+    int lastEmitted = 0;
 
     std::visit(
         [&](auto &&state) {
@@ -136,17 +168,20 @@ std::tuple<int, int> ProgressTracker::_updateWork(WU processed) {
 
             if constexpr (std::is_same_v<T, _PlainState>) {
                 current = (state.completedWork += processed);
-                last = state.lastPrinted;
+                lastEmitted = state.lastEmitted;
             } else if constexpr (std::is_same_v<T, _AtomicState>) {
                 current = state.completedWork.fetch_add(processed,
-                    std::memory_order_relaxed);
-                last = state.lastPrinted.load(std::memory_order_relaxed);
+                    std::memory_order_relaxed) + processed;
+                lastEmitted = state.lastEmitted.load(std::memory_order_relaxed);
             }
         }, _state
     );
 
-    const int perc = (current * WU(100)) / _totalWork;
-    return std::make_tuple(perc, last);
+    current = std::min(current, _totalWork);
+
+    const int perc = _totalWork == 0 ? 100 :
+        static_cast<int>((current * WU(100)) / _totalWork);
+    return std::make_tuple(perc, lastEmitted);
 }
 
 void ProgressTracker::_updateOpsHistory(WU processed) {
@@ -182,21 +217,21 @@ void ProgressTracker::_updateOpsHistory(WU processed) {
     );
 }
 
-void ProgressTracker::update(WU processed, bool printUpdate) {
+void ProgressTracker::update(WU processed, bool emitUpdate) {
     const auto [perc, last] = _updateWork(processed);
     _updateOpsHistory(processed);
 
-    if (printUpdate && perc > last) {
+    if (emitUpdate && perc > last) {
         _emitProgress(perc, false);
     }
 }
 
-void ProgressTracker::complete(bool printUpdate) {
+void ProgressTracker::complete(bool emitUpdate) {
     _completed = true;
     _endTime = steady_clock::now();
     _opsHistory.clear();
 
-    if (printUpdate) {
+    if (emitUpdate) {
         _emitProgress(100, true);
     }
 }

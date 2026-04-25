@@ -50,7 +50,6 @@ FORCE_INLINE void getCenterImag_mp(mpfr_t out, int y) {
 
 FORCE_INLINE void getOutputCenterReal_mp(mpfr_t out, int x) {
     using namespace RenderGlobals;
-    const int clampedX = clampCoordToImage_mp(x, outputWidth);
 
     mpfr_ptr halfOutputWidth = MPFRTypes::nextTemp();
     mpfr_set_si(halfOutputWidth, outputWidth, MPFRTypes::ROUNDING);
@@ -60,12 +59,11 @@ FORCE_INLINE void getOutputCenterReal_mp(mpfr_t out, int x) {
     mpfr_set_si(invOutputWidth, outputWidth, MPFRTypes::ROUNDING);
     mpfr_ui_div(invOutputWidth, 1, invOutputWidth, MPFRTypes::ROUNDING);
 
-    getCenterRealForImage_mp(out, clampedX, halfOutputWidth, invOutputWidth);
+    getCenterRealForImage_mp(out, x, halfOutputWidth, invOutputWidth);
 }
 
 FORCE_INLINE void getOutputCenterImag_mp(mpfr_t out, int y) {
     using namespace RenderGlobals;
-    const int clampedY = clampCoordToImage_mp(y, outputHeight);
 
     mpfr_ptr halfOutputHeight = MPFRTypes::nextTemp();
     mpfr_set_si(halfOutputHeight, outputHeight, MPFRTypes::ROUNDING);
@@ -75,7 +73,7 @@ FORCE_INLINE void getOutputCenterImag_mp(mpfr_t out, int y) {
     mpfr_set_si(invOutputHeight, outputHeight, MPFRTypes::ROUNDING);
     mpfr_ui_div(invOutputHeight, 1, invOutputHeight, MPFRTypes::ROUNDING);
 
-    getCenterImagForImage_mp(out, clampedY, halfOutputHeight, invOutputHeight);
+    getCenterImagForImage_mp(out, y, halfOutputHeight, invOutputHeight);
 }
 
 #endif

@@ -2,6 +2,8 @@
 #include <stop_token>
 #include <tuple>
 
+#include "util/IncludeWin32.h"
+
 #define _CLASS_TEMPLATE \
 template <typename FunctionType, typename ThreadType> \
     requires _ThreadPoolImpl::VoidInvocable<FunctionType>
@@ -71,6 +73,40 @@ void _CLASS_NAME::waitForTasks() {
     while (_inFlight.load(std::memory_order_acquire) > 0) {
         _threadsComplete.wait(false);
     }
+}
+
+_CLASS_TEMPLATE
+void _CLASS_NAME::forceTerminate() {
+    clearTasks();
+
+#ifdef _WIN32
+    for (size_t i = 0; i < _threads.size(); i++) {
+        if (!_threads[i].joinable()) continue;
+
+        HANDLE thread = static_cast<HANDLE>(_threads[i].native_handle());
+        if (thread) {
+            TerminateThread(thread, 1);
+            WaitForSingleObject(thread, INFINITE);
+        }
+
+        _threads[i].join();
+    }
+    _threads.clear();
+#else
+    for (size_t i = 0; i < _threads.size(); i++) {
+        if (_threads[i].joinable()) {
+            _threads[i].request_stop();
+            _tasks[i].signal.release();
+            _threads[i].join();
+        }
+    }
+    _threads.clear();
+#endif
+
+    _unassigned.store(0, std::memory_order_release);
+    _inFlight.store(0, std::memory_order_release);
+    _threadsComplete.store(true, std::memory_order_release);
+    _threadsComplete.notify_all();
 }
 
 _CLASS_TEMPLATE

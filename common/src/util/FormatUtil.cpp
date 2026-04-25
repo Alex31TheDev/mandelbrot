@@ -92,4 +92,23 @@ namespace FormatUtil {
 
         return oss.str();
     }
+
+    std::string formatIndexedName(std::string_view baseName, int index) {
+        std::ostringstream oss;
+        oss << baseName << ' ' << index;
+        return oss.str();
+    }
+
+    std::string uniqueIndexedName(std::string_view baseName,
+        const std::function<bool(std::string_view)> &nameExists,
+        int startIndex) {
+        if (startIndex < 1) startIndex = 1;
+
+        for (int suffix = startIndex;; ++suffix) {
+            const std::string candidate = formatIndexedName(baseName, suffix);
+            if (!nameExists(candidate)) {
+                return candidate;
+            }
+        }
+    }
 }

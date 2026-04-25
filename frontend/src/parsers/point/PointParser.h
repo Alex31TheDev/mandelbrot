@@ -5,9 +5,15 @@
 #include "../KeyValueParser.h"
 
 struct PointConfig {
+    std::string fractal = "mandelbrot";
+    bool inverse = false;
+    bool julia = false;
+    int iterations = 0;
     std::string real;
     std::string imag;
     double zoom = 0.0;
+    std::string seedReal = "0";
+    std::string seedImag = "0";
 };
 
 class PointParser : public KeyValueParser<PointConfig> {
@@ -25,4 +31,3 @@ private:
         return "Invalid point file token: ";
     }
 };
-

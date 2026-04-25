@@ -1,12 +1,13 @@
 {
-    scalar_full_t zr2 = zr * zr;
-    scalar_full_t zi2 = zi * zi;
+    scalar_full_t zr2 = zr * zr, zi2 = zi * zi;
     mag = zr2 + zi2;
 
     if (mag > BAILOUT) break;
 
     scalar_full_t new_zr = zr, new_zi = zi;
+#ifdef _USE_DERIVATIVE
     scalar_full_t new_dr = dr, new_di = di;
+#endif
 
 #ifdef _USE_DERIVATIVE
     _DERIVATIVE;

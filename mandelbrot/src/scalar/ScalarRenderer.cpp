@@ -4,11 +4,13 @@
 #include <cstdint>
 
 #include "ScalarTypes.h"
+#include "ScalarColors.h"
 
 #include "ScalarGlobals.h"
 using namespace ScalarGlobals;
 
 #include "../image/Image.h"
+#include "../render/RenderIterationStats.h"
 #include "util/InlineUtil.h"
 
 #ifdef USE_SCALAR
@@ -171,9 +173,6 @@ FORCE_INLINE scalar_half_t getLightVal(
 
 #endif
 
-#define _colorToInt(val) \
-    CAST_INT_U(CLAMP_H(val * SC_SYM_H(255.0), 0, 255), 8);
-
 FORCE_INLINE void _setPixel(
     uint8_t *pixels, size_t &pos,
     scalar_half_t R, scalar_half_t G, scalar_half_t B
@@ -181,9 +180,9 @@ FORCE_INLINE void _setPixel(
     if (R + G + B < COLOR_EPS) {
         pos += Image::STRIDE;
     } else {
-        pixels[pos++] = _colorToInt(R);
-        pixels[pos++] = _colorToInt(G);
-        pixels[pos++] = _colorToInt(B);
+        pixels[pos++] = toColorByte(R);
+        pixels[pos++] = toColorByte(G);
+        pixels[pos++] = toColorByte(B);
     }
 }
 
@@ -263,8 +262,11 @@ namespace ScalarRenderer {
     }
 #endif
 
-    uint8_t colorToInt(scalar_half_t val) {
-        return _colorToInt(val);
+    void sampleColorFormula(
+        scalar_half_t val,
+        scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
+    ) {
+        getPixelColor(val, outR, outG, outB);
     }
 
     void setPixel(
@@ -275,13 +277,6 @@ namespace ScalarRenderer {
             pixels, pos,
             R, G, B
         );
-    }
-
-    void sampleColorFormula(
-        scalar_half_t val,
-        scalar_half_t &outR, scalar_half_t &outG, scalar_half_t &outB
-    ) {
-        getPixelColor(val, outR, outG, outB);
     }
 
 #if USE_SCALAR_COLORING
@@ -303,7 +298,8 @@ namespace ScalarRenderer {
 #ifdef USE_SCALAR
     void renderPixelScalar(
         uint8_t *pixels, size_t &pos,
-        int x, scalar_full_t ci, uint64_t *totalIterCount
+        int x, scalar_full_t ci,
+        OptionalIterationStats iterStats, std::optional<int> y
     ) {
         scalar_full_t cr = getCenterReal(x);
 
@@ -330,9 +326,7 @@ namespace ScalarRenderer {
             dr, di
         );
 
-        if (totalIterCount) {
-            *totalIterCount = static_cast<uint64_t>(i) + 1;
-        }
+        if (iterStats) iterStats->get().record(i, x, y);
     }
 #endif
 }

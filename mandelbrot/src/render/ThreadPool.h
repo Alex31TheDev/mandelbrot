@@ -61,6 +61,7 @@ public:
 
     size_t clearTasks();
     void waitForTasks();
+    void forceTerminate();
 
 private:
     template <typename InitFunction>

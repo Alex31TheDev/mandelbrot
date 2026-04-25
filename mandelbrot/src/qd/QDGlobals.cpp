@@ -18,8 +18,7 @@ namespace QDGlobals {
     qd_number_t point_r_qd = 0.0, point_i_qd = 0.0;
     qd_number_t seed_r_qd = 0.0, seed_i_qd = 0.0;
 
-    void initQD() {
-    }
+    void initQD() {}
 
     void initImageValues() {
         aspect_qd = static_cast<qd_number_t>(width) / height;

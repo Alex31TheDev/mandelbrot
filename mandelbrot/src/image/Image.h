@@ -1,21 +1,20 @@
 #pragma once
 
 #include <cstdint>
-
 #include <string>
 #include <memory>
 #include <tuple>
 #include <optional>
 #include <functional>
-
 #include <iostream>
+
+#include "BackendAPI.h"
 
 #ifdef USE_VECTORS
 #include "../vector/VectorTypes.h"
 #endif
 
 #include "util/BufferUtil.h"
-#include "BackendAPI.h"
 
 class Image {
 public:

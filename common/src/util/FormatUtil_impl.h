@@ -1,6 +1,14 @@
 #pragma once
 
+#include <cmath>
+#include <iomanip>
 #include <sstream>
+
+namespace FormatUtil::_impl {
+    inline const char *bigNumberUnits[] = { "", "K", "M", "G", "T" };
+    constexpr int bigNumberUnitCount =
+        sizeof(bigNumberUnits) / sizeof(bigNumberUnits[0]);
+}
 
 namespace FormatUtil {
     template<typename T>
@@ -43,6 +51,52 @@ namespace FormatUtil {
         }
 
         oss << fracPart;
+        return oss.str();
+    }
+
+    template<typename T>
+        requires std::is_arithmetic_v<T>
+    std::string formatBigNumber(T value) {
+        std::ostringstream oss;
+        oss << std::fixed;
+
+        double count = 0.0;
+        if constexpr (std::is_floating_point_v<T>) {
+            if (!std::isfinite(value)) {
+                oss << "0" << _impl::bigNumberUnits[0];
+                return oss.str();
+            }
+
+            count = static_cast<double>(value);
+        } else {
+            count = static_cast<double>(value);
+        }
+
+        const bool negative = count < 0.0;
+        count = std::abs(count);
+
+        if (count == 0.0) {
+            oss << "0" << _impl::bigNumberUnits[0];
+            return oss.str();
+        }
+
+        int unitIdx = 0;
+        while (count >= 1000.0 && unitIdx < _impl::bigNumberUnitCount - 1) {
+            count /= 1000.0;
+            unitIdx++;
+        }
+
+        count = std::round(count);
+        if (count >= 1000.0 && unitIdx < _impl::bigNumberUnitCount - 1) {
+            count /= 1000.0;
+            unitIdx++;
+            count = std::round(count);
+        }
+
+        oss << std::setprecision(0);
+
+        if (negative) oss << "-";
+        oss << count << _impl::bigNumberUnits[unitIdx];
         return oss.str();
     }
 }

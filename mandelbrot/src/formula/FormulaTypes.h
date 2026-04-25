@@ -171,7 +171,7 @@ typedef mpfr_param_t number_param_t;
 #ifndef MPFR_FORMULA_SHARED_HELPERS
 #define MPFR_FORMULA_SHARED_HELPERS
 
-#include "../../mpfr/MPFRScratch.h"
+#include "../mpfr/MPFRScratch.h"
 
 static FORCE_INLINE void setSign_mp(mpfr_t out, mpfr_srcptr in) {
     mpfr_set_si(out, mpfr_sgn(in), MPFRTypes::ROUNDING);

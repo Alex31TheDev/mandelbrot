@@ -1,18 +1,15 @@
 #pragma once
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <Windows.h>
-
-#include <string>
 #include <filesystem>
 #include <memory>
+#include <string>
+
+#include "util/IncludeWin32.h"
 
 #include "BackendAPI.h"
 
-using CreateBackendFunc = Backend::Session *(__cdecl *)();
-using DestroyBackendFunc = void(__cdecl *)(Backend::Session *);
+typedef Backend::Session *(__cdecl *CreateBackendFunc)();
+typedef void(__cdecl *DestroyBackendFunc)(Backend::Session *);
 
 struct SessionDeleter {
     DestroyBackendFunc destroy = nullptr;
@@ -22,7 +19,7 @@ struct SessionDeleter {
     }
 };
 
-using SessionPtr = std::unique_ptr<Backend::Session, SessionDeleter>;
+typedef std::unique_ptr<Backend::Session, SessionDeleter> SessionPtr;
 
 struct BackendModule {
     HMODULE module = nullptr;
@@ -42,6 +39,7 @@ struct BackendModule {
     explicit operator bool() const { return module && session; }
 
     void reset();
+    void forceKill() const;
 };
 
 std::filesystem::path executableDir();

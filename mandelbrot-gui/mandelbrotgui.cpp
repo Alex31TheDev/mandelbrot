@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <climits>
 #include <filesystem>
 #include <cmath>
 #include <optional>
@@ -12,13 +13,25 @@
 #include <utility>
 #include <vector>
 
+#include "util/IncludeWin32.h"
+
+#ifdef _WIN32
+#include <shobjidl.h>
+#pragma comment(lib, "Ole32.lib")
+#pragma comment(lib, "Shell32.lib")
+#endif
+
 #include <QApplication>
+#include <QBrush>
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDesktopServices>
+#include <QDir>
+#include <QEvent>
 #include <QFileInfo>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -34,6 +47,8 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -46,9 +61,12 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QScreen>
+#include <QShortcut>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStringList>
+#include <QUrl>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWheelEvent>
@@ -61,13 +79,19 @@
 #include "parsers/point/PointWriter.h"
 #include "parsers/sine/SineParser.h"
 #include "parsers/sine/SineWriter.h"
-#include "prefix.h"
 #include "util/FormatUtil.h"
+#include "util/NumberUtil.h"
+#include "util/PathUtil.h"
+#include "util/StringUtil.h"
 
 namespace {
     constexpr auto kDefaultPaletteName = "default";
     constexpr auto kDefaultSineName = "default";
-    constexpr double kMinGuiZoom = -3.2499;
+    constexpr auto kNewEntryLabel = "+ New";
+    constexpr auto kUnsavedLabelSuffix = " (unsaved)";
+    constexpr auto kNewColorPaletteBaseName = "New Palette";
+    constexpr auto kNewSinePaletteBaseName = "New Sine";
+    constexpr double kMinGUIZoom = -3.2499;
     constexpr int kControlScrollBarWidth = 10;
     constexpr int kControlWindowScreenPadding = 48;
 
@@ -92,15 +116,40 @@ namespace {
         return std::clamp(value, 0, 20);
     }
 
-    QString appendExtensionIfMissing(const QString &path, const QString &type) {
-        const QString lowered = path.toLower();
-        if (lowered.endsWith('.' + type)) return path;
-        if (type == "jpg" && lowered.endsWith(".jpeg")) return path;
-        return path + '.' + type;
+    QString decorateUnsavedLabel(const QString &name, bool unsaved) {
+        if (!unsaved) return name;
+        return QString::fromStdString(StringUtil::appendSuffix(
+            name.toStdString(),
+            kUnsavedLabelSuffix));
     }
 
-    double clampGuiZoom(double zoom) {
-        return std::max(zoom, kMinGuiZoom);
+    QString undecoratedLabel(const QString &name) {
+        return QString::fromStdString(StringUtil::stripSuffix(
+            name.toStdString(),
+            kUnsavedLabelSuffix));
+    }
+
+    QString fractalTypeToConfigString(Backend::FractalType fractalType) {
+        switch (fractalType) {
+            case Backend::FractalType::mandelbrot: return "mandelbrot";
+            case Backend::FractalType::perpendicular: return "perpendicular";
+            case Backend::FractalType::burningship: return "burningship";
+        }
+        return "mandelbrot";
+    }
+
+    Backend::FractalType fractalTypeFromConfigString(const QString &value) {
+        const QString normalized = value.trimmed().toLower();
+        if (normalized == "perpendicular") return Backend::FractalType::perpendicular;
+        if (normalized == "burningship" || normalized == "burning_ship" ||
+            normalized == "burning ship") {
+            return Backend::FractalType::burningship;
+        }
+        return Backend::FractalType::mandelbrot;
+    }
+
+    double clampGUIZoom(double zoom) {
+        return std::max(zoom, kMinGUIZoom);
     }
 
     QString formatImageMemoryText(const Backend::ImageEvent &event) {
@@ -143,23 +192,54 @@ namespace {
             "}").arg(color.name(QColor::HexRgb), fg.name(QColor::HexRgb));
     }
 
-    Backend::PaletteHexConfig defaultPalette() {
+    Backend::PaletteHexConfig makeNewColorPaletteConfig() {
         Backend::PaletteHexConfig palette;
-        palette.totalLength = 10.0f;
+        palette.totalLength = 1.0f;
         palette.offset = 0.0f;
-        palette.blendEnds = true;
+        palette.blendEnds = false;
         palette.entries = {
-            { "#1C0F52", 1.0f },
-            { "#2F67C8", 1.0f },
-            { "#BDE9FF", 1.0f },
-            { "#FFD86B", 1.0f },
-            { "#A62F14", 1.0f }
+            { "#000000", 1.0f },
+            { "#FFFFFF", 0.0f }
         };
         return palette;
     }
 
-    Backend::SinePaletteConfig defaultSinePalette() {
-        return {};
+    Backend::SinePaletteConfig makeNewSinePaletteConfig() {
+        return {
+            .freqR = 1.0f,
+            .freqG = 1.0f,
+            .freqB = 1.0f,
+            .freqMult = 1.0f
+        };
+    }
+
+    bool sameSinePalette(const Backend::SinePaletteConfig &a,
+        const Backend::SinePaletteConfig &b) {
+        return NumberUtil::almostEqual(a.freqR, b.freqR) &&
+            NumberUtil::almostEqual(a.freqG, b.freqG) &&
+            NumberUtil::almostEqual(a.freqB, b.freqB) &&
+            NumberUtil::almostEqual(a.freqMult, b.freqMult);
+    }
+
+    bool samePalette(const Backend::PaletteHexConfig &a,
+        const Backend::PaletteHexConfig &b) {
+        if (!NumberUtil::almostEqual(a.totalLength, b.totalLength) ||
+            !NumberUtil::almostEqual(a.offset, b.offset) ||
+            a.blendEnds != b.blendEnds ||
+            a.entries.size() != b.entries.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < a.entries.size(); ++i) {
+            if (!NumberUtil::almostEqual(a.entries[i].length, b.entries[i].length) ||
+                QString::fromStdString(a.entries[i].color).compare(
+                    QString::fromStdString(b.entries[i].color),
+                    Qt::CaseInsensitive) != 0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     std::filesystem::path sineDirectoryPath() {
@@ -180,8 +260,361 @@ namespace {
             std::filesystem::path((name + ".txt").toStdString());
     }
 
-    std::filesystem::path pointDirectoryPath() {
-        return executableDir() / "points";
+    std::filesystem::path viewDirectoryPath() {
+        return executableDir() / "views";
+    }
+
+    std::filesystem::path savesDirectoryPath() {
+        return executableDir() / "saves";
+    }
+
+    struct NativeDialogFilter {
+        QString displayText;
+        QString patternText;
+    };
+
+    std::vector<NativeDialogFilter> parseNativeDialogFilters(const QString &filters) {
+        std::vector<NativeDialogFilter> parsed;
+        const QStringList entries = filters.split(";;", Qt::SkipEmptyParts);
+        for (const QString &entry : entries) {
+            const int openParen = entry.indexOf('(');
+            const int closeParen = entry.lastIndexOf(')');
+            if (openParen < 0 || closeParen <= openParen) {
+                parsed.push_back({ entry.trimmed(), "*" });
+                continue;
+            }
+
+            parsed.push_back({
+                entry.left(openParen).trimmed(),
+                entry.mid(openParen + 1, closeParen - openParen - 1).trimmed()
+                });
+        }
+        return parsed;
+    }
+
+    QString defaultExtensionFromPattern(const QString &patternText) {
+        const QStringList patterns = patternText.split(' ', Qt::SkipEmptyParts);
+        for (QString pattern : patterns) {
+            pattern = pattern.trimmed();
+            if (!pattern.startsWith("*.")) continue;
+            pattern.remove(0, 2);
+            if (!pattern.isEmpty()) return pattern;
+        }
+        return QString();
+    }
+
+    QString showNativeSaveFileDialog(QWidget *parent,
+        const QString &title,
+        const std::filesystem::path &directory,
+        const QString &suggestedFileName,
+        const QString &filters,
+        QString *selectedFilter = nullptr) {
+#ifdef _WIN32
+        const std::vector<NativeDialogFilter> parsedFilters =
+            parseNativeDialogFilters(filters);
+
+        HRESULT initHr = CoInitializeEx(nullptr,
+            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        const bool shouldUninitialize = SUCCEEDED(initHr);
+
+        IFileSaveDialog *dialog = nullptr;
+        const HRESULT createHr = CoCreateInstance(CLSID_FileSaveDialog,
+            nullptr,
+            CLSCTX_INPROC_SERVER,
+            IID_PPV_ARGS(&dialog));
+        if (FAILED(createHr) || !dialog) {
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        dialog->SetTitle(reinterpret_cast<LPCWSTR>(title.utf16()));
+        if (!suggestedFileName.isEmpty()) {
+            dialog->SetFileName(reinterpret_cast<LPCWSTR>(suggestedFileName.utf16()));
+        }
+
+        std::vector<std::wstring> filterNames;
+        std::vector<std::wstring> filterPatterns;
+        std::vector<COMDLG_FILTERSPEC> filterSpecs;
+        filterNames.reserve(parsedFilters.size());
+        filterPatterns.reserve(parsedFilters.size());
+        filterSpecs.reserve(parsedFilters.size());
+        for (const NativeDialogFilter &filter : parsedFilters) {
+            filterNames.push_back(filter.displayText.toStdWString());
+            filterPatterns.push_back(filter.patternText.toStdWString());
+            filterSpecs.push_back({
+                filterNames.back().c_str(),
+                filterPatterns.back().c_str()
+                });
+        }
+        if (!filterSpecs.empty()) {
+            dialog->SetFileTypes(static_cast<UINT>(filterSpecs.size()),
+                filterSpecs.data());
+            dialog->SetFileTypeIndex(1);
+
+            const QString defaultExtension = defaultExtensionFromPattern(
+                parsedFilters.front().patternText);
+            if (!defaultExtension.isEmpty()) {
+                dialog->SetDefaultExtension(
+                    reinterpret_cast<LPCWSTR>(defaultExtension.utf16()));
+            }
+        }
+
+        DWORD options = 0;
+        dialog->GetOptions(&options);
+        dialog->SetOptions(options |
+            FOS_FORCEFILESYSTEM |
+            FOS_PATHMUSTEXIST |
+            FOS_OVERWRITEPROMPT);
+
+        IShellItem *folder = nullptr;
+        const std::wstring dir = directory.wstring();
+        if (SUCCEEDED(SHCreateItemFromParsingName(
+            dir.c_str(),
+            nullptr,
+            IID_PPV_ARGS(&folder)))) {
+            dialog->SetFolder(folder);
+            folder->Release();
+        }
+
+        const HWND owner = parent
+            ? reinterpret_cast<HWND>(parent->window()->winId())
+            : nullptr;
+        const HRESULT showHr = dialog->Show(owner);
+        if (showHr == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+        if (FAILED(showHr)) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        if (selectedFilter && !parsedFilters.empty()) {
+            UINT filterIndex = 1;
+            dialog->GetFileTypeIndex(&filterIndex);
+            const size_t index = filterIndex > 0 ? static_cast<size_t>(filterIndex - 1) : 0;
+            *selectedFilter = index < parsedFilters.size()
+                ? parsedFilters[index].displayText + " (" + parsedFilters[index].patternText + ")"
+                : QString();
+        }
+
+        IShellItem *resultItem = nullptr;
+        if (FAILED(dialog->GetResult(&resultItem)) || !resultItem) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        PWSTR selectedPath = nullptr;
+        if (FAILED(resultItem->GetDisplayName(SIGDN_FILESYSPATH, &selectedPath)) ||
+            !selectedPath) {
+            resultItem->Release();
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        const QString result = QString::fromWCharArray(selectedPath);
+        CoTaskMemFree(selectedPath);
+        resultItem->Release();
+        dialog->Release();
+        if (shouldUninitialize) CoUninitialize();
+        return result;
+#else
+        QFileDialog dialog(parent,
+            title,
+            QString::fromStdWString(directory.wstring()),
+            filters);
+        dialog.setAcceptMode(QFileDialog::AcceptSave);
+        dialog.setFileMode(QFileDialog::AnyFile);
+        dialog.setOption(QFileDialog::DontUseNativeDialog, false);
+        if (!suggestedFileName.isEmpty()) {
+            dialog.selectFile(suggestedFileName);
+        }
+
+        if (dialog.exec() != QDialog::Accepted) return QString();
+
+        if (selectedFilter) {
+            *selectedFilter = dialog.selectedNameFilter();
+        }
+        return dialog.selectedFiles().value(0);
+#endif
+    }
+
+    QString showNativeOpenFileDialog(QWidget *parent,
+        const QString &title,
+        const std::filesystem::path &directory,
+        const QString &filters) {
+#ifdef _WIN32
+        const std::vector<NativeDialogFilter> parsedFilters =
+            parseNativeDialogFilters(filters);
+
+        HRESULT initHr = CoInitializeEx(nullptr,
+            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        const bool shouldUninitialize = SUCCEEDED(initHr);
+
+        IFileOpenDialog *dialog = nullptr;
+        const HRESULT createHr = CoCreateInstance(CLSID_FileOpenDialog,
+            nullptr,
+            CLSCTX_INPROC_SERVER,
+            IID_PPV_ARGS(&dialog));
+        if (FAILED(createHr) || !dialog) {
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        dialog->SetTitle(reinterpret_cast<LPCWSTR>(title.utf16()));
+
+        std::vector<std::wstring> filterNames;
+        std::vector<std::wstring> filterPatterns;
+        std::vector<COMDLG_FILTERSPEC> filterSpecs;
+        filterNames.reserve(parsedFilters.size());
+        filterPatterns.reserve(parsedFilters.size());
+        filterSpecs.reserve(parsedFilters.size());
+        for (const NativeDialogFilter &filter : parsedFilters) {
+            filterNames.push_back(filter.displayText.toStdWString());
+            filterPatterns.push_back(filter.patternText.toStdWString());
+            filterSpecs.push_back({
+                filterNames.back().c_str(),
+                filterPatterns.back().c_str()
+                });
+        }
+        if (!filterSpecs.empty()) {
+            dialog->SetFileTypes(static_cast<UINT>(filterSpecs.size()),
+                filterSpecs.data());
+            dialog->SetFileTypeIndex(1);
+        }
+
+        DWORD options = 0;
+        dialog->GetOptions(&options);
+        dialog->SetOptions(options |
+            FOS_FORCEFILESYSTEM |
+            FOS_FILEMUSTEXIST |
+            FOS_PATHMUSTEXIST);
+
+        IShellItem *folder = nullptr;
+        const std::wstring dir = directory.wstring();
+        if (SUCCEEDED(SHCreateItemFromParsingName(
+            dir.c_str(),
+            nullptr,
+            IID_PPV_ARGS(&folder)))) {
+            dialog->SetFolder(folder);
+            folder->Release();
+        }
+
+        const HWND owner = parent
+            ? reinterpret_cast<HWND>(parent->window()->winId())
+            : nullptr;
+        const HRESULT showHr = dialog->Show(owner);
+        if (showHr == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+        if (FAILED(showHr)) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        IShellItem *resultItem = nullptr;
+        if (FAILED(dialog->GetResult(&resultItem)) || !resultItem) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        PWSTR selectedPath = nullptr;
+        if (FAILED(resultItem->GetDisplayName(SIGDN_FILESYSPATH, &selectedPath)) ||
+            !selectedPath) {
+            resultItem->Release();
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return QString();
+        }
+
+        const QString result = QString::fromWCharArray(selectedPath);
+        CoTaskMemFree(selectedPath);
+        resultItem->Release();
+        dialog->Release();
+        if (shouldUninitialize) CoUninitialize();
+        return result;
+#else
+        QFileDialog dialog(parent,
+            title,
+            QString::fromStdWString(directory.wstring()),
+            filters);
+        dialog.setAcceptMode(QFileDialog::AcceptOpen);
+        dialog.setFileMode(QFileDialog::ExistingFile);
+        dialog.setOption(QFileDialog::DontUseNativeDialog, false);
+
+        if (dialog.exec() != QDialog::Accepted) return QString();
+        return dialog.selectedFiles().value(0);
+#endif
+    }
+
+    int backendTypeRank(const QString &name) {
+        const QString normalized = name.toLower();
+        if (normalized.contains("scalar")) return 0;
+        if (normalized.contains("avx") ||
+            normalized.contains("sse") ||
+            normalized.contains("vector")) {
+            return 1;
+        }
+        if (normalized.contains("mpfr")) return 2;
+        return 3;
+    }
+
+    int backendPrecisionRank(const QString &name) {
+        const QString normalized = name.toLower();
+        if (normalized.contains("float")) return 0;
+        if (normalized.contains("double")) return 1;
+        if (normalized.contains("qd")) return 2;
+        if (normalized.contains("mpfr")) return 3;
+        return 4;
+    }
+
+    QStringList listBackendNames(QString &errorMessage) {
+        errorMessage.clear();
+        QStringList names;
+
+        std::error_code ec;
+        const std::filesystem::path dir = executableDir() / "backends";
+        if (!std::filesystem::exists(dir, ec) || ec) {
+            errorMessage = "Backend directory was not found.";
+            return names;
+        }
+
+        for (const auto &entry : std::filesystem::directory_iterator(dir, ec)) {
+            if (ec) break;
+            if (!entry.is_regular_file()) continue;
+
+            const std::filesystem::path path = entry.path();
+            if (path.extension() != ".dll") continue;
+            const QString stem = QString::fromStdWString(path.stem().wstring());
+            if (!stem.contains(" - ")) continue;
+            names.push_back(stem);
+        }
+
+        names.removeDuplicates();
+        std::sort(names.begin(), names.end(), [](const QString &a, const QString &b) {
+            const int typeA = backendTypeRank(a);
+            const int typeB = backendTypeRank(b);
+            if (typeA != typeB) return typeA < typeB;
+
+            const int precisionA = backendPrecisionRank(a);
+            const int precisionB = backendPrecisionRank(b);
+            if (precisionA != precisionB) return precisionA < precisionB;
+
+            return a.compare(b, Qt::CaseInsensitive) < 0;
+            });
+        if (names.isEmpty()) {
+            errorMessage = "No backend DLLs were found in the backends directory.";
+        }
+
+        return names;
     }
 
     bool ensurePaletteDirectory(QString &errorMessage) {
@@ -220,7 +653,7 @@ namespace {
         for (QChar &ch : sanitized) {
             const bool allowed = ch.unicode() <= 0x7F &&
                 (ch.isLetterOrNumber() || ch == ' ' || ch == '_' ||
-                 ch == '-' || ch == '.');
+                    ch == '-' || ch == '.');
             if (!allowed) ch = '_';
         }
 
@@ -254,7 +687,7 @@ namespace {
             if (a.compare(kDefaultPaletteName, Qt::CaseInsensitive) == 0) return true;
             if (b.compare(kDefaultPaletteName, Qt::CaseInsensitive) == 0) return false;
             return a.compare(b, Qt::CaseInsensitive) < 0;
-        });
+            });
         return names;
     }
 
@@ -273,6 +706,37 @@ namespace {
                 return candidate;
             }
         }
+    }
+
+    QString uniqueIndexedNameFromList(const QString &baseName,
+        const QStringList &existingNames) {
+        return QString::fromStdString(FormatUtil::uniqueIndexedName(
+            baseName.toStdString(),
+            [&existingNames](const std::string_view candidate) {
+                return existingNames.contains(
+                    QString::fromUtf8(candidate.data(),
+                        static_cast<int>(candidate.size())),
+                    Qt::CaseInsensitive);
+            }));
+    }
+
+    QString uniqueIndexedPathWithExtension(const std::filesystem::path &directory,
+        const QString &baseName,
+        const QString &extension) {
+        const std::string uniqueName = FormatUtil::uniqueIndexedName(
+            baseName.toStdString(),
+            [&directory, &extension](const std::string_view candidate) {
+                std::error_code ec;
+                const std::filesystem::path path = directory /
+                    std::filesystem::path(
+                        std::string(candidate) + "." + extension.toStdString());
+                return std::filesystem::exists(path, ec) && !ec;
+            });
+
+        return QString::fromStdWString(
+            (directory / std::filesystem::path(
+                uniqueName + "." + extension.toStdString()))
+            .wstring());
     }
 
     QStringList listSineNames() {
@@ -297,7 +761,7 @@ namespace {
             if (a.compare(kDefaultSineName, Qt::CaseInsensitive) == 0) return true;
             if (b.compare(kDefaultSineName, Qt::CaseInsensitive) == 0) return false;
             return a.compare(b, Qt::CaseInsensitive) < 0;
-        });
+            });
         return names;
     }
 
@@ -365,14 +829,14 @@ namespace {
         return false;
     }
 
-    bool ensurePointDirectory(QString &errorMessage) {
+    bool ensureViewDirectory(QString &errorMessage) {
         errorMessage.clear();
 
         std::error_code ec;
-        std::filesystem::create_directories(pointDirectoryPath(), ec);
+        std::filesystem::create_directories(viewDirectoryPath(), ec);
         if (!ec) return true;
 
-        errorMessage = QString("Failed to create points directory: %1")
+        errorMessage = QString("Failed to create views directory: %1")
             .arg(QString::fromStdString(ec.message()));
         return false;
     }
@@ -446,7 +910,7 @@ namespace {
             std::function<void()> onToggled = {},
             QWidget *parent = nullptr)
             : QGroupBox(title, parent),
-              _onToggled(std::move(onToggled)) {
+            _onToggled(std::move(onToggled)) {
             setCheckable(true);
             setChecked(expanded);
             setFlat(true);
@@ -454,7 +918,7 @@ namespace {
             QObject::connect(this, &QGroupBox::toggled, this, [this](bool checked) {
                 applyExpandedState(checked);
                 if (_onToggled) _onToggled();
-            });
+                });
         }
 
         void applyExpandedState(bool expanded) {
@@ -482,18 +946,22 @@ namespace {
         std::function<void()> _onToggled;
     };
 
-    QImage imageViewToImage(const Backend::ImageView &view) {
+    QImage wrapImageViewToImage(const Backend::ImageView &view) {
         if (!view.outputPixels || view.outputWidth <= 0 || view.outputHeight <= 0) {
             return {};
         }
 
         const int bytesPerLine = view.downscaling ?
             view.outputWidth * 3 : view.strideWidth;
-        QImage wrapped(view.outputPixels,
+        return QImage(view.outputPixels,
             view.outputWidth,
             view.outputHeight,
             bytesPerLine,
             QImage::Format_RGB888);
+    }
+
+    QImage imageViewToImage(const Backend::ImageView &view) {
+        const QImage wrapped = wrapImageViewToImage(view);
         return wrapped.copy();
     }
 
@@ -507,6 +975,160 @@ namespace {
             return std::max(1.0, screen->devicePixelRatio());
         }
         return std::max(1.0, widget->devicePixelRatioF());
+    }
+
+    class IterationSpinBox final : public QSpinBox {
+    public:
+        explicit IterationSpinBox(QWidget *parent = nullptr) :
+            QSpinBox(parent) {
+            setKeyboardTracking(false);
+        }
+
+        std::function<int()> resolveAutoIterations;
+
+    protected:
+        QString textFromValue(int value) const override {
+            if (value <= minimum()) {
+                return specialValueText();
+            }
+
+            return QSpinBox::textFromValue(value);
+        }
+
+        int valueFromText(const QString &text) const override {
+            const QString trimmed = text.trimmed();
+            if (trimmed.compare(specialValueText(), Qt::CaseInsensitive) == 0) {
+                return minimum();
+            }
+
+            return QSpinBox::valueFromText(trimmed);
+        }
+
+        QValidator::State validate(QString &input, int &pos) const override {
+            const QString trimmed = input.trimmed();
+            const QString autoText = specialValueText();
+            if (trimmed.isEmpty()) {
+                return QValidator::Intermediate;
+            }
+
+            if (autoText.compare(trimmed, Qt::CaseInsensitive) == 0) {
+                return QValidator::Acceptable;
+            }
+
+            if (autoText.startsWith(trimmed, Qt::CaseInsensitive)) {
+                return QValidator::Intermediate;
+            }
+
+            return QSpinBox::validate(input, pos);
+        }
+
+        void fixup(QString &input) const override {
+            if (input.trimmed().compare(specialValueText(), Qt::CaseInsensitive) == 0) {
+                input = specialValueText();
+                return;
+            }
+
+            QSpinBox::fixup(input);
+        }
+
+        void wheelEvent(QWheelEvent *event) override {
+            const int steps = event->angleDelta().y() / 120;
+            if (steps == 0) {
+                QSpinBox::wheelEvent(event);
+                return;
+            }
+
+            int nextValue = value();
+            if (nextValue <= minimum()) {
+                nextValue = std::clamp(
+                    resolveAutoIterations ? resolveAutoIterations() : 1,
+                    1,
+                    maximum());
+                setValue(nextValue);
+                event->accept();
+                return;
+            }
+
+            for (int i = 0; i < std::abs(steps); ++i) {
+                if (steps > 0) {
+                    nextValue = std::clamp(
+                        nextValue > maximum() / 2 ? maximum() : nextValue * 2,
+                        minimum(),
+                        maximum());
+                } else {
+                    nextValue = std::clamp(nextValue / 2, 1, maximum());
+                }
+            }
+
+            setValue(nextValue);
+            event->accept();
+        }
+    };
+
+    class AdaptiveDoubleSpinBox final : public QDoubleSpinBox {
+    public:
+        explicit AdaptiveDoubleSpinBox(int defaultDisplayDecimals, QWidget *parent = nullptr) :
+            QDoubleSpinBox(parent),
+            _defaultDisplayDecimals(std::max(0, defaultDisplayDecimals)),
+            _displayDecimals(_defaultDisplayDecimals) {
+            QDoubleSpinBox::setDecimals(17);
+            setKeyboardTracking(false);
+
+            if (QLineEdit *edit = lineEdit()) {
+                QObject::connect(edit, &QLineEdit::textEdited,
+                    this, [this](const QString &text) {
+                        updateDisplayDecimals(text);
+                    });
+            }
+        }
+
+        void resetDisplayDecimals() {
+            _displayDecimals = _defaultDisplayDecimals;
+        }
+
+    protected:
+        QString textFromValue(double value) const override {
+            return locale().toString(value, 'f', _displayDecimals);
+        }
+
+        void stepBy(int steps) override {
+            _displayDecimals = _defaultDisplayDecimals;
+            QDoubleSpinBox::stepBy(steps);
+        }
+
+    private:
+        int _defaultDisplayDecimals;
+        int _displayDecimals;
+
+        void updateDisplayDecimals(const QString &text) {
+            const QString decimalPoint = locale().decimalPoint();
+            const int decimalIndex = text.indexOf(decimalPoint);
+            if (decimalIndex < 0) {
+                _displayDecimals = _defaultDisplayDecimals;
+                return;
+            }
+
+            int typedDecimals = 0;
+            for (int i = decimalIndex + 1; i < text.size(); ++i) {
+                if (!text[i].isDigit()) {
+                    break;
+                }
+
+                ++typedDecimals;
+            }
+
+            _displayDecimals = std::max(_defaultDisplayDecimals, typedDecimals);
+        }
+    };
+
+    void setAdaptiveSpinValue(QDoubleSpinBox *spinBox, double value) {
+        if (!spinBox) return;
+
+        if (auto *adaptiveSpinBox = dynamic_cast<AdaptiveDoubleSpinBox *>(spinBox)) {
+            adaptiveSpinBox->resetDisplayDecimals();
+        }
+
+        spinBox->setValue(value);
     }
 
     void resizeViewportToImageSize(QWidget *viewport, const QSize &imageSize) {
@@ -671,7 +1293,7 @@ namespace {
                             std::max<size_t>(1, palette.entries.size() - 1) :
                         std::clamp(accum / segmentSum, 0.0, 1.0),
                     QColor(QString::fromStdString(entry.color))
-                });
+                    });
                 accum += std::max(0.0f, entry.length);
             }
 
@@ -679,7 +1301,7 @@ namespace {
                 nextId++,
                 1.0,
                 QColor(QString::fromStdString(palette.entries.back().color))
-            });
+                });
             return stops;
         }
 
@@ -690,7 +1312,7 @@ namespace {
                     static_cast<double>(stops.size()) / std::max<size_t>(1, stopCount) :
                     std::clamp(accum / segmentSum, 0.0, 1.0),
                 QColor(QString::fromStdString(entry.color))
-            });
+                });
             accum += std::max(0.0f, entry.length);
         }
 
@@ -710,7 +1332,7 @@ namespace {
         palette.blendEnds = blendEnds;
 
         if (stops.size() < 2) {
-            const auto fallback = defaultPalette();
+            const auto fallback = makeNewColorPaletteConfig();
             palette.entries = fallback.entries;
             return palette;
         }
@@ -737,13 +1359,13 @@ namespace {
                 palette.entries.push_back({
                     sorted[i].color.name(QColor::HexRgb).toStdString(),
                     static_cast<float>(len)
-                });
+                    });
             }
 
             palette.entries.push_back({
                 sorted.back().color.name(QColor::HexRgb).toStdString(),
                 0.0f
-            });
+                });
             return palette;
         }
 
@@ -756,7 +1378,7 @@ namespace {
             palette.entries.push_back({
                 sorted[i].color.name(QColor::HexRgb).toStdString(),
                 static_cast<float>(len)
-            });
+                });
         }
 
         return palette;
@@ -766,29 +1388,141 @@ namespace {
         QWidget *parent,
         const QString &suggestedFile
     ) {
-        QFileDialog dialog(parent, "Save Image");
-        dialog.setAcceptMode(QFileDialog::AcceptSave);
-        dialog.setOption(QFileDialog::DontUseNativeDialog, true);
-        dialog.setNameFilters({
-            "PNG Files (*.png)",
-            "JPEG Files (*.jpg *.jpeg)",
-            "Bitmap Files (*.bmp)"
-        });
-        dialog.selectNameFilter("PNG Files (*.png)");
-        dialog.selectFile(suggestedFile);
-
-        auto *appendDateCheck = new QCheckBox("Append Date", &dialog);
-        if (auto *layout = dialog.layout()) {
-            layout->addWidget(appendDateCheck);
-        }
-
-        if (dialog.exec() != QDialog::Accepted) return std::nullopt;
+        std::error_code ec;
+        std::filesystem::create_directories(savesDirectoryPath(), ec);
 
         SaveDialogResult result;
-        result.path = dialog.selectedFiles().value(0);
-        result.appendDate = appendDateCheck->isChecked();
+#ifdef _WIN32
+        HRESULT initHr = CoInitializeEx(nullptr,
+            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        const bool shouldUninitialize = SUCCEEDED(initHr);
 
-        const QString filter = dialog.selectedNameFilter().toLower();
+        IFileSaveDialog *dialog = nullptr;
+        const HRESULT createHr = CoCreateInstance(CLSID_FileSaveDialog,
+            nullptr,
+            CLSCTX_INPROC_SERVER,
+            IID_PPV_ARGS(&dialog));
+        if (FAILED(createHr) || !dialog) {
+            if (shouldUninitialize) CoUninitialize();
+            return std::nullopt;
+        }
+
+        dialog->SetTitle(L"Save Image");
+        dialog->SetFileName(
+            reinterpret_cast<LPCWSTR>(suggestedFile.utf16()));
+
+        const COMDLG_FILTERSPEC filters[] = {
+            { L"PNG Files (*.png)", L"*.png" },
+            { L"JPEG Files (*.jpg;*.jpeg)", L"*.jpg;*.jpeg" },
+            { L"Bitmap Files (*.bmp)", L"*.bmp" }
+        };
+        dialog->SetFileTypes(static_cast<UINT>(std::size(filters)), filters);
+        dialog->SetFileTypeIndex(1);
+        dialog->SetDefaultExtension(L"png");
+
+        DWORD options = 0;
+        dialog->GetOptions(&options);
+        dialog->SetOptions(options |
+            FOS_FORCEFILESYSTEM |
+            FOS_PATHMUSTEXIST |
+            FOS_OVERWRITEPROMPT);
+
+        IShellItem *folder = nullptr;
+        const std::wstring savesDir = savesDirectoryPath().wstring();
+        if (SUCCEEDED(SHCreateItemFromParsingName(
+            savesDir.c_str(),
+            nullptr,
+            IID_PPV_ARGS(&folder)))) {
+            dialog->SetFolder(folder);
+            folder->Release();
+        }
+
+        IFileDialogCustomize *customize = nullptr;
+        bool appendDate = true;
+        if (SUCCEEDED(dialog->QueryInterface(IID_PPV_ARGS(&customize))) &&
+            customize) {
+            customize->AddCheckButton(1, L"Append Date", TRUE);
+        }
+
+        const HWND owner = parent
+            ? reinterpret_cast<HWND>(parent->window()->winId())
+            : nullptr;
+        const HRESULT showHr = dialog->Show(owner);
+        if (showHr == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
+            if (customize) customize->Release();
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return std::nullopt;
+        }
+
+        if (FAILED(showHr)) {
+            if (customize) customize->Release();
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return std::nullopt;
+        }
+
+        UINT filterIndex = 1;
+        dialog->GetFileTypeIndex(&filterIndex);
+
+        if (customize) {
+            BOOL checked = TRUE;
+            if (SUCCEEDED(customize->GetCheckButtonState(1, &checked))) {
+                appendDate = checked == TRUE;
+            }
+            customize->Release();
+        }
+
+        IShellItem *selectedItem = nullptr;
+        if (FAILED(dialog->GetResult(&selectedItem)) || !selectedItem) {
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return std::nullopt;
+        }
+
+        PWSTR selectedPath = nullptr;
+        if (FAILED(selectedItem->GetDisplayName(SIGDN_FILESYSPATH, &selectedPath)) ||
+            !selectedPath) {
+            selectedItem->Release();
+            dialog->Release();
+            if (shouldUninitialize) CoUninitialize();
+            return std::nullopt;
+        }
+
+        result.path = QString::fromWCharArray(selectedPath);
+        result.appendDate = appendDate;
+        if (filterIndex == 2) {
+            result.type = "jpg";
+        } else if (filterIndex == 3) {
+            result.type = "bmp";
+        } else {
+            result.type = "png";
+        }
+
+        CoTaskMemFree(selectedPath);
+        selectedItem->Release();
+        dialog->Release();
+        if (shouldUninitialize) CoUninitialize();
+#else
+        QString selectedFilter;
+        result.path = showNativeSaveFileDialog(parent,
+            "Save Image",
+            savesDirectoryPath(),
+            suggestedFile,
+            "PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)",
+            &selectedFilter);
+        if (result.path.isEmpty()) return std::nullopt;
+
+        const QMessageBox::StandardButton appendDateChoice = QMessageBox::question(
+            parent,
+            "Save Image",
+            "Append date to filename?",
+            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
+            QMessageBox::Yes);
+        if (appendDateChoice == QMessageBox::Cancel) return std::nullopt;
+        result.appendDate = appendDateChoice == QMessageBox::Yes;
+
+        const QString filter = selectedFilter.toLower();
         if (filter.contains("*.jpg") || filter.contains("*.jpeg")) {
             result.type = "jpg";
         } else if (filter.contains("*.bmp")) {
@@ -796,8 +1530,11 @@ namespace {
         } else {
             result.type = "png";
         }
+#endif
 
-        result.path = appendExtensionIfMissing(result.path, result.type);
+        result.path = QString::fromStdString(PathUtil::appendExtension(
+            result.path.toStdString(),
+            result.type.toStdString()));
         return result;
     }
 
@@ -868,8 +1605,8 @@ namespace {
                 rect().adjusted(2, strip.bottom() + 3, -2, -2),
                 Qt::AlignLeft | Qt::AlignVCenter,
                 QString("Range %1 - %2")
-                    .arg(QString::number(_rangeMin, 'f', 2))
-                    .arg(QString::number(_rangeMax, 'f', 2)));
+                .arg(QString::number(_rangeMin, 'f', 2))
+                .arg(QString::number(_rangeMax, 'f', 2)));
         }
 
         void mousePressEvent(QMouseEvent *event) override {
@@ -904,23 +1641,19 @@ namespace {
 
             const double span = std::max(kMinSpan, _dragRangeMax - _dragRangeMin);
             const double deltaValue =
-                (event->position().x() - _dragStartX) / strip.width() * span;
+                (_dragStartX - event->position().x()) / strip.width() * span;
 
             switch (_dragMode) {
                 case DragMode::pan:
                 {
-                    double minValue = _dragRangeMin + deltaValue;
-                    double maxValue = _dragRangeMax + deltaValue;
-                    if (minValue < 0.0) {
-                        maxValue -= minValue;
-                        minValue = 0.0;
-                    }
-                    applyRange(minValue, maxValue);
+                    applyRange(
+                        _dragRangeMin + deltaValue,
+                        _dragRangeMax + deltaValue);
                     break;
                 }
                 case DragMode::left:
                     applyRange(
-                        std::clamp(_dragRangeMin + deltaValue, 0.0,
+                        std::min(_dragRangeMin + deltaValue,
                             _dragRangeMax - kMinSpan),
                         _dragRangeMax);
                     break;
@@ -998,7 +1731,7 @@ namespace {
         }
 
         void applyRange(double minValue, double maxValue) {
-            const double clampedMin = std::max(0.0, minValue);
+            const double clampedMin = minValue;
             const double clampedMax = std::max(clampedMin + kMinSpan, maxValue);
             if (qFuzzyCompare(_rangeMin, clampedMin) &&
                 qFuzzyCompare(_rangeMax, clampedMax)) {
@@ -1152,9 +1885,9 @@ namespace {
             if (_stops.size() < 2) {
                 stop.pos = 0.5;
             } else {
-                double bestStart = 0.0;
-                double bestEnd = _blendEnds ? _stops.front().pos + 1.0 : 1.0;
-                double bestGap = -1.0;
+                double bestStart = 0.0,
+                    bestEnd = _blendEnds ? _stops.front().pos + 1.0 : 1.0,
+                    bestGap = -1.0;
 
                 for (size_t i = 1; i < _stops.size(); ++i) {
                     const double start = _stops[i - 1].pos;
@@ -1350,9 +2083,9 @@ namespace {
             if (_dragStartPositions.empty()) return;
 
             const double targetPos = posFromPixel(event->position().x());
-            double delta = targetPos - _dragAnchorPos;
-            double minDelta = -1.0;
-            double maxDelta = 1.0;
+            double delta = targetPos - _dragAnchorPos,
+                minDelta = -1.0,
+                maxDelta = 1.0;
             for (const auto &[id, pos] : _dragStartPositions) {
                 (void)id;
                 minDelta = std::max(minDelta, -pos);
@@ -1439,14 +2172,14 @@ namespace {
 
                     return QColor::fromRgbF(
                         sorted.back().color.redF() +
-                            (sorted.front().color.redF() -
-                                sorted.back().color.redF()) * t,
+                        (sorted.front().color.redF() -
+                            sorted.back().color.redF()) * t,
                         sorted.back().color.greenF() +
-                            (sorted.front().color.greenF() -
-                                sorted.back().color.greenF()) * t,
+                        (sorted.front().color.greenF() -
+                            sorted.back().color.greenF()) * t,
                         sorted.back().color.blueF() +
-                            (sorted.front().color.blueF() -
-                                sorted.back().color.blueF()) * t
+                        (sorted.front().color.blueF() -
+                            sorted.back().color.blueF()) * t
                     );
                 }
             } else {
@@ -1465,11 +2198,11 @@ namespace {
 
                 return QColor::fromRgbF(
                     sorted[i].color.redF() +
-                        (sorted[i + 1].color.redF() - sorted[i].color.redF()) * t,
+                    (sorted[i + 1].color.redF() - sorted[i].color.redF()) * t,
                     sorted[i].color.greenF() +
-                        (sorted[i + 1].color.greenF() - sorted[i].color.greenF()) * t,
+                    (sorted[i + 1].color.greenF() - sorted[i].color.greenF()) * t,
                     sorted[i].color.blueF() +
-                        (sorted[i + 1].color.blueF() - sorted[i].color.blueF()) * t
+                    (sorted[i + 1].color.blueF() - sorted[i].color.blueF()) * t
                 );
             }
 
@@ -1660,10 +2393,12 @@ namespace {
     public:
         PaletteEditorDialog(const Backend::PaletteHexConfig &palette,
             const QString &paletteName,
+            std::function<void(const QString &)> onSavedPath,
             QWidget *parent = nullptr)
             : QDialog(parent),
-              _palette(palette),
-              _savedPaletteName(normalizePaletteName(paletteName)) {
+            _palette(palette),
+            _savedPaletteName(normalizePaletteName(paletteName)),
+            _onSavedPath(std::move(onSavedPath)) {
             setWindowTitle("Palette");
             setModal(true);
             resize(420, 200);
@@ -1722,40 +2457,45 @@ namespace {
             applyPalette(_palette);
             _timeline->onChanged = [this]() {
                 _palette = currentPalette();
-            };
+                _savedPaletteDirty = true;
+                };
             _timeline->onSelectionChanged = [this](int index) {
                 _colorButton->setEnabled(index >= 0);
                 _removeButton->setEnabled(_timeline->selectedCount() > 0 &&
                     static_cast<int>(_timeline->stops().size()) -
                     _timeline->selectedCount() >= 2);
-            };
+                };
             _timeline->onEditColorRequested = [this](int) {
                 editColor();
-            };
+                };
 
             QObject::connect(_addButton, &QPushButton::clicked, this, [this]() {
                 _timeline->addStop();
-            });
+                });
             QObject::connect(_removeButton, &QPushButton::clicked, this, [this]() {
                 _timeline->removeSelectedStops();
-            });
+                });
             QObject::connect(_evenButton, &QPushButton::clicked, this, [this]() {
                 _timeline->evenSpacing();
-            });
+                });
             QObject::connect(_colorButton, &QPushButton::clicked, this, [this]() {
                 editColor();
-            });
+                });
             QObject::connect(_blendEndsCheck, &QCheckBox::toggled, this, [this](bool checked) {
                 _palette.blendEnds = checked;
                 _timeline->setBlendEnds(checked);
                 _palette = currentPalette();
-            });
+                _savedPaletteDirty = true;
+                });
+            QObject::connect(_nameEdit, &QLineEdit::textEdited, this, [this](const QString &) {
+                _savedPaletteDirty = true;
+                });
             QObject::connect(_importButton, &QPushButton::clicked, this, [this]() {
                 importPalette();
-            });
+                });
             QObject::connect(_saveButton, &QPushButton::clicked, this, [this]() {
                 savePalette();
-            });
+                });
             QObject::connect(dialogButtons, &QDialogButtonBox::accepted,
                 this, &QDialog::accept);
             QObject::connect(dialogButtons, &QDialogButtonBox::rejected,
@@ -1773,6 +2513,10 @@ namespace {
 
         QString savedPaletteName() const {
             return _savedPaletteName;
+        }
+
+        bool savedStateDirty() const {
+            return _savedPaletteDirty;
         }
 
     private:
@@ -1817,10 +2561,10 @@ namespace {
         }
 
         void importPalette() {
-            const QString sourcePath = QFileDialog::getOpenFileName(
+            const QString sourcePath = showNativeOpenFileDialog(
                 this,
                 "Import Palette",
-                QString(),
+                paletteDirectoryPath(),
                 "Palette Files (*.txt);;All Files (*.*)"
             );
             if (sourcePath.isEmpty()) return;
@@ -1853,6 +2597,10 @@ namespace {
             _savedPaletteName = importedName;
             if (_nameEdit) _nameEdit->setText(importedName);
             applyPalette(loaded);
+            _savedPaletteDirty = false;
+            if (_onSavedPath) {
+                _onSavedPath(QString::fromStdWString(destinationPath.wstring()));
+            }
         }
 
         void savePalette() {
@@ -1870,13 +2618,60 @@ namespace {
             }
 
             _palette = currentPalette();
-            const std::filesystem::path destinationPath = paletteFilePath(paletteName);
+            QString targetName = paletteName;
+            std::filesystem::path destinationPath = paletteFilePath(targetName);
+            std::error_code existsError;
+            const bool destinationExists =
+                std::filesystem::exists(destinationPath, existsError) && !existsError;
+            if (destinationExists) {
+                const QMessageBox::StandardButton choice = QMessageBox::question(
+                    this,
+                    "Palette",
+                    QString("Palette \"%1\" already exists. Overwrite it?")
+                    .arg(targetName),
+                    QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
+                    QMessageBox::Yes);
+                if (choice == QMessageBox::Cancel) return;
+                if (choice == QMessageBox::No) {
+                    const QString savePath = showNativeSaveFileDialog(
+                        this,
+                        "Save Palette As",
+                        paletteDirectoryPath(),
+                        QFileInfo(uniqueIndexedPathWithExtension(
+                            paletteDirectoryPath(),
+                            targetName,
+                            "txt")).fileName(),
+                        "Palette Files (*.txt);;All Files (*.*)");
+                    if (savePath.isEmpty()) return;
+
+                    const QString savePathWithExtension = QString::fromStdString(
+                        PathUtil::appendExtension(
+                            savePath.toStdString(),
+                            "txt"));
+                    const QString saveName = normalizePaletteName(
+                        QFileInfo(savePathWithExtension).completeBaseName());
+                    if (!isValidPaletteName(saveName)) {
+                        QMessageBox::warning(this, "Palette",
+                            "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
+                        return;
+                    }
+
+                    targetName = saveName;
+                    destinationPath = paletteFilePath(targetName);
+                }
+            }
+
             if (!savePaletteToPath(destinationPath, _palette, errorMessage)) {
                 QMessageBox::warning(this, "Palette", errorMessage);
                 return;
             }
 
-            _savedPaletteName = paletteName;
+            _savedPaletteName = targetName;
+            if (_nameEdit) _nameEdit->setText(_savedPaletteName);
+            _savedPaletteDirty = false;
+            if (_onSavedPath) {
+                _onSavedPath(QString::fromStdWString(destinationPath.wstring()));
+            }
         }
 
         Backend::PaletteHexConfig _palette;
@@ -1890,24 +2685,29 @@ namespace {
         QPushButton *_colorButton = nullptr;
         QPushButton *_importButton = nullptr;
         QPushButton *_saveButton = nullptr;
+        bool _savedPaletteDirty = false;
+        std::function<void(const QString &)> _onSavedPath;
     };
 
     class ViewportWindow final : public QWidget {
     public:
         explicit ViewportWindow(mandelbrotgui *owner)
             : QWidget(nullptr), _owner(owner) {
-            setWindowTitle("Viewport");
+            updateWindowTitle();
             setMouseTracking(true);
             setFocusPolicy(Qt::StrongFocus);
 
-            _rtZoomTimer.setInterval(_owner ? _owner->realtimeZoomIntervalMs() : 30);
+            const int interactionTickIntervalMs =
+                _owner ? _owner->interactionFrameIntervalMs() : 16;
+            _rtZoomTimer.setTimerType(Qt::PreciseTimer);
+            _rtZoomTimer.setInterval(interactionTickIntervalMs);
             QObject::connect(&_rtZoomTimer, &QTimer::timeout, this, [this]() {
-                if (!_owner) return;
-                _owner->zoomAtPixel(mapToOutputPixel(_lastMousePos), _rtZoomZoomIn, true);
-            });
+                applyRealtimeZoomStep(false);
+                });
 
+            _panRedrawTimer.setTimerType(Qt::PreciseTimer);
             _panRedrawTimer.setSingleShot(true);
-            _panRedrawTimer.setInterval(_owner ? _owner->panRedrawIntervalMs() : 100);
+            _panRedrawTimer.setInterval(interactionTickIntervalMs);
             QObject::connect(&_panRedrawTimer, &QTimer::timeout, this, [this]() {
                 if (!_panning) return;
 
@@ -1920,65 +2720,207 @@ namespace {
                 if (_panning) {
                     _panRedrawTimer.start();
                 }
-            });
+                });
 
+            _zoomOutRedrawTimer.setTimerType(Qt::PreciseTimer);
             _zoomOutRedrawTimer.setSingleShot(true);
-            _zoomOutRedrawTimer.setInterval(_owner ? _owner->panRedrawIntervalMs() : 100);
+            _zoomOutRedrawTimer.setInterval(interactionTickIntervalMs);
             QObject::connect(&_zoomOutRedrawTimer, &QTimer::timeout, this, [this]() {
                 if (!_zoomOutDragActive) return;
 
-                commitZoomOutPreview(false);
+                if (_owner && _owner->renderInFlight()) {
+                    _zoomOutRedrawTimer.start();
+                    return;
+                }
+
+                commitZoomOutPreview();
                 if (_zoomOutDragActive && _zoomOutPendingCommit) {
                     _zoomOutRedrawTimer.start();
                 }
-            });
+                });
         }
 
         void clearPreviewOffset() {
-            const bool panNeedsClear =
-                !_panCommittedOffset.isNull() || (!_panning && !_panOffset.isNull());
-            const bool zoomNeedsClear = _zoomOutCommittedScale > 1.0001;
-            if (!panNeedsClear && !zoomNeedsClear) {
+            const bool panNeedsClear = !_panning && !_panOffset.isNull();
+            const bool zoomNeedsClear =
+                !_zoomOutDragActive &&
+                !NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0);
+            if (!panNeedsClear && !zoomNeedsClear && !_zoomOutPendingCommit) {
                 return;
             }
 
-            _panCommittedOffset = {};
             if (!_panning) {
                 _panOffset = {};
             }
-            _zoomOutCommittedScale = 1.0;
+            if (!_zoomOutDragActive) {
+                _zoomOutPending = false;
+                _zoomOutDragMoved = false;
+                _zoomOutPendingCommit = false;
+                _zoomOutPreviewScale = 1.0;
+            }
             update();
+        }
+
+        struct PreviewViewState {
+            QPointF point{ 0.0, 0.0 };
+            double zoom = 0.0;
+            QSize outputSize;
+            bool valid = false;
+        };
+
+        struct PreviewTransform {
+            QPointF center;
+            QPointF translation;
+            double scaleX = 1.0;
+            double scaleY = 1.0;
+        };
+
+        [[nodiscard]] PreviewViewState displayedPreviewView() const {
+            if (!_owner || !_owner->hasDisplayedViewState()) {
+                return {};
+            }
+
+            const QSize output = _owner->displayedViewOutputSize();
+            if (output.width() <= 0 || output.height() <= 0) {
+                return {};
+            }
+
+            return PreviewViewState{
+                _owner->displayedViewPoint(),
+                _owner->displayedViewZoom(),
+                output,
+                true
+            };
+        }
+
+        [[nodiscard]] PreviewViewState targetPreviewView() const {
+            if (!_owner) {
+                return {};
+            }
+
+            PreviewViewState view{
+                _owner->currentViewPoint(),
+                _owner->currentViewZoom(),
+                _owner->outputSize(),
+                true
+            };
+            if (view.outputSize.width() <= 0 || view.outputSize.height() <= 0) {
+                view.valid = false;
+                return view;
+            }
+
+            if (_panning && !_panOffset.isNull()) {
+                const QPoint outputDelta = mapToOutputDelta(_panOffset);
+                const double realScale = 1.0 / std::pow(10.0, view.zoom);
+                const double aspect = static_cast<double>(view.outputSize.width()) /
+                    std::max(1, view.outputSize.height());
+                const double imagScale = realScale / aspect;
+                view.point.rx() -= static_cast<double>(outputDelta.x()) /
+                    std::max(1, view.outputSize.width()) * realScale;
+                view.point.ry() += static_cast<double>(outputDelta.y()) /
+                    std::max(1, view.outputSize.height()) * imagScale;
+            }
+
+            if (!NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0)) {
+                view.zoom = clampGUIZoom(view.zoom - std::log10(_zoomOutPreviewScale));
+            }
+
+            return view;
+        }
+
+        [[nodiscard]] std::optional<PreviewTransform> previewTransform() const {
+            const QSize logicalSize = size();
+            if (!_owner || logicalSize.width() <= 0 || logicalSize.height() <= 0) {
+                return std::nullopt;
+            }
+
+            const PreviewViewState sourceView = displayedPreviewView();
+            const PreviewViewState targetView = targetPreviewView();
+            if (!sourceView.valid || !targetView.valid) {
+                return std::nullopt;
+            }
+
+            const double sourceRealScale = 1.0 / std::pow(10.0, sourceView.zoom);
+            const double targetRealScale = 1.0 / std::pow(10.0, targetView.zoom);
+            if (!(sourceRealScale > 0.0) || !(targetRealScale > 0.0) ||
+                !std::isfinite(sourceRealScale) || !std::isfinite(targetRealScale)) {
+                return std::nullopt;
+            }
+
+            const double sourceAspect = static_cast<double>(sourceView.outputSize.width()) /
+                std::max(1, sourceView.outputSize.height());
+            const double targetAspect = static_cast<double>(targetView.outputSize.width()) /
+                std::max(1, targetView.outputSize.height());
+            if (!(sourceAspect > 0.0) || !(targetAspect > 0.0) ||
+                !std::isfinite(sourceAspect) || !std::isfinite(targetAspect)) {
+                return std::nullopt;
+            }
+
+            const double sourceImagScale = sourceRealScale / sourceAspect;
+            const double targetImagScale = targetRealScale / targetAspect;
+            if (!(sourceImagScale > 0.0) || !(targetImagScale > 0.0) ||
+                !std::isfinite(sourceImagScale) || !std::isfinite(targetImagScale)) {
+                return std::nullopt;
+            }
+
+            const QPointF center(
+                static_cast<double>(logicalSize.width()) / 2.0,
+                static_cast<double>(logicalSize.height()) / 2.0);
+            const QPointF translation(
+                ((sourceView.point.x() - targetView.point.x()) / targetRealScale) *
+                logicalSize.width(),
+                ((targetView.point.y() - sourceView.point.y()) / targetImagScale) *
+                logicalSize.height());
+            const double scaleX = sourceRealScale / targetRealScale;
+            const double scaleY = sourceImagScale / targetImagScale;
+            if (!std::isfinite(translation.x()) || !std::isfinite(translation.y()) ||
+                !std::isfinite(scaleX) || !std::isfinite(scaleY) ||
+                !(scaleX > 0.0) || !(scaleY > 0.0)) {
+                return std::nullopt;
+            }
+
+            const bool active =
+                !NumberUtil::almostEqual(scaleX, 1.0, 1e-6) ||
+                !NumberUtil::almostEqual(scaleY, 1.0, 1e-6) ||
+                !NumberUtil::almostEqual(translation.x(), 0.0, 1e-3) ||
+                !NumberUtil::almostEqual(translation.y(), 0.0, 1e-3);
+            if (!active) {
+                return std::nullopt;
+            }
+
+            return PreviewTransform{ center, translation, scaleX, scaleY };
         }
 
     protected:
         void paintEvent(QPaintEvent *) override {
+            updateWindowTitle();
             QPainter painter(this);
             painter.fillRect(rect(), Qt::black);
 
             const QImage &image = _owner->previewImage();
             if (!image.isNull()) {
-                QImage scaledImage = image;
-                scaledImage.setDevicePixelRatio(devicePixelRatioF());
-                const QPoint totalOffset = _panCommittedOffset + _panOffset;
-                const double previewScale = _zoomOutCommittedScale *
-                    ((_zoomOutDragActive && _zoomOutPreviewScale > 1.0) ?
-                        _zoomOutPreviewScale : 1.0);
-                if (previewScale > 1.0001) {
-                    const qreal previewImageScale = static_cast<qreal>(
-                        1.0 / previewScale);
-                    const QPointF center(width() / 2.0, height() / 2.0);
+                const std::optional<PreviewTransform> transform =
+                    usePreviewFallback() ? previewTransform() : std::nullopt;
+                const bool transformedPreview = transform.has_value();
+                const QImage drawImage = (transformedPreview &&
+                    _owner->previewUsesBackendMemory()) ?
+                    image.copy() :
+                    image;
+                if (transform) {
                     painter.save();
-                    painter.translate(center);
-                    painter.scale(previewImageScale, previewImageScale);
-                    painter.translate(-center);
-                    painter.drawImage(QPointF(totalOffset), scaledImage);
+                    painter.translate(transform->translation);
+                    painter.translate(transform->center);
+                    painter.scale(transform->scaleX, transform->scaleY);
+                    painter.translate(-transform->center);
+                    painter.drawImage(rect(), drawImage);
                     painter.restore();
                 } else {
-                    painter.drawImage(QPointF(totalOffset), scaledImage);
+                    painter.drawImage(rect(), image);
                 }
             }
 
             painter.setRenderHint(QPainter::Antialiasing, true);
+            drawGrid(painter);
 
             if (!_selectionRect.isNull()) {
                 painter.setPen(QPen(QColor(255, 255, 255, 180),
@@ -1990,16 +2932,28 @@ namespace {
             constexpr int overlayMargin = 8;
             constexpr int overlayPaddingX = 8;
             constexpr int overlayPaddingY = 6;
-            const int overlayWidth = std::max(1, width() / 4);
+            const QFontMetrics metrics = painter.fontMetrics();
+            const QString maxPrecisionMouseLine =
+                "Mouse: 999999, 999999  |  "
+                "-1.7976931348623157e+308  "
+                "-1.7976931348623157e+308";
+            int overlayTextWidth = metrics.horizontalAdvance(maxPrecisionMouseLine);
+            for (const QString &line : statusText.split('\n')) {
+                overlayTextWidth = std::max(overlayTextWidth,
+                    metrics.horizontalAdvance(line));
+            }
+            const int overlayWidth = std::min(
+                std::max(1, width() - overlayMargin * 2),
+                overlayTextWidth + overlayPaddingX * 2 + 2);
             const QRect textRect(
                 overlayMargin + overlayPaddingX,
                 overlayMargin + overlayPaddingY,
                 std::max(1, overlayWidth - overlayPaddingX * 2),
                 std::max(1, height() - (overlayMargin + overlayPaddingY) * 2)
             );
-            const QRect textBounds = painter.fontMetrics().boundingRect(
+            const QRect textBounds = metrics.boundingRect(
                 textRect,
-                Qt::AlignTop | Qt::AlignLeft | Qt::TextWordWrap,
+                Qt::AlignTop | Qt::AlignLeft,
                 statusText
             );
             const QRect overlayRect(
@@ -2015,11 +2969,11 @@ namespace {
 
             painter.setPen(QColor(230, 230, 230));
             painter.drawText(overlayRect.adjusted(
-                    overlayPaddingX,
-                    overlayPaddingY,
-                    -overlayPaddingX,
-                    -overlayPaddingY),
-                Qt::AlignTop | Qt::AlignLeft | Qt::TextWordWrap,
+                overlayPaddingX,
+                overlayPaddingY,
+                -overlayPaddingX,
+                -overlayPaddingY),
+                Qt::AlignTop | Qt::AlignLeft,
                 statusText);
         }
 
@@ -2043,9 +2997,9 @@ namespace {
                     event->button() == Qt::MiddleButton);
             if (panDrag) {
                 _panning = true;
+                _spacePanPanning = false;
                 _dragOrigin = _lastMousePos;
                 _panOffset = {};
-                _panCommittedOffset = {};
                 _selectionRect = {};
                 _zoomOutPending = false;
                 _zoomOutDragActive = false;
@@ -2053,6 +3007,7 @@ namespace {
                 _zoomOutPendingCommit = false;
                 _zoomOutPreviewScale = 1.0;
                 _rtZoomTimer.stop();
+                _rtZoomLastStepAt = {};
                 _panRedrawTimer.stop();
                 _zoomOutRedrawTimer.stop();
                 _panRedrawTimer.start();
@@ -2065,9 +3020,16 @@ namespace {
             if (mode == mandelbrotgui::NavMode::realtimeZoom) {
                 if (event->button() == Qt::LeftButton ||
                     event->button() == Qt::RightButton) {
-                    _rtZoomAnchorPixel = mapToOutputPixel(_lastMousePos);
+                    if (!_rtZoomAnchorPixel.has_value()) {
+                        const QSize output = _owner->outputSize();
+                        _rtZoomAnchorPixel = QPointF(
+                            static_cast<double>(std::max(0, output.width() / 2)),
+                            static_cast<double>(std::max(0, output.height() / 2)));
+                    }
                     _rtZoomZoomIn = event->button() == Qt::LeftButton;
+                    _rtZoomLastStepAt = std::chrono::steady_clock::now();
                     grabMouse();
+                    applyRealtimeZoomStep(true);
                     _rtZoomTimer.start();
                     return;
                 }
@@ -2108,7 +3070,7 @@ namespace {
 
             if (_panning) {
                 _panOffset = _lastMousePos - _dragOrigin;
-                update();
+                if (usePreviewFallback()) update();
                 return;
             }
 
@@ -2118,16 +3080,19 @@ namespace {
                 const int dragMagnitude = std::abs(delta.x()) + std::abs(delta.y());
                 if (dragMagnitude > 0) {
                     _zoomOutDragMoved = true;
-                    constexpr double kZoomOutDragSensitivity = 0.0025;
+                    const double zoomFactor =
+                        _owner ? _owner->zoomRateFactor() : kZoomStepTable[8];
+                    constexpr double zoomOutDragPixelsPerStep = 12.0;
                     const double stepScale =
-                        std::pow(1.0 + kZoomOutDragSensitivity, dragMagnitude);
+                        std::pow(zoomFactor, static_cast<double>(dragMagnitude) /
+                            zoomOutDragPixelsPerStep);
                     _zoomOutPreviewScale = std::clamp(
                         _zoomOutPreviewScale * stepScale, 1.0, 64.0);
                     _zoomOutPendingCommit = _zoomOutPreviewScale > 1.0001;
                     if (_zoomOutPendingCommit && !_zoomOutRedrawTimer.isActive()) {
                         _zoomOutRedrawTimer.start();
                     }
-                    update();
+                    if (usePreviewFallback()) update();
                 }
                 return;
             }
@@ -2145,6 +3110,7 @@ namespace {
             if (_panning) {
                 _panRedrawTimer.stop();
                 _panning = false;
+                _spacePanPanning = false;
                 commitPanOffset();
                 releaseMouse();
                 updateCursor();
@@ -2154,6 +3120,7 @@ namespace {
 
             if (_rtZoomTimer.isActive()) {
                 _rtZoomTimer.stop();
+                _rtZoomLastStepAt = {};
                 releaseMouse();
                 updateCursor();
                 return;
@@ -2169,7 +3136,7 @@ namespace {
                     releaseMouse();
                 }
                 if (_zoomOutPendingCommit) {
-                    commitZoomOutPreview(true);
+                    commitZoomOutPreview();
                 } else if (!_zoomOutDragMoved) {
                     _owner->zoomAtPixel(mapToOutputPixel(_lastMousePos), false);
                 }
@@ -2209,11 +3176,6 @@ namespace {
             }
         }
 
-        void mouseDoubleClickEvent(QMouseEvent *event) override {
-            if (_owner->viewportUsesDirectPick()) return;
-            _owner->pickAtPixel(mapToOutputPixel(event->position()));
-        }
-
         void wheelEvent(QWheelEvent *event) override {
             _lastMousePos = event->position().toPoint();
             _owner->updateMouseCoords(mapToOutputPixel(_lastMousePos));
@@ -2227,10 +3189,13 @@ namespace {
             const bool zoomIn = event->angleDelta().y() > 0;
 
             if (mode == mandelbrotgui::NavMode::realtimeZoom) {
-                const QPoint anchor = _rtZoomAnchorPixel.value_or(
-                    mapToOutputPixel(_lastMousePos));
+                const QSize output = _owner->outputSize();
+                const QPointF defaultAnchor(
+                    static_cast<double>(std::max(0, output.width() / 2)),
+                    static_cast<double>(std::max(0, output.height() / 2)));
+                const QPointF anchor = _rtZoomAnchorPixel.value_or(defaultAnchor);
                 _rtZoomAnchorPixel = anchor;
-                _owner->zoomAtPixel(anchor, zoomIn);
+                _owner->zoomAtPixel(clampToOutputPixel(anchor), zoomIn);
                 return;
             }
 
@@ -2276,6 +3241,12 @@ namespace {
         void keyPressEvent(QKeyEvent *event) override {
             if (event->isAutoRepeat()) return;
 
+            if (event->key() == Qt::Key_Escape) {
+                if (_owner) _owner->cancelQueuedRenders();
+                event->accept();
+                return;
+            }
+
             if (event->key() == Qt::Key_Z) {
                 _owner->cycleNavMode();
                 return;
@@ -2283,13 +3254,43 @@ namespace {
 
             if (event->key() == Qt::Key_Space) {
                 _spacePan = true;
-                setCursor(Qt::OpenHandCursor);
+                if (!_panning && !_rtZoomTimer.isActive() &&
+                    _selectionRect.isNull() && !_zoomOutDragActive) {
+                    _panning = true;
+                    _spacePanPanning = true;
+                    _dragOrigin = _lastMousePos;
+                    _panOffset = {};
+                    _selectionRect = {};
+                    _zoomOutPending = false;
+                    _zoomOutDragActive = false;
+                    _zoomOutDragMoved = false;
+                    _zoomOutPendingCommit = false;
+                    _zoomOutPreviewScale = 1.0;
+                    _rtZoomTimer.stop();
+                    _rtZoomLastStepAt = {};
+                    _panRedrawTimer.stop();
+                    _zoomOutRedrawTimer.stop();
+                    _panRedrawTimer.start();
+                    setCursor(Qt::ClosedHandCursor);
+                    update();
+                } else {
+                    setCursor(Qt::OpenHandCursor);
+                }
                 return;
             }
 
             if (event->key() == Qt::Key_H) {
                 _owner->applyHomeView();
+                return;
             }
+
+            if (event->key() == Qt::Key_G) {
+                cycleGridMode();
+                event->accept();
+                return;
+            }
+
+            QWidget::keyPressEvent(event);
         }
 
         void keyReleaseEvent(QKeyEvent *event) override {
@@ -2297,6 +3298,17 @@ namespace {
             if (event->key() != Qt::Key_Space) return;
 
             _spacePan = false;
+            if (_spacePanPanning && _panning) {
+                _panRedrawTimer.stop();
+                _panning = false;
+                _spacePanPanning = false;
+                commitPanOffset();
+                updateCursor();
+                update();
+                return;
+            }
+
+            _spacePanPanning = false;
             updateCursor();
         }
 
@@ -2304,7 +3316,15 @@ namespace {
             updateCursor();
         }
 
+        void leaveEvent(QEvent *) override {
+            if (_owner) {
+                _owner->clearMouseCoords();
+            }
+        }
+
         void closeEvent(QCloseEvent *event) override {
+            _rtZoomTimer.stop();
+            _rtZoomLastStepAt = {};
             _panRedrawTimer.stop();
             _zoomOutRedrawTimer.stop();
             if (mouseGrabber() == this) {
@@ -2315,7 +3335,63 @@ namespace {
         }
 
     private:
+        void cycleGridMode() {
+            switch (_gridDivisions) {
+                case 0: _gridDivisions = 2; break;
+                case 2: _gridDivisions = 5; break;
+                case 5: _gridDivisions = 9; break;
+                default: _gridDivisions = 0; break;
+            }
+            update();
+        }
+
+        void drawGrid(QPainter &painter) {
+            if (_gridDivisions <= 1) return;
+
+            const QRect area = rect();
+            if (area.width() <= 1 || area.height() <= 1) return;
+
+            painter.save();
+            painter.setRenderHint(QPainter::Antialiasing, false);
+            painter.setPen(QPen(QColor(255, 255, 255, 110), 1.0));
+
+            for (int i = 1; i < _gridDivisions; ++i) {
+                const int x = static_cast<int>(std::lround(
+                    static_cast<double>(area.width()) * i / _gridDivisions));
+                const int y = static_cast<int>(std::lround(
+                    static_cast<double>(area.height()) * i / _gridDivisions));
+                painter.drawLine(x, area.top(), x, area.bottom());
+                painter.drawLine(area.left(), y, area.right(), y);
+            }
+
+            painter.restore();
+        }
+
+        void updateWindowTitle() {
+            setWindowTitle(usePreviewFallback() ?
+                "Viewport (Preview)" :
+                "Viewport (Direct)");
+        }
+
+        QPoint clampToOutputPixel(const QPointF &pixel) const {
+            const QSize outputSize = _owner->outputSize();
+            return {
+                std::clamp(static_cast<int>(std::lround(pixel.x())), 0,
+                    std::max(0, outputSize.width() - 1)),
+                std::clamp(static_cast<int>(std::lround(pixel.y())), 0,
+                    std::max(0, outputSize.height() - 1))
+            };
+        }
+
         QPoint mapToOutputPixel(const QPoint &logicalPoint) const {
+            return mapToOutputPixelRaw(logicalPoint);
+        }
+
+        QPoint mapToOutputPixelRaw(const QPoint &logicalPoint) const {
+            return mapToOutputPixelRaw(QPointF(logicalPoint));
+        }
+
+        QPoint mapToOutputPixelRaw(const QPointF &logicalPoint) const {
             const QSize logicalSize = size();
             const QSize outputSize = _owner->outputSize();
             if (logicalSize.width() <= 0 || logicalSize.height() <= 0) {
@@ -2384,28 +3460,106 @@ namespace {
             const QPoint delta = mapToOutputDelta(_panOffset);
             if (delta.isNull()) return;
 
-            _panCommittedOffset += _panOffset;
             _owner->panByPixels(delta);
             _dragOrigin = _lastMousePos;
             _panOffset = {};
             update();
         }
 
-        void commitZoomOutPreview(bool force) {
+        void commitZoomOutPreview() {
             if (!_owner) return;
-            if (!_zoomOutPendingCommit || _zoomOutPreviewScale <= 1.0001) return;
-            if (!force && _owner->renderInFlight()) return;
+            if (!_zoomOutPendingCommit ||
+                NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0)) {
+                return;
+            }
 
             const QPoint viewportCenter(width() / 2, height() / 2);
-            _owner->scaleAtPixel(
-                mapToOutputPixel(viewportCenter),
-                _zoomOutPreviewScale,
-                !force);
-            _zoomOutCommittedScale = std::clamp(
-                _zoomOutCommittedScale * _zoomOutPreviewScale, 1.0, 1024.0);
+            const double scaleMultiplier = _zoomOutPreviewScale;
             _zoomOutPreviewScale = 1.0;
             _zoomOutPendingCommit = false;
+            _owner->scaleAtPixel(
+                mapToOutputPixel(viewportCenter),
+                scaleMultiplier,
+                true);
             update();
+        }
+
+        void applyRealtimeZoomStep(bool firstStep) {
+            if (!_owner || !_rtZoomAnchorPixel.has_value()) return;
+
+            const auto now = std::chrono::steady_clock::now();
+            constexpr double baseRateFPS = 60.0;
+            double elapsedSeconds = 1.0 / baseRateFPS;
+
+            if (!firstStep) {
+                if (_rtZoomLastStepAt.time_since_epoch().count() == 0) {
+                    _rtZoomLastStepAt = now;
+                    return;
+                }
+
+                const auto elapsed = std::chrono::duration_cast<
+                    std::chrono::duration<double, std::milli>>(now - _rtZoomLastStepAt);
+                elapsedSeconds = elapsed.count() / 1000.0;
+                if (!(elapsedSeconds > 0.0) || !std::isfinite(elapsedSeconds)) return;
+            }
+
+            _rtZoomLastStepAt = now;
+            updateRealtimeZoomAnchor(elapsedSeconds);
+            const double zoomFactor = _owner->zoomRateFactor();
+            if (!(zoomFactor > 0.0) || !std::isfinite(zoomFactor)) return;
+
+            const double scalePerSecond = std::pow(zoomFactor, baseRateFPS);
+            const double scaleMultiplier = _rtZoomZoomIn ?
+                std::pow(scalePerSecond, -elapsedSeconds) :
+                std::pow(scalePerSecond, elapsedSeconds);
+            if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
+
+            _owner->scaleAtPixel(clampToOutputPixel(*_rtZoomAnchorPixel),
+                scaleMultiplier, true);
+        }
+
+        void updateRealtimeZoomAnchor(double elapsedSeconds) {
+            if (!_owner || !_rtZoomAnchorPixel.has_value()) return;
+
+            const QPointF targetPixel(mapToOutputPixel(_lastMousePos));
+            QPointF anchorPixel = *_rtZoomAnchorPixel;
+            const double dx = targetPixel.x() - anchorPixel.x();
+            const double dy = targetPixel.y() - anchorPixel.y();
+            if (NumberUtil::almostEqual(dx, 0.0, 1e-6) &&
+                NumberUtil::almostEqual(dy, 0.0, 1e-6)) {
+                _rtZoomAnchorPixel = targetPixel;
+                return;
+            }
+
+            const double distance = std::hypot(dx, dy);
+            if (!(distance > 0.0) || !std::isfinite(distance)) {
+                _rtZoomAnchorPixel = targetPixel;
+                return;
+            }
+
+            const double panFactor = std::max(0.1, _owner->panRateFactor());
+            const double followPixelsPerSecond = 32.0 * panFactor * 60.0;
+            const double maxStep = std::max(1.0, followPixelsPerSecond * elapsedSeconds);
+            if (distance <= maxStep) {
+                _rtZoomAnchorPixel = targetPixel;
+                return;
+            }
+
+            const double t = maxStep / distance;
+            anchorPixel.rx() += dx * t;
+            anchorPixel.ry() += dy * t;
+            const QSize output = _owner->outputSize();
+            _rtZoomAnchorPixel = QPointF(
+                std::clamp(anchorPixel.x(), 0.0,
+                    static_cast<double>(std::max(0, output.width() - 1))),
+                std::clamp(anchorPixel.y(), 0.0,
+                    static_cast<double>(std::max(0, output.height() - 1))));
+        }
+
+        [[nodiscard]] bool usePreviewFallback() const {
+            return _owner &&
+                _owner->shouldUseInteractionPreviewFallback() &&
+                previewTransform().has_value();
         }
 
         mandelbrotgui *_owner = nullptr;
@@ -2416,29 +3570,33 @@ namespace {
         QPoint _dragOrigin;
         QPoint _selectionOrigin;
         QPoint _panOffset;
-        QPoint _panCommittedOffset;
         QRect _selectionRect;
-        std::optional<QPoint> _rtZoomAnchorPixel;
+        std::optional<QPointF> _rtZoomAnchorPixel;
+        std::chrono::steady_clock::time_point _rtZoomLastStepAt{};
         bool _rtZoomZoomIn = true;
         bool _panning = false;
         bool _spacePan = false;
+        bool _spacePanPanning = false;
         bool _zoomOutPending = false;
         bool _zoomOutDragActive = false;
         bool _zoomOutDragMoved = false;
         bool _zoomOutPendingCommit = false;
         QPoint _zoomOutDragLastPos;
-        double _zoomOutCommittedScale = 1.0;
         double _zoomOutPreviewScale = 1.0;
+        int _gridDivisions = 0;
     };
 }
 
 mandelbrotgui::mandelbrotgui(QWidget *parent)
     : QWidget(parent) {
-    buildUi();
+    buildUI();
     populateControls();
+    if (_startupBackendError) return;
     initializeState();
-    connectUi();
+    if (_startupBackendError) return;
+    connectUI();
     loadSelectedBackend();
+    if (_startupBackendError) return;
     syncControlsFromState();
     updateModeEnablement();
     updateControlWindowSize();
@@ -2459,13 +3617,25 @@ mandelbrotgui::~mandelbrotgui() {
     finishRenderThread();
 }
 
-void mandelbrotgui::buildUi() {
+void mandelbrotgui::buildUI() {
     setWindowFlag(Qt::Window, true);
     setWindowTitle("Control");
+
+    auto *cancelQueuedShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    cancelQueuedShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    QObject::connect(cancelQueuedShortcut, &QShortcut::activated,
+        this, [this]() { cancelQueuedRenders(); });
 
     auto *outerLayout = new QVBoxLayout(this);
     outerLayout->setContentsMargins(8, 8, 8, 8);
     outerLayout->setSpacing(4);
+
+    _menuBar = new QMenuBar(this);
+    _menuBar->setNativeMenuBar(false);
+    _helpMenu = _menuBar->addMenu("Help");
+    _helpAction = _helpMenu->addAction("Help");
+    _aboutAction = _helpMenu->addAction("About");
+    outerLayout->setMenuBar(_menuBar);
 
     _controlScrollArea = new QScrollArea(this);
     _controlScrollArea->setWidgetResizable(true);
@@ -2524,16 +3694,21 @@ void mandelbrotgui::buildUi() {
 
     _renderGroup = new CollapsibleGroupBox("Render", true, onSectionToggled);
     auto *renderLayout = new QGridLayout(_renderGroup);
-    renderLayout->addWidget(new QLabel("Variant"), 0, 0);
-    _variantCombo = new QComboBox();
-    _variantCombo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-    _variantCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    _variantCombo->setMinimumContentsLength(14);
-    renderLayout->addWidget(_variantCombo, 0, 1, 1, 3);
+    renderLayout->addWidget(new QLabel("Backend"), 0, 0);
+    _backendCombo = new QComboBox();
+    _backendCombo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+    _backendCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    _backendCombo->setMinimumContentsLength(14);
+    renderLayout->addWidget(_backendCombo, 0, 1, 1, 3);
     renderLayout->addWidget(new QLabel("Iterations"), 1, 0);
-    _iterationsSpin = new QSpinBox();
+    _iterationsSpin = new IterationSpinBox();
     _iterationsSpin->setRange(0, 1000000000);
     _iterationsSpin->setSpecialValueText("Auto");
+    static_cast<IterationSpinBox *>(_iterationsSpin)->resolveAutoIterations =
+        [this]() { return resolveCurrentIterationCount(); };
+    if (QLineEdit *iterationsEdit = _iterationsSpin->findChild<QLineEdit *>()) {
+        iterationsEdit->installEventFilter(this);
+    }
     renderLayout->addWidget(_iterationsSpin, 1, 1, 1, 3);
     renderLayout->addWidget(new QLabel("Color"), 2, 0);
     _colorMethodCombo = new QComboBox();
@@ -2558,17 +3733,20 @@ void mandelbrotgui::buildUi() {
     _infoGroup = new CollapsibleGroupBox("Info", true, onSectionToggled);
     auto *infoLayout = new QFormLayout(_infoGroup);
     _infoRealEdit = new QLineEdit();
-    _infoRealEdit->setReadOnly(true);
     _infoRealEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     infoLayout->addRow("Real", _infoRealEdit);
     _infoImagEdit = new QLineEdit();
-    _infoImagEdit->setReadOnly(true);
     _infoImagEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     infoLayout->addRow("Imag", _infoImagEdit);
     _infoZoomEdit = new QLineEdit();
-    _infoZoomEdit->setReadOnly(true);
     _infoZoomEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     infoLayout->addRow("Zoom", _infoZoomEdit);
+    _infoSeedRealEdit = new QLineEdit();
+    _infoSeedRealEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+    infoLayout->addRow("Seed Real", _infoSeedRealEdit);
+    _infoSeedImagEdit = new QLineEdit();
+    _infoSeedImagEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+    infoLayout->addRow("Seed Imag", _infoSeedImagEdit);
     auto *pointButtonsLayout = new QHBoxLayout();
     pointButtonsLayout->setContentsMargins(0, 0, 0, 0);
     _savePointButton = new QPushButton("Save View");
@@ -2606,7 +3784,7 @@ void mandelbrotgui::buildUi() {
     _panRateSlider->setRange(0, 20);
     _panRateSlider->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     _panRateSpin = new QSpinBox();
-    _panRateSpin->setRange(0, 20);
+    _panRateSpin->setRange(0, 1000000000);
     _panRateSpin->setButtonSymbols(QAbstractSpinBox::UpDownArrows);
     _panRateSpin->setFixedWidth(72);
     navLayout->addWidget(_panRateSlider, 2, 1);
@@ -2617,7 +3795,7 @@ void mandelbrotgui::buildUi() {
     _zoomRateSlider->setRange(0, 20);
     _zoomRateSlider->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     _zoomRateSpin = new QSpinBox();
-    _zoomRateSpin->setRange(0, 20);
+    _zoomRateSpin->setRange(0, 1000000000);
     _zoomRateSpin->setButtonSymbols(QAbstractSpinBox::UpDownArrows);
     _zoomRateSpin->setFixedWidth(72);
     navLayout->addWidget(_zoomRateSlider, 3, 1);
@@ -2627,9 +3805,8 @@ void mandelbrotgui::buildUi() {
     _exponentSlider = new QSlider(Qt::Horizontal);
     _exponentSlider->setRange(101, 1600);
     _exponentSlider->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    _exponentSpin = new QDoubleSpinBox();
-    _exponentSpin->setRange(1.01, 16.0);
-    _exponentSpin->setDecimals(2);
+    _exponentSpin = new AdaptiveDoubleSpinBox(2);
+    _exponentSpin->setRange(1.01, 1000000.0);
     _exponentSpin->setSingleStep(0.01);
     _exponentSpin->setButtonSymbols(QAbstractSpinBox::UpDownArrows);
     _exponentSpin->setFixedWidth(72);
@@ -2661,34 +3838,38 @@ void mandelbrotgui::buildUi() {
     _saveSineButton = new QPushButton("Save");
     stabilizePushButton(_saveSineButton);
     _saveSineButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    QDoubleSpinBox compactSpinProbe;
+    compactSpinProbe.setRange(0.0001, 1000.0);
+    compactSpinProbe.setDecimals(4);
+    compactSpinProbe.setSingleStep(0.01);
+    const int compactSpinWidth = compactSpinProbe.sizeHint().width();
     sineLayout->addWidget(new QLabel("R"), 1, 0);
-    _freqRSpin = new QDoubleSpinBox();
+    _freqRSpin = new AdaptiveDoubleSpinBox(4);
     _freqRSpin->setRange(0.0, 1000.0);
-    _freqRSpin->setDecimals(4);
     _freqRSpin->setSingleStep(0.01);
+    _freqRSpin->setFixedWidth(compactSpinWidth);
     sineLayout->addWidget(_freqRSpin, 1, 1);
     sineLayout->addWidget(new QLabel("G"), 1, 2);
-    _freqGSpin = new QDoubleSpinBox();
+    _freqGSpin = new AdaptiveDoubleSpinBox(4);
     _freqGSpin->setRange(0.0, 1000.0);
-    _freqGSpin->setDecimals(4);
     _freqGSpin->setSingleStep(0.01);
+    _freqGSpin->setFixedWidth(compactSpinWidth);
     sineLayout->addWidget(_freqGSpin, 1, 3);
     sineLayout->addWidget(_importSineButton, 1, 5);
     sineLayout->addWidget(new QLabel("B"), 2, 0);
-    _freqBSpin = new QDoubleSpinBox();
+    _freqBSpin = new AdaptiveDoubleSpinBox(4);
     _freqBSpin->setRange(0.0, 1000.0);
-    _freqBSpin->setDecimals(4);
     _freqBSpin->setSingleStep(0.01);
+    _freqBSpin->setFixedWidth(compactSpinWidth);
     sineLayout->addWidget(_freqBSpin, 2, 1);
     sineLayout->addWidget(new QLabel("Mult"), 2, 2);
-    _freqMultSpin = new QDoubleSpinBox();
+    _freqMultSpin = new AdaptiveDoubleSpinBox(4);
     _freqMultSpin->setRange(0.0001, 1000.0);
-    _freqMultSpin->setDecimals(4);
     _freqMultSpin->setSingleStep(0.01);
+    _freqMultSpin->setFixedWidth(compactSpinWidth);
     sineLayout->addWidget(_freqMultSpin, 2, 3);
     sineLayout->addWidget(_saveSineButton, 2, 5);
     const int compactComboWidth = _sineCombo->sizeHint().width();
-    const int compactSpinWidth = _freqMultSpin->sizeHint().width();
     auto *sinePreview = new SinePreviewWidget();
     sinePreview->onRangeChanged = [this](double, double) { updateSinePreview(); };
     _sinePreview = sinePreview;
@@ -2715,15 +3896,13 @@ void mandelbrotgui::buildUi() {
     _paletteEditorButton->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     paletteLayout->addWidget(_paletteEditorButton, 0, 5);
     paletteLayout->addWidget(new QLabel("Length"), 1, 0);
-    _paletteLengthSpin = new QDoubleSpinBox();
+    _paletteLengthSpin = new AdaptiveDoubleSpinBox(4);
     _paletteLengthSpin->setRange(0.0001, 1000000.0);
-    _paletteLengthSpin->setDecimals(4);
     _paletteLengthSpin->setFixedWidth(compactSpinWidth);
     paletteLayout->addWidget(_paletteLengthSpin, 1, 1);
     paletteLayout->addWidget(new QLabel("Offset"), 1, 2);
-    _paletteOffsetSpin = new QDoubleSpinBox();
+    _paletteOffsetSpin = new AdaptiveDoubleSpinBox(4);
     _paletteOffsetSpin->setRange(0.0, 1000000.0);
-    _paletteOffsetSpin->setDecimals(4);
     _paletteOffsetSpin->setFixedWidth(compactSpinWidth);
     paletteLayout->addWidget(_paletteOffsetSpin, 1, 3);
     _palettePreviewLabel = new PalettePreviewWidget();
@@ -2810,102 +3989,151 @@ void mandelbrotgui::buildUi() {
     buttonRow->addWidget(_saveButton, 1, 1);
     outerLayout->addWidget(buttonPanel);
 
+    auto *statusDivider = new QFrame(this);
+    statusDivider->setFrameShape(QFrame::HLine);
+    statusDivider->setFrameShadow(QFrame::Sunken);
+    outerLayout->addWidget(statusDivider);
+
     auto *statusPanel = new QWidget(this);
     auto *statusRow = new QHBoxLayout(statusPanel);
     statusRow->setContentsMargins(0, 0, 0, 0);
     _progressLabel = new QLabel("0%");
-    _progressLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    _progressLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     _progressLabel->setFixedWidth(40);
     _progressBar = new QProgressBar();
     _progressBar->setRange(0, 100);
     _progressBar->setValue(0);
     _progressBar->setTextVisible(false);
     _progressBar->setFixedWidth(100);
+    _pixelsPerSecondLabel = new QLabel("0 pixels/s");
+    _pixelsPerSecondLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    _pixelsPerSecondLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
     _statusRightLabel = new QLabel();
     _statusRightLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     _statusRightLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    _statusRightLabel->setTextFormat(Qt::RichText);
+    _statusRightLabel->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
+    _statusRightLabel->setOpenExternalLinks(false);
+    _statusRightLabel->installEventFilter(this);
+    QObject::connect(_statusRightLabel, &QLabel::linkActivated,
+        this, [](const QString &link) {
+            QDesktopServices::openUrl(QUrl(link));
+        });
+    QObject::connect(_statusRightLabel, &QLabel::linkHovered,
+        this, [this](const QString &link) {
+            if (_statusRightLabel) {
+                if (link.isEmpty()) {
+                    _statusRightLabel->unsetCursor();
+                } else {
+                    _statusRightLabel->setCursor(Qt::PointingHandCursor);
+                }
+            }
+        });
+    _statusMarqueeTimer.setInterval(125);
+    QObject::connect(&_statusMarqueeTimer, &QTimer::timeout,
+        this, [this]() {
+            ++_statusMarqueeOffset;
+            updateStatusLabels();
+        });
     statusRow->addWidget(_progressLabel);
     statusRow->addWidget(_progressBar);
-    statusRow->addSpacing(8);
+    statusRow->addWidget(_pixelsPerSecondLabel);
+    statusRow->addSpacing(4);
     statusRow->addWidget(_statusRightLabel, 1);
     outerLayout->addWidget(statusPanel);
 }
 
 void mandelbrotgui::populateControls() {
-    const QString prefix = QString::fromStdString(currentPrefix());
-    _variantCombo->addItems({
-        prefix + " - FloatScalar",
-        prefix + " - DoubleScalar",
-        prefix + " - FloatAVX2",
-        prefix + " - DoubleAVX2",
-        prefix + " - MPFR"
-        });
+    QString backendError;
+    const QStringList backendNames = listBackendNames(backendError);
+    _backendNames = backendNames;
+    _backendCombo->addItems(backendNames);
+    if (backendNames.isEmpty()) {
+        _startupBackendError = true;
+        QMessageBox::critical(this, "Backend", backendError);
+        QTimer::singleShot(0, this, [this]() { close(); });
+        return;
+    }
 
     _colorMethodCombo->addItems({
         "Iterations",
         "Smooth Iterations",
         "Palette",
         "Light"
-    });
+        });
     _fractalCombo->addItems({
         "Mandelbrot",
         "Perpendicular",
         "Burning Ship"
-    });
+        });
     _navModeCombo->addItems({
         "Realtime Zoom",
         "Box Zoom",
         "Pan"
-    });
+        });
     _pickTargetCombo->addItems({
         "Zoom Point",
         "Seed Point",
         "Light Point"
-    });
+        });
 }
 
 void mandelbrotgui::initializeState() {
-    const int floatAvx2Index = _variantCombo->findText("FloatAVX2",
-        Qt::MatchContains);
-    _state.variant = floatAvx2Index >= 0 ?
-        _variantCombo->itemText(floatAvx2Index) :
-        _variantCombo->itemText(0);
+    const QString preferredType = QString::fromUtf8(defaultBackendType);
+    int defaultIndex = -1;
+    const QString suffixNeedle = QString(" - %1").arg(preferredType);
+    for (int i = 0; i < _backendCombo->count(); ++i) {
+        const QString backendName = _backendCombo->itemText(i).trimmed();
+        if (backendName.compare(preferredType, Qt::CaseInsensitive) == 0 ||
+            backendName.endsWith(suffixNeedle, Qt::CaseInsensitive)) {
+            defaultIndex = i;
+            break;
+        }
+    }
+    if (defaultIndex < 0) {
+        defaultIndex = _backendCombo->findText(
+            preferredType,
+            Qt::MatchContains);
+    }
+    if (defaultIndex < 0 && _backendCombo->count() > 0) {
+        defaultIndex = 0;
+    }
+    if (defaultIndex < 0) {
+        _startupBackendError = true;
+        QMessageBox::critical(this, "Backend",
+            "No backend options are available.");
+        QTimer::singleShot(0, this, [this]() { close(); });
+        return;
+    }
+
+    _backendCombo->setCurrentIndex(defaultIndex);
+    _state.backend = _backendCombo->itemText(defaultIndex);
     _state.iterations = 0;
     _state.sineName = kDefaultSineName;
-    _state.sinePalette = defaultSinePalette();
     refreshSineList(_state.sineName);
-    if (_sineCombo && _sineCombo->count() > 0) {
-        QString sineError;
-        QString initialName = _state.sineName;
-        if (_sineCombo->findText(initialName, Qt::MatchFixedString) < 0) {
-            initialName = _sineCombo->itemText(0);
+    QString sineError;
+    if (!loadSineByName(_state.sineName, false, &sineError)) {
+        bool loaded = false;
+        const QStringList sineNames = listSineNames();
+        if (!sineNames.isEmpty()) {
+            loaded = loadSineByName(sineNames.front(), false, &sineError);
         }
-        if (!initialName.isEmpty()) {
-            const std::filesystem::path sourcePath = sineFilePath(initialName);
-            if (std::filesystem::exists(sourcePath)) {
-                Backend::SinePaletteConfig loaded;
-                if (loadSineFromPath(sourcePath, loaded, sineError)) {
-                    _state.sineName = initialName;
-                    _state.sinePalette = loaded;
-                }
-            } else if (initialName.compare(kDefaultSineName, Qt::CaseInsensitive) == 0) {
-                _state.sineName = initialName;
-                _state.sinePalette = defaultSinePalette();
-            }
+        if (!loaded) {
+            createNewSinePalette(false);
         }
     }
 
     _state.paletteName = kDefaultPaletteName;
-    _state.palette = defaultPalette();
     refreshPaletteList(_state.paletteName);
-    if (_paletteCombo && _paletteCombo->count() > 0) {
-        QString paletteError;
-        QString initialName = _state.paletteName;
-        if (_paletteCombo->findText(initialName, Qt::MatchFixedString) < 0) {
-            initialName = _paletteCombo->itemText(0);
+    QString paletteError;
+    if (!loadPaletteByName(_state.paletteName, false, &paletteError)) {
+        bool loaded = false;
+        const QStringList paletteNames = listPaletteNames();
+        if (!paletteNames.isEmpty()) {
+            loaded = loadPaletteByName(paletteNames.front(), false, &paletteError);
         }
-        if (!initialName.isEmpty()) {
-            loadPaletteByName(initialName, false, &paletteError);
+        if (!loaded) {
+            createNewColorPalette(false);
         }
     }
 
@@ -2914,17 +4142,22 @@ void mandelbrotgui::initializeState() {
     if (cpu.cores > 0) _cpuCoresEdit->setText(QString::number(cpu.cores));
     if (cpu.threads > 0) _cpuThreadsEdit->setText(QString::number(cpu.threads));
 
-    _statusText = "Ready";
+    setStatusMessage("Ready");
     _mouseText = "Mouse: -";
     _viewportRenderTimeText.clear();
     _imageMemoryText = "Render: -  Output: -";
     syncPointTextFromState();
+    _displayedPoint = _state.point;
+    _displayedZoom = _state.zoom;
+    _displayedOutputSize = outputSize();
+    _hasDisplayedViewState = true;
+    markPointViewSavedState();
 }
 
-void mandelbrotgui::connectUi() {
-    QObject::connect(_variantCombo, &QComboBox::currentTextChanged,
+void mandelbrotgui::connectUI() {
+    QObject::connect(_backendCombo, &QComboBox::currentTextChanged,
         this, [this](const QString &text) {
-            _state.variant = text;
+            _state.backend = text;
             loadSelectedBackend();
         });
 
@@ -2937,7 +4170,54 @@ void mandelbrotgui::connectUi() {
         syncStateFromControls();
         updateSinePreview();
         requestRender();
-    };
+        };
+    auto confirmDiscardDirtySine = [this]() {
+        if (!isSineDirty()) return true;
+
+        const QMessageBox::StandardButton choice = QMessageBox::question(
+            this,
+            "Sine Color",
+            "Current sine palette has unsaved changes. Discard them?",
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+        if (choice != QMessageBox::Yes) {
+            refreshSineList(_state.sineName);
+            return false;
+        }
+
+        if (_hasSavedSineState) {
+            _state.sineName = _savedSineName;
+            _state.sinePalette = _savedSinePalette;
+        }
+        refreshSineList(_state.sineName);
+        syncControlsFromState();
+        updateViewport();
+        return true;
+        };
+    auto confirmDiscardDirtyPalette = [this]() {
+        if (!isPaletteDirty()) return true;
+
+        const QMessageBox::StandardButton choice = QMessageBox::question(
+            this,
+            "Palette",
+            "Current palette has unsaved changes. Discard them?",
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+        if (choice != QMessageBox::Yes) {
+            refreshPaletteList(_state.paletteName);
+            return false;
+        }
+
+        if (_hasSavedPaletteState) {
+            _state.paletteName = _savedPaletteName;
+            _state.palette = _savedPalette;
+            _palettePreviewDirty = true;
+        }
+        refreshPaletteList(_state.paletteName);
+        syncControlsFromState();
+        updateViewport();
+        return true;
+        };
 
     QObject::connect(_iterationsSpin, QOverload<int>::of(&QSpinBox::valueChanged),
         this, [requestFromControls](int) { requestFromControls(); });
@@ -2969,7 +4249,14 @@ void mandelbrotgui::connectUi() {
             _state.panRate = value;
         });
     QObject::connect(_panRateSpin, QOverload<int>::of(&QSpinBox::valueChanged),
-        this, [this](int value) { _panRateSlider->setValue(value); });
+        this, [this](int value) {
+            const QSignalBlocker sliderBlocker(_panRateSlider);
+            _panRateSlider->setValue(std::clamp(
+                value,
+                _panRateSlider->minimum(),
+                _panRateSlider->maximum()));
+            _state.panRate = value;
+        });
 
     QObject::connect(_zoomRateSlider, &QSlider::valueChanged,
         this, [this](int value) {
@@ -2979,34 +4266,52 @@ void mandelbrotgui::connectUi() {
             _state.zoomRate = value;
         });
     QObject::connect(_zoomRateSpin, QOverload<int>::of(&QSpinBox::valueChanged),
-        this, [this](int value) { _zoomRateSlider->setValue(value); });
+        this, [this](int value) {
+            const QSignalBlocker sliderBlocker(_zoomRateSlider);
+            _zoomRateSlider->setValue(std::clamp(
+                value,
+                _zoomRateSlider->minimum(),
+                _zoomRateSlider->maximum()));
+            _state.zoomRate = value;
+        });
 
     QObject::connect(_exponentSlider, &QSlider::valueChanged,
         this, [this](int value) {
             const double exponent = value / 100.0;
             _exponentSpin->blockSignals(true);
-            _exponentSpin->setValue(exponent);
+            setAdaptiveSpinValue(_exponentSpin, exponent);
             _exponentSpin->blockSignals(false);
             _state.exponent = exponent;
             requestRender();
         });
     QObject::connect(_exponentSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
         this, [this](double value) {
-            _exponentSlider->blockSignals(true);
-            _exponentSlider->setValue(static_cast<int>(std::round(value * 100.0)));
-            _exponentSlider->blockSignals(false);
+            const QSignalBlocker sliderBlocker(_exponentSlider);
+            const int sliderValue = std::clamp(
+                static_cast<int>(std::round(value * 100.0)),
+                _exponentSlider->minimum(),
+                _exponentSlider->maximum());
+            _exponentSlider->setValue(sliderValue);
             _state.exponent = value;
             requestRender();
         });
     QObject::connect(_sineCombo, &QComboBox::currentTextChanged,
-        this, [this](const QString &name) {
-            if (name.isEmpty()) return;
+        this, [this, confirmDiscardDirtySine](const QString &name) {
+            if (!confirmDiscardDirtySine()) return;
+
+            const QString normalizedName = undecoratedLabel(name);
+            if (normalizedName == kNewEntryLabel) {
+                createNewSinePalette();
+                return;
+            }
+            if (normalizedName.isEmpty()) return;
 
             QString errorMessage;
-            if (!loadSineByName(name, true, &errorMessage) &&
+            if (!loadSineByName(normalizedName, true, &errorMessage) &&
                 !errorMessage.isEmpty()) {
                 QMessageBox::warning(this, "Sine Color", errorMessage);
                 refreshSineList(_state.sineName);
+                requestRender();
             }
         });
     QObject::connect(_freqRSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
@@ -3025,14 +4330,14 @@ void mandelbrotgui::connectUi() {
                 const double value = minValue +
                     (maxValue - minValue) * QRandomGenerator::global()->generateDouble();
                 return std::round(value * 10000.0) / 10000.0;
-            };
+                };
 
             const QSignalBlocker rBlocker(_freqRSpin);
             const QSignalBlocker gBlocker(_freqGSpin);
             const QSignalBlocker bBlocker(_freqBSpin);
-            _freqRSpin->setValue(randomFrequency());
-            _freqGSpin->setValue(randomFrequency());
-            _freqBSpin->setValue(randomFrequency());
+            setAdaptiveSpinValue(_freqRSpin, randomFrequency());
+            setAdaptiveSpinValue(_freqGSpin, randomFrequency());
+            setAdaptiveSpinValue(_freqBSpin, randomFrequency());
 
             syncStateFromControls();
             updateSinePreview();
@@ -3046,16 +4351,39 @@ void mandelbrotgui::connectUi() {
         this, [this]() { savePointView(); });
     QObject::connect(_loadPointButton, &QPushButton::clicked,
         this, [this]() { loadPointView(); });
+    auto applyViewTextEdits = [this]() {
+        syncStateFromControls();
+        syncStateReadouts();
+        requestRender();
+        };
+    QObject::connect(_infoRealEdit, &QLineEdit::editingFinished,
+        this, [applyViewTextEdits]() { applyViewTextEdits(); });
+    QObject::connect(_infoImagEdit, &QLineEdit::editingFinished,
+        this, [applyViewTextEdits]() { applyViewTextEdits(); });
+    QObject::connect(_infoZoomEdit, &QLineEdit::editingFinished,
+        this, [applyViewTextEdits]() { applyViewTextEdits(); });
+    QObject::connect(_infoSeedRealEdit, &QLineEdit::editingFinished,
+        this, [applyViewTextEdits]() { applyViewTextEdits(); });
+    QObject::connect(_infoSeedImagEdit, &QLineEdit::editingFinished,
+        this, [applyViewTextEdits]() { applyViewTextEdits(); });
 
     QObject::connect(_paletteCombo, &QComboBox::currentTextChanged,
-        this, [this](const QString &name) {
-            if (name.isEmpty()) return;
+        this, [this, confirmDiscardDirtyPalette](const QString &name) {
+            if (!confirmDiscardDirtyPalette()) return;
+
+            const QString normalizedName = undecoratedLabel(name);
+            if (normalizedName == kNewEntryLabel) {
+                createNewColorPalette();
+                return;
+            }
+            if (normalizedName.isEmpty()) return;
 
             QString errorMessage;
-            if (!loadPaletteByName(name, true, &errorMessage) &&
+            if (!loadPaletteByName(normalizedName, true, &errorMessage) &&
                 !errorMessage.isEmpty()) {
                 QMessageBox::warning(this, "Palette", errorMessage);
                 refreshPaletteList(_state.paletteName);
+                requestRender();
             }
         });
     QObject::connect(_paletteLengthSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
@@ -3117,97 +4445,213 @@ void mandelbrotgui::connectUi() {
         this, [this]() { saveImage(); });
     QObject::connect(_resizeButton, &QPushButton::clicked,
         this, [this]() { resizeViewportImage(); });
+    QObject::connect(_helpAction, &QAction::triggered,
+        this, [this]() { showHelpDialog(); });
+    QObject::connect(_aboutAction, &QAction::triggered,
+        this, [this]() { showAboutDialog(); });
 }
 
 void mandelbrotgui::loadSelectedBackend() {
+    _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
+    _callbackRenderRequestId.store(0, std::memory_order_release);
+    if (_backend && _backend.session) {
+        _backend.session->setCallbacks({});
+    }
+    if (_state.backend.isEmpty()) {
+        _startupBackendError = true;
+        QMessageBox::critical(this, "Backend", "No backend is selected.");
+        QTimer::singleShot(0, this, [this]() { close(); });
+        return;
+    }
+
     finishRenderThread();
+    if (!_previewImage.isNull() && _previewUsesBackendMemory) {
+        _previewImage = _previewImage.copy();
+    }
+    _previewUsesBackendMemory = false;
+    _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
     _backend.reset();
-    _previewBackend.reset();
+    _lastPresentedRenderId = 0;
+    _progressCancelled = false;
 
     std::string error;
     _backend = loadBackendModule(executableDir(),
-        _state.variant.toStdString(), error);
+        _state.backend.toStdString(), error);
     if (_backend && _backend.session) {
-        std::string previewError;
-        _previewBackend = loadBackendModule(executableDir(),
-            _state.variant.toStdString(), previewError);
         bindBackendCallbacks();
         startRenderWorker();
         updateViewport();
         return;
     }
 
-    QMessageBox::warning(this, "Backend",
-        QString::fromStdString(error.empty() ?
-            "Failed to load backend." : error));
+    const QString message = QString::fromStdString(error.empty() ?
+        "Failed to load backend." : error);
+    if (!_viewport) {
+        _startupBackendError = true;
+        QMessageBox::critical(this, "Backend", message);
+        QTimer::singleShot(0, this, [this]() { close(); });
+        return;
+    }
+
+    QMessageBox::warning(this, "Backend", message);
+}
+
+QString mandelbrotgui::backendForRank(int rank) const {
+    if (_backendNames.isEmpty()) return QString();
+
+    const int targetPrecision = std::clamp(rank, 0, 3);
+    const int currentType = backendTypeRank(_state.backend);
+
+    QString fallback;
+    int fallbackPrecision = -1;
+    int fallbackTypeDist = INT_MAX;
+    QString best;
+    int bestPenalty = INT_MAX;
+    int bestTypeDist = INT_MAX;
+
+    for (const QString &backendName : _backendNames) {
+        const QString name = backendName.trimmed();
+        const int precision = backendPrecisionRank(name);
+        const int typeDist = std::abs(backendTypeRank(name) - currentType);
+
+        if (precision > fallbackPrecision ||
+            (precision == fallbackPrecision && typeDist < fallbackTypeDist)) {
+            fallback = name;
+            fallbackPrecision = precision;
+            fallbackTypeDist = typeDist;
+        }
+
+        if (precision < targetPrecision) continue;
+
+        const int penalty = precision - targetPrecision;
+        if (penalty < bestPenalty ||
+            (penalty == bestPenalty && typeDist < bestTypeDist)) {
+            best = name;
+            bestPenalty = penalty;
+            bestTypeDist = typeDist;
+        }
+    }
+
+    return best.isEmpty() ? fallback : best;
+}
+
+void mandelbrotgui::switchBackend(
+    int rank,
+    uint64_t requestId,
+    uint64_t backendGeneration,
+    const std::optional<PendingPickAction> &pick
+) {
+    if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+    if (requestId != _latestRenderRequestId.load(std::memory_order_acquire)) return;
+
+    const QString backend = backendForRank(rank);
+    if (backend.isEmpty() || backend == _state.backend) return;
+
+    _state.backend = backend;
+    {
+        const QSignalBlocker blocker(_backendCombo);
+        _backendCombo->setCurrentText(_state.backend);
+    }
+    loadSelectedBackend();
+    _pendingPickAction = pick;
+    requestRender(true, false);
 }
 
 void mandelbrotgui::bindBackendCallbacks() {
     _callbacks = {};
+    const uint64_t backendGeneration = _backendGeneration.load(std::memory_order_acquire);
 
-    _callbacks.onProgress = [this](const Backend::ProgressEvent &event) {
+    _callbacks.onProgress = [this, backendGeneration](const Backend::ProgressEvent &event) {
+        if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
         const uint64_t renderId = _callbackRenderRequestId.load(std::memory_order_acquire);
-        const QString progress = QString("%1%").arg(event.percentage);
+        if (renderId == 0) return;
 
-        QMetaObject::invokeMethod(this, [this, progress, event, renderId]() {
-            if (renderId != _latestRenderRequestId) return;
+        const auto now = std::chrono::steady_clock::now();
+        const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()).count();
+        if (!event.completed && event.percentage < 100) {
+            const int64_t lastMs =
+                _lastProgressUIUpdateMs.load(std::memory_order_acquire);
+            if (lastMs > 0 && (nowMs - lastMs) < 33) {
+                return;
+            }
+        }
+        _lastProgressUIUpdateMs.store(nowMs, std::memory_order_release);
+
+        const QString progress = QString("%1%").arg(event.percentage);
+        const QString pixelsPerSecond = QString("%1 pixels/s").arg(
+            QString::fromStdString(FormatUtil::formatBigNumber(event.opsPerSecond)));
+
+        QMetaObject::invokeMethod(this, [this, progress, pixelsPerSecond, event, renderId, backendGeneration]() {
+            if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+            if (renderId != _callbackRenderRequestId.load(std::memory_order_acquire)) return;
 
             _progressText = progress;
             _progressValue = std::clamp(event.percentage, 0, 100);
             _progressActive = !event.completed;
+            _progressCancelled = false;
+            _pixelsPerSecondText = pixelsPerSecond;
             updateStatusLabels();
-            if (_viewport) _viewport->update();
-        });
-    };
+            requestViewportRepaint();
+            });
+        };
 
-    _callbacks.onImage = [this](const Backend::ImageEvent &event) {
+    _callbacks.onImage = [this, backendGeneration](const Backend::ImageEvent &event) {
+        if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
         if (event.kind == Backend::ImageEventKind::allocated) {
             const QString imageMemoryText = formatImageMemoryText(event);
 
-            QMetaObject::invokeMethod(this, [this, imageMemoryText]() {
+            QMetaObject::invokeMethod(this, [this, imageMemoryText, backendGeneration]() {
+                if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
                 _imageMemoryText = imageMemoryText;
                 updateStatusLabels();
-                if (_viewport) _viewport->update();
-            });
+                requestViewportRepaint();
+                });
             return;
         }
 
         if (event.kind != Backend::ImageEventKind::saved || !event.path) return;
         const QString path = QString::fromUtf8(event.path);
 
-        QMetaObject::invokeMethod(this, [this, path]() {
-            _statusText = QString("Saved: %1").arg(path);
+        QMetaObject::invokeMethod(this, [this, path, backendGeneration]() {
+            if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+            setStatusSavedPath(path);
             updateStatusLabels();
-            if (_viewport) _viewport->update();
-        });
-    };
+            requestViewportRepaint();
+            });
+        };
 
-    _callbacks.onInfo = [this](const Backend::InfoEvent &event) {
+    _callbacks.onInfo = [this, backendGeneration](const Backend::InfoEvent &event) {
+        if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
         const uint64_t renderId = _callbackRenderRequestId.load(std::memory_order_acquire);
+        if (renderId == 0) return;
         const QString text = QString("Iterations: %1 | %2 GI/s")
             .arg(QString::fromStdString(
                 FormatUtil::formatNumber(event.totalIterations)))
             .arg(QString::number(event.opsPerSecond, 'f', 2));
 
-        QMetaObject::invokeMethod(this, [this, text, renderId]() {
-            if (renderId != _latestRenderRequestId) return;
+        QMetaObject::invokeMethod(this, [this, text, renderId, backendGeneration]() {
+            if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+            if (renderId != _callbackRenderRequestId.load(std::memory_order_acquire)) return;
 
-            _statusText = text;
+            setStatusMessage(text);
             updateStatusLabels();
-            if (_viewport) _viewport->update();
-        });
-    };
+            requestViewportRepaint();
+            });
+        };
 
-    _callbacks.onDebug = [this](const Backend::DebugEvent &event) {
+    _callbacks.onDebug = [this, backendGeneration](const Backend::DebugEvent &event) {
+        if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
         if (!event.message) return;
         const QString message = QString::fromUtf8(event.message);
 
-        QMetaObject::invokeMethod(this, [this, message]() {
-            _statusText = message;
+        QMetaObject::invokeMethod(this, [this, message, backendGeneration]() {
+            if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+            setStatusMessage(message);
             updateStatusLabels();
-            if (_viewport) _viewport->update();
-        });
-    };
+            requestViewportRepaint();
+            });
+        };
 
     _backend.session->setCallbacks(_callbacks);
 }
@@ -3221,8 +4665,10 @@ void mandelbrotgui::startRenderWorker() {
         _queuedRenderRequest.reset();
     }
 
-    _renderThread = std::thread([this]() {
+    const uint64_t backendGeneration = _backendGeneration.load(std::memory_order_acquire);
+    _renderThread = std::thread([this, backendGeneration]() {
         for (;;) {
+            if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) break;
             RenderRequest request;
 
             {
@@ -3232,45 +4678,81 @@ void mandelbrotgui::startRenderWorker() {
                     });
 
                 if (_renderStopRequested) break;
+                if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) break;
 
                 request = std::move(*_queuedRenderRequest);
                 _queuedRenderRequest.reset();
             }
 
+            if (_interactionPreviewFallbackLatched.load(std::memory_order_acquire)) {
+                std::unique_lock lock(_renderMutex);
+                _renderCv.wait_for(lock,
+                    std::chrono::milliseconds(interactionFrameIntervalMs()),
+                    [this]() {
+                        return _renderStopRequested || _queuedRenderRequest.has_value();
+                    });
+
+                if (_renderStopRequested) break;
+                if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) break;
+                if (_queuedRenderRequest) {
+                    request = std::move(*_queuedRenderRequest);
+                    _queuedRenderRequest.reset();
+                }
+            }
+
             _callbackRenderRequestId.store(request.id, std::memory_order_release);
 
-            QMetaObject::invokeMethod(this, [this, requestId = request.id]() {
-                if (requestId != _latestRenderRequestId) return;
+            QMetaObject::invokeMethod(this, [this, requestId = request.id, backendGeneration]() {
+                if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+                if (requestId != _callbackRenderRequestId.load(std::memory_order_acquire)) return;
 
                 _renderInFlight = true;
                 _progressActive = true;
+                _progressCancelled = false;
                 _progressValue = 0;
                 _progressText = "Rendering";
+                _pixelsPerSecondText = "0 pixels/s";
+                _lastProgressUIUpdateMs.store(0, std::memory_order_release);
                 updateStatusLabels();
-            });
+                });
 
             QString error;
             if (!applyStateToSession(
-                    request.state,
-                    request.pointRealText,
-                    request.pointImagText,
-                    request.pickAction,
-                    error)) {
-                {
-                    const std::scoped_lock lock(_renderMutex);
-                    _queuedRenderRequest.reset();
-                }
+                request.state,
+                request.pointRealText,
+                request.pointImagText,
+                request.pickAction,
+                error)) {
+                    {
+                        const std::scoped_lock lock(_renderMutex);
+                        _queuedRenderRequest.reset();
+                    }
 
-                QMetaObject::invokeMethod(this, [this, error, requestId = request.id]() {
-                    if (requestId != _latestRenderRequestId) return;
+                    QMetaObject::invokeMethod(this, [this, error, requestId = request.id, backendGeneration]() {
+                        if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+                        if (requestId != _latestRenderRequestId.load(std::memory_order_acquire)) return;
 
-                    _renderInFlight = false;
-                    _progressActive = false;
-                    _progressValue = 0;
-                    _progressText.clear();
-                    handleRenderFailure(error);
-                    updateStatusLabels();
-                });
+                        _renderInFlight = false;
+                        _progressActive = false;
+                        _progressCancelled = false;
+                        _progressValue = 0;
+                        _progressText.clear();
+                        _pixelsPerSecondText = "0 pixels/s";
+                        handleRenderFailure(error);
+                        updateStatusLabels();
+                        });
+                    continue;
+            }
+
+            const int rank = _backend.session->precisionRank();
+            if (backendForRank(rank) != request.state.backend) {
+                QMetaObject::invokeMethod(this, [this,
+                    rank,
+                    requestId = request.id,
+                    backendGeneration,
+                    pick = request.pickAction]() {
+                    switchBackend(rank, requestId, backendGeneration, pick);
+                    });
                 continue;
             }
 
@@ -3280,7 +4762,24 @@ void mandelbrotgui::startRenderWorker() {
             const auto renderElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                 renderEnd - renderStart);
             const qint64 renderMs = std::max<qint64>(1, renderElapsed.count());
-            const double renderFps = 1000.0 / static_cast<double>(renderMs);
+            const double renderFPS = 1000.0 / static_cast<double>(renderMs);
+            _lastRenderDurationMs.store(
+                static_cast<int32_t>(renderMs),
+                std::memory_order_release);
+            const int targetFrameMs = interactionFrameIntervalMs();
+            const int recoveryFrameMs = std::max(1, targetFrameMs / 2);
+            bool previewFallbackLatched =
+                _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+            if (previewFallbackLatched) {
+                if (renderMs <= recoveryFrameMs) {
+                    previewFallbackLatched = false;
+                }
+            } else if (renderMs > targetFrameMs) {
+                previewFallbackLatched = true;
+            }
+            _interactionPreviewFallbackLatched.store(
+                previewFallbackLatched,
+                std::memory_order_release);
 
             if (!status) {
                 const QString message = QString::fromStdString(status.message);
@@ -3289,39 +4788,86 @@ void mandelbrotgui::startRenderWorker() {
                     _queuedRenderRequest.reset();
                 }
 
-                QMetaObject::invokeMethod(this, [this, message, requestId = request.id]() {
-                    if (requestId != _latestRenderRequestId) return;
+                QMetaObject::invokeMethod(this, [this, message, requestId = request.id, backendGeneration]() {
+                    if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+                    if (requestId != _latestRenderRequestId.load(std::memory_order_acquire)) return;
 
                     _renderInFlight = false;
                     _progressActive = false;
+                    _progressCancelled = false;
                     _progressValue = 0;
                     _progressText.clear();
+                    _pixelsPerSecondText = "0 pixels/s";
                     handleRenderFailure(message);
                     updateStatusLabels();
-                });
+                    });
                 continue;
             }
 
             const Backend::ImageView view = _backend.session->imageView();
-            const QImage image = imageViewToImage(view);
+            bool hasQueuedRender = false;
+            {
+                const std::scoped_lock lock(_renderMutex);
+                hasQueuedRender = _queuedRenderRequest.has_value();
+            }
+            const bool canUseDirectPreview =
+                !hasQueuedRender &&
+                !previewFallbackLatched;
+            const QImage renderedImage = canUseDirectPreview ?
+                wrapImageViewToImage(view) :
+                imageViewToImage(view);
+            const UIState renderedState = request.state;
+            const QString renderedPointReal = request.pointRealText;
+            const QString renderedPointImag = request.pointImagText;
+            QMetaObject::invokeMethod(this, [this,
+                renderedImage,
+                canUseDirectPreview,
+                renderFPS,
+                renderMs,
+                renderedState,
+                renderedPointReal,
+                renderedPointImag,
+                requestId = request.id,
+                backendGeneration]() {
+                    if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+                    if (requestId <= _lastPresentedRenderId) return;
+                    _lastPresentedRenderId = requestId;
 
-            QMetaObject::invokeMethod(this, [this, image, renderFps, renderMs, requestId = request.id]() {
-                if (requestId != _latestRenderRequestId) return;
-
-                _renderInFlight = false;
-                _progressActive = false;
-                _progressValue = 0;
-                _progressText.clear();
-                _lastRenderFailureMessage.clear();
-                _viewportFpsText = QString("FPS %1")
-                    .arg(QString::number(renderFps, 'f', 1));
-                _viewportRenderTimeText = QString::fromStdString(
-                    FormatUtil::formatDuration(renderMs));
-                updatePreview(image);
-                updateStatusLabels();
-            });
+                    const bool currentRender =
+                        requestId == _callbackRenderRequestId.load(std::memory_order_acquire);
+                    if (currentRender) {
+                        _renderInFlight = false;
+                        _progressActive = false;
+                        _progressCancelled = false;
+                        _progressValue = 0;
+                        _progressText.clear();
+                    }
+                    _lastRenderFailureMessage.clear();
+                    _viewportFPSText = QString("FPS %1")
+                        .arg(QString::number(renderFPS, 'f', 1));
+                    _viewportRenderTimeText = QString::fromStdString(
+                        FormatUtil::formatDuration(renderMs));
+                    _previewImage = renderedImage;
+                    _previewUsesBackendMemory = canUseDirectPreview;
+                    const QWidget *dprSource = _viewport ? _viewport : this;
+                    _previewImage.setDevicePixelRatio(effectiveDevicePixelRatio(dprSource));
+                    bool okReal = false, okImag = false;
+                    const double renderedReal = renderedPointReal.toDouble(&okReal);
+                    const double renderedImag = renderedPointImag.toDouble(&okImag);
+                    const QPointF renderedPoint = (okReal && okImag) ?
+                        QPointF(renderedReal, renderedImag) :
+                        renderedState.point;
+                    _displayedPoint = renderedPoint;
+                    _displayedZoom = renderedState.zoom;
+                    _displayedOutputSize = QSize(
+                        renderedState.outputWidth,
+                        renderedState.outputHeight);
+                    _hasDisplayedViewState = true;
+                    updateViewport();
+                    updateStatusLabels();
+                });
         }
-    });
+        });
 }
 
 bool mandelbrotgui::ensureBackendReady(QString &errorMessage) const {
@@ -3331,7 +4877,7 @@ bool mandelbrotgui::ensureBackendReady(QString &errorMessage) const {
     return false;
 }
 
-bool mandelbrotgui::applyStateToSession(const UiState &state,
+bool mandelbrotgui::applyStateToSession(const UIState &state,
     const QString &pointRealText,
     const QString &pointImagText,
     const std::optional<PendingPickAction> &pickAction,
@@ -3342,29 +4888,29 @@ bool mandelbrotgui::applyStateToSession(const UiState &state,
         if (status) return false;
         errorMessage = QString::fromStdString(status.message);
         return true;
-    };
+        };
 
     if (failIfNeeded(_backend.session->setImageSize(
-            state.outputWidth, state.outputHeight, state.aaPixels)))
+        state.outputWidth, state.outputHeight, state.aaPixels)))
         return false;
     _backend.session->setUseThreads(state.useThreads);
     if (failIfNeeded(_backend.session->setZoom(
-            state.iterations,
-            static_cast<float>(clampGuiZoom(state.zoom)))))
+        state.iterations,
+        static_cast<float>(clampGUIZoom(state.zoom)))))
         return false;
     if (failIfNeeded(_backend.session->setPoint(
-            pointRealText.toStdString(),
-            pointImagText.toStdString())))
+        pointRealText.toStdString(),
+        pointImagText.toStdString())))
         return false;
     if (failIfNeeded(_backend.session->setSeed(
-            stateToString(state.seed.x()).toStdString(),
-            stateToString(state.seed.y()).toStdString())))
+        stateToString(state.seed.x()).toStdString(),
+        stateToString(state.seed.y()).toStdString())))
         return false;
     if (failIfNeeded(_backend.session->setFractalType(state.fractalType)))
         return false;
     _backend.session->setFractalMode(state.julia, state.inverse);
     if (failIfNeeded(_backend.session->setFractalExponent(
-            stateToString(state.exponent).toStdString())))
+        stateToString(state.exponent).toStdString())))
         return false;
     if (failIfNeeded(_backend.session->setColorMethod(state.colorMethod)))
         return false;
@@ -3373,8 +4919,8 @@ bool mandelbrotgui::applyStateToSession(const UiState &state,
     if (failIfNeeded(_backend.session->setColorPalette(state.palette)))
         return false;
     if (failIfNeeded(_backend.session->setLight(
-            static_cast<float>(state.light.x()),
-            static_cast<float>(state.light.y()))))
+        static_cast<float>(state.light.x()),
+        static_cast<float>(state.light.y()))))
         return false;
     if (failIfNeeded(_backend.session->setLightColor(state.lightColor)))
         return false;
@@ -3402,8 +4948,9 @@ bool mandelbrotgui::applyStateToSession(const UiState &state,
     return true;
 }
 
-void mandelbrotgui::finishRenderThread() {
-    _latestRenderRequestId++;
+void mandelbrotgui::finishRenderThread(bool forceKillOnTimeout, int timeoutMs) {
+    _latestRenderRequestId.fetch_add(1, std::memory_order_acq_rel);
+    _lastPresentedRenderId = 0;
     _callbackRenderRequestId.store(0, std::memory_order_release);
 
     {
@@ -3414,6 +4961,33 @@ void mandelbrotgui::finishRenderThread() {
     _renderCv.notify_all();
 
     if (_renderThread.joinable()) {
+#ifdef _WIN32
+        HANDLE renderThreadHandle =
+            static_cast<HANDLE>(_renderThread.native_handle());
+        if (forceKillOnTimeout) {
+            if (renderThreadHandle) {
+                const DWORD waitResult = WaitForSingleObject(
+                    renderThreadHandle, static_cast<DWORD>(std::max(0, timeoutMs)));
+                if (waitResult == WAIT_TIMEOUT) {
+                    _backend.forceKill();
+                    TerminateThread(renderThreadHandle, 1);
+                    WaitForSingleObject(renderThreadHandle, INFINITE);
+                }
+            }
+        } else if (timeoutMs > 0) {
+            if (renderThreadHandle) {
+                const DWORD waitResult = WaitForSingleObject(
+                    renderThreadHandle, static_cast<DWORD>(timeoutMs));
+                if (waitResult == WAIT_TIMEOUT) {
+                    TerminateThread(renderThreadHandle, 1);
+                    WaitForSingleObject(renderThreadHandle, INFINITE);
+                }
+            }
+        }
+#else
+        (void)forceKillOnTimeout;
+        (void)timeoutMs;
+#endif
         _renderThread.join();
     }
 
@@ -3425,20 +4999,25 @@ void mandelbrotgui::finishRenderThread() {
 
     _renderInFlight = false;
     _progressActive = false;
+    _progressCancelled = false;
     _progressValue = 0;
     _progressText.clear();
+    _pixelsPerSecondText = "0 pixels/s";
+    _lastRenderDurationMs.store(0, std::memory_order_release);
 }
 
-void mandelbrotgui::requestRender(bool force) {
+void mandelbrotgui::requestRender(bool force, bool syncControls) {
     (void)force;
-    syncStateFromControls();
-    _state.zoom = clampGuiZoom(_state.zoom);
+    if (syncControls) {
+        syncStateFromControls();
+    }
+    _state.zoom = clampGUIZoom(_state.zoom);
     syncStateReadouts();
     if (!_backend || !_backend.session) return;
-
     const auto pickAction = _pendingPickAction;
     _pendingPickAction.reset();
-    const uint64_t requestId = ++_latestRenderRequestId;
+    const uint64_t requestId =
+        _latestRenderRequestId.fetch_add(1, std::memory_order_acq_rel) + 1;
 
     {
         const std::scoped_lock lock(_renderMutex);
@@ -3451,10 +5030,22 @@ void mandelbrotgui::requestRender(bool force) {
         };
     }
 
-    if (!_renderInFlight) {
+    const bool wasInFlight = _renderInFlight;
+    const bool previewFallbackLatched =
+        _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+    if (!wasInFlight &&
+        previewFallbackLatched &&
+        !_previewImage.isNull()) {
+        _previewImage = _previewImage.copy();
+        _previewUsesBackendMemory = false;
+    }
+    _renderInFlight = true;
+    if (!wasInFlight) {
         _progressActive = true;
+        _progressCancelled = false;
         _progressValue = 0;
         _progressText = "Rendering";
+        _pixelsPerSecondText = "0 pixels/s";
         updateStatusLabels();
     }
 
@@ -3464,7 +5055,6 @@ void mandelbrotgui::requestRender(bool force) {
 void mandelbrotgui::applyHomeView() {
     _state.iterations = 0;
     _state.zoom = -0.65;
-    _state.exponent = 2.0;
     _state.point = QPointF(0.0, 0.0);
     _state.seed = QPointF(0.0, 0.0);
     _state.light = QPointF(1.0, 1.0);
@@ -3477,28 +5067,39 @@ void mandelbrotgui::scaleAtPixel(
     const QPoint &pixel,
     double scaleMultiplier,
     bool realtimeStep) {
-    if (realtimeStep && _renderInFlight) return;
+    (void)realtimeStep;
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     const QPoint clampedPixel = clampPixelToOutput(pixel);
-    const double nextZoom = clampGuiZoom(_state.zoom - std::log10(scaleMultiplier));
-    if (nextZoom == _state.zoom) return;
+    const QPointF basePoint = _state.point;
+    const double baseZoom = _state.zoom;
+    const QSize baseSize = outputSize();
+    const double nextZoom = clampGUIZoom(baseZoom - std::log10(scaleMultiplier));
+    if (nextZoom == baseZoom) return;
 
-    QString real;
-    QString imag;
-    QString errorMessage;
-    if (!backendComputeZoomPointForPixel(
-            clampedPixel, nextZoom, real, imag, errorMessage)) {
-        handleRenderFailure(errorMessage);
-        return;
-    }
+    const QPointF targetPoint = outputPixelToComplexForView(
+        clampedPixel,
+        basePoint,
+        baseZoom,
+        baseSize);
+    const QPointF offsetAtTargetZoom = outputPixelToComplexForView(
+        clampedPixel,
+        QPointF(0.0, 0.0),
+        nextZoom,
+        baseSize);
 
+    _state.point = QPointF(
+        targetPoint.x() - offsetAtTargetZoom.x(),
+        offsetAtTargetZoom.y() - targetPoint.y());
+    syncPointTextFromState();
     _state.zoom = nextZoom;
-    _pointRealText = real;
-    _pointImagText = imag;
-    syncStatePointFromText();
+    if (_pendingPickAction &&
+        _pendingPickAction->target == SelectionTarget::zoomPoint) {
+        _pendingPickAction.reset();
+    }
     syncStateReadouts();
-    requestRender();
+    requestViewportRepaint();
+    requestRender(false, false);
 }
 
 void mandelbrotgui::zoomAtPixel(const QPoint &pixel, bool zoomIn, bool realtimeStep) {
@@ -3520,36 +5121,42 @@ void mandelbrotgui::boxZoom(const QRect &selectionRect) {
     const double yScale = static_cast<double>(size.height()) / rect.height();
     const double factor = std::max(1.01, std::min(xScale, yScale));
     const QPoint center = clampPixelToOutput(rect.center());
-    const double nextZoom = clampGuiZoom(_state.zoom + std::log10(factor));
-
-    QString targetReal;
-    QString targetImag;
-    QString errorMessage;
-    if (!backendPointAtPixel(center, targetReal, targetImag, errorMessage)) {
-        handleRenderFailure(errorMessage);
-        return;
-    }
-
+    const QPointF basePoint = _state.point;
+    const double baseZoom = _state.zoom;
+    const QSize baseSize = outputSize();
+    const double nextZoom = clampGUIZoom(baseZoom + std::log10(factor));
+    const QPointF centerPoint = outputPixelToComplexForView(
+        center,
+        basePoint,
+        baseZoom,
+        baseSize);
     _state.zoom = nextZoom;
-    _pointRealText = targetReal;
-    _pointImagText = targetImag.startsWith('-') ? targetImag.mid(1)
-                                                : QString("-%1").arg(targetImag);
-    syncStatePointFromText();
+    _state.point = QPointF(centerPoint.x(), -centerPoint.y());
+    syncPointTextFromState();
     syncStateReadouts();
-    requestRender();
+    requestViewportRepaint();
+    requestRender(false, false);
 }
 
 void mandelbrotgui::panByPixels(const QPoint &delta) {
     if (delta.isNull()) return;
 
+    const QPointF basePoint = _state.point;
+    const double baseZoom = _state.zoom;
     const QSize size = outputSize();
+    const double realScale = 1.0 / std::pow(10.0, baseZoom);
+    const double aspect = static_cast<double>(size.width()) /
+        std::max(1, size.height());
+    const double imagScale = realScale / aspect;
+    _state.point = basePoint;
     _state.point.rx() -= static_cast<double>(delta.x()) /
-        std::max(1, size.width()) * currentRealScale();
+        std::max(1, size.width()) * realScale;
     _state.point.ry() += static_cast<double>(delta.y()) /
-        std::max(1, size.height()) * currentImagScale();
+        std::max(1, size.height()) * imagScale;
     syncPointTextFromState();
     syncStateReadouts();
-    requestRender();
+    requestViewportRepaint();
+    requestRender(false, false);
 }
 
 void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
@@ -3557,16 +5164,9 @@ void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
     switch (_selectionTarget) {
         case SelectionTarget::zoomPoint:
         {
-            QString real;
-            QString imag;
-            QString errorMessage;
-            if (!backendPointAtPixel(clampedPixel, real, imag, errorMessage)) {
-                handleRenderFailure(errorMessage);
-                return;
-            }
-
-            _pointRealText = real;
-            _pointImagText = imag;
+            const QPointF point = outputPixelToComplex(clampedPixel);
+            _pointRealText = stateToString(point.x());
+            _pointImagText = stateToString(point.y());
             syncStatePointFromText();
             break;
         }
@@ -3578,28 +5178,29 @@ void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
             break;
     }
 
-    _pendingPickAction = PendingPickAction{ _selectionTarget, clampedPixel };
+    if (_selectionTarget == SelectionTarget::zoomPoint) {
+        _pendingPickAction.reset();
+    } else {
+        _pendingPickAction = PendingPickAction{ _selectionTarget, clampedPixel };
+    }
     syncStateReadouts();
-    requestRender();
+    requestRender(false, false);
 }
 
 void mandelbrotgui::updateMouseCoords(const QPoint &pixel) {
     _lastMousePixel = clampPixelToOutput(pixel);
-    QString real;
-    QString imag;
-    QString errorMessage;
-    if (backendPointAtPixel(_lastMousePixel, real, imag, errorMessage)) {
-        _mouseText = QString("Mouse: %1, %2  |  %3  %4")
-            .arg(_lastMousePixel.x())
-            .arg(_lastMousePixel.y())
-            .arg(real)
-            .arg(imag);
-    } else {
-        _mouseText = QString("Mouse: %1, %2  |  -")
-            .arg(_lastMousePixel.x())
-            .arg(_lastMousePixel.y());
-    }
-    if (_viewport) _viewport->update();
+    const QPointF point = outputPixelToComplex(_lastMousePixel);
+    _mouseText = QString("Mouse: %1, %2  |  %3  %4")
+        .arg(_lastMousePixel.x())
+        .arg(_lastMousePixel.y())
+        .arg(stateToString(point.x(), 12))
+        .arg(stateToString(point.y(), 12));
+    requestViewportRepaint();
+}
+
+void mandelbrotgui::clearMouseCoords() {
+    _mouseText = "Mouse: -";
+    requestViewportRepaint();
 }
 
 void mandelbrotgui::onViewportClosed() {
@@ -3617,16 +5218,64 @@ void mandelbrotgui::cycleNavMode() {
     _navModeCombo->setCurrentIndex((_navModeCombo->currentIndex() + 1) % 3);
 }
 
+void mandelbrotgui::cancelQueuedRenders() {
+    const int cancelledProgressValue = _progressValue;
+    _pendingPickAction.reset();
+    if (!_previewImage.isNull()) {
+        _previewImage = _previewImage.copy();
+        _previewUsesBackendMemory = false;
+        updateViewport();
+    }
+
+    _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
+    _callbackRenderRequestId.store(0, std::memory_order_release);
+    if (_backend && _backend.session) {
+        _backend.session->setCallbacks({});
+    }
+    finishRenderThread(true, kForceKillDelayMs);
+    _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
+
+    if (!_closing) {
+        _backend.reset();
+        if (!_state.backend.isEmpty()) {
+            std::string error;
+            _backend = loadBackendModule(
+                executableDir(),
+                _state.backend.toStdString(),
+                error);
+            if (_backend && _backend.session) {
+                bindBackendCallbacks();
+            } else {
+                const QString message = QString::fromStdString(error.empty() ?
+                    "Failed to reload backend after cancel." :
+                    error);
+                QMessageBox::warning(this, "Backend", message);
+            }
+        }
+    }
+
+    if (!_closing && _backend && _backend.session) {
+        startRenderWorker();
+    }
+    _lastRenderFailureMessage.clear();
+    _progressValue = std::clamp(cancelledProgressValue, 0, 100);
+    _progressActive = false;
+    _progressCancelled = true;
+    _pixelsPerSecondText = "0 pixels/s";
+    setStatusMessage("Render cancelled");
+    updateStatusLabels();
+}
+
 QSize mandelbrotgui::outputSize() const {
     return { _state.outputWidth, _state.outputHeight };
 }
 
 QString mandelbrotgui::viewportStatusText() const {
     QString text;
-    if (!_viewportFpsText.isEmpty()) {
-        text = _viewportFpsText;
+    if (!_viewportFPSText.isEmpty()) {
+        text = _viewportFPSText;
         if (!_viewportRenderTimeText.isEmpty()) {
-            text += QString("    %1").arg(_viewportRenderTimeText);
+            text += QString("  |  %1").arg(_viewportRenderTimeText);
         }
     }
     if (!_mouseText.isEmpty()) {
@@ -3634,6 +5283,36 @@ QString mandelbrotgui::viewportStatusText() const {
             QString("%1\n%2").arg(text, _mouseText);
     }
     return text;
+}
+
+bool mandelbrotgui::eventFilter(QObject *watched, QEvent *event) {
+    QLineEdit *iterationsEdit = _iterationsSpin ?
+        _iterationsSpin->findChild<QLineEdit *>() : nullptr;
+    if (iterationsEdit && watched == iterationsEdit &&
+        event->type() == QEvent::KeyPress) {
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+        const QString text = iterationsEdit->text().trimmed();
+        if (text.compare(_iterationsSpin->specialValueText(), Qt::CaseInsensitive) == 0) {
+            const bool printableInput =
+                !keyEvent->text().isEmpty() &&
+                !keyEvent->text().at(0).isSpace() &&
+                !(keyEvent->modifiers() &
+                    (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier));
+            if (keyEvent->key() == Qt::Key_Backspace ||
+                keyEvent->key() == Qt::Key_Delete ||
+                printableInput) {
+                iterationsEdit->selectAll();
+            }
+        }
+    }
+
+    if (_statusRightLabel && watched == _statusRightLabel &&
+        event->type() == QEvent::Resize) {
+        updateStatusRightEdgeAlignment();
+        updateStatusLabels();
+    }
+
+    return QWidget::eventFilter(watched, event);
 }
 
 void mandelbrotgui::closeEvent(QCloseEvent *event) {
@@ -3653,30 +5332,160 @@ void mandelbrotgui::showEvent(QShowEvent *event) {
     if (_controlWindowSized) return;
 
     updateControlWindowSize();
+    positionWindowsForInitialShow();
     _controlWindowSized = true;
+    QTimer::singleShot(0, this, [this]() {
+        if (!_viewport || !_viewport->isVisible()) return;
+        _viewport->raise();
+        _viewport->activateWindow();
+        _viewport->setFocus(Qt::ActiveWindowFocusReason);
+        });
 }
 
-void mandelbrotgui::updatePreview(const QImage &image) {
+void mandelbrotgui::updatePreview(const QImage &image,
+    bool clearInteractionPreview,
+    bool usesBackendMemory) {
+    if (image.isNull()) return;
+
     _previewImage = image;
-    if (_viewport) {
+    _previewUsesBackendMemory = usesBackendMemory;
+    const QWidget *dprSource = _viewport ? _viewport : this;
+    _previewImage.setDevicePixelRatio(effectiveDevicePixelRatio(dprSource));
+    if (_viewport && clearInteractionPreview) {
         static_cast<ViewportWindow *>(_viewport)->clearPreviewOffset();
     }
     updateViewport();
 }
 
+void mandelbrotgui::updateStatusRightEdgeAlignment() {
+    if (!_saveButton || !_statusRightLabel) return;
+    constexpr int statusRowLeftShift = 3;
+
+    QWidget *statusPanel = _statusRightLabel->parentWidget();
+    if (!statusPanel) return;
+
+    auto *statusRow = qobject_cast<QHBoxLayout *>(statusPanel->layout());
+    if (!statusRow) return;
+
+    const QPoint saveTopLeft = _saveButton->mapTo(this, QPoint(0, 0));
+    const int targetRight = saveTopLeft.x() + _saveButton->width() - statusRowLeftShift;
+    const QPoint panelTopLeft = statusPanel->mapTo(this, QPoint(0, 0));
+    const int panelRight = panelTopLeft.x() + statusPanel->width();
+    const int rightInset = std::max(0, panelRight - targetRight);
+    const int leftInset = -statusRowLeftShift;
+
+    const QMargins margins = statusRow->contentsMargins();
+    if (margins.left() == leftInset && margins.right() == rightInset) return;
+
+    statusRow->setContentsMargins(
+        leftInset,
+        margins.top(),
+        rightInset,
+        margins.bottom());
+}
+
+void mandelbrotgui::setStatusMessage(const QString &message) {
+    _statusText = message;
+    _statusLinkPath.clear();
+    _statusMarqueeSourceText.clear();
+    _statusMarqueeOffset = 0;
+    updateStatusLabels();
+}
+
+void mandelbrotgui::setStatusSavedPath(const QString &path) {
+    const QString absolutePath = QFileInfo(path).absoluteFilePath();
+    _statusText = QString("Saved: %1").arg(QDir::toNativeSeparators(absolutePath));
+    _statusLinkPath = absolutePath;
+    _statusMarqueeSourceText.clear();
+    _statusMarqueeOffset = 0;
+    updateStatusLabels();
+}
+
 void mandelbrotgui::updateStatusLabels(const QString &rightText) {
+    const int shownProgressValue =
+        (_progressActive || _progressCancelled) ? _progressValue : 0;
     if (_progressLabel) {
-        _progressLabel->setText(QString("%1%").arg(_progressActive ? _progressValue : 0));
+        _progressLabel->setText(QString("%1%").arg(shownProgressValue));
+        _progressLabel->setStyleSheet(_progressCancelled ?
+            "color: rgb(215, 80, 80);" :
+            QString());
     }
     if (_progressBar) {
-        _progressBar->setValue(_progressActive ? _progressValue : 0);
+        _progressBar->setValue(shownProgressValue);
         _progressBar->setTextVisible(false);
+        _progressBar->setStyleSheet(_progressCancelled ?
+            "QProgressBar::chunk { background-color: rgb(215, 80, 80); }" :
+            QString());
     }
+    if (_statusRightLabel) {
+        _statusRightLabel->setStyleSheet(_progressCancelled ?
+            "color: rgb(215, 80, 80);" :
+            QString());
+    }
+    const QString fullPixelsPerSecondText =
+        ((_progressActive || _pixelsPerSecondText != "0 pixels/s") &&
+            !_pixelsPerSecondText.isEmpty()) ?
+        _pixelsPerSecondText :
+        QString();
+    QString pixelsPerSecondText = fullPixelsPerSecondText;
     if (_imageMemoryLabel) {
         _imageMemoryLabel->setText(_imageMemoryText);
     }
-    _statusRightLabel->setText(rightText.isEmpty() ?
-        _statusText : rightText);
+    if (!_statusRightLabel) {
+        if (_pixelsPerSecondLabel) _pixelsPerSecondLabel->setText(pixelsPerSecondText);
+        return;
+    }
+
+    refreshDirtyComboLabels();
+
+    const QString baseText = rightText.isEmpty() ? _statusText : rightText;
+    const QString sourceLink = rightText.isEmpty() ? _statusLinkPath : QString();
+    const QString sourceText = baseText;
+    if (_pixelsPerSecondLabel) _pixelsPerSecondLabel->setText(pixelsPerSecondText);
+    if (_statusMarqueeSourceText != sourceText) {
+        _statusMarqueeSourceText = sourceText;
+        _statusMarqueeOffset = 0;
+    }
+
+    const auto computeShouldMarquee = [this, &sourceText]() {
+        const int availableWidth = std::max(1, _statusRightLabel->contentsRect().width());
+        const QFontMetrics metrics(_statusRightLabel->font());
+        return metrics.horizontalAdvance(sourceText) > availableWidth;
+        };
+
+    bool shouldMarquee = computeShouldMarquee();
+    if (shouldMarquee && _progressActive && _pixelsPerSecondLabel) {
+        const int separatorIndex = fullPixelsPerSecondText.indexOf(' ');
+        if (separatorIndex > 0) {
+            pixelsPerSecondText = fullPixelsPerSecondText.left(separatorIndex);
+            shouldMarquee = computeShouldMarquee();
+        }
+    }
+    if (_pixelsPerSecondLabel) _pixelsPerSecondLabel->setText(pixelsPerSecondText);
+
+    if (shouldMarquee) {
+        if (!_statusMarqueeTimer.isActive()) {
+            _statusMarqueeTimer.start();
+        }
+    } else if (_statusMarqueeTimer.isActive()) {
+        _statusMarqueeTimer.stop();
+        _statusMarqueeOffset = 0;
+    }
+
+    QString shownText = sourceText;
+    if (shouldMarquee && !sourceText.isEmpty()) {
+        const QString padded = sourceText + "     ";
+        const int wrappedOffset = _statusMarqueeOffset % padded.size();
+        shownText = padded.mid(wrappedOffset) + padded.left(wrappedOffset);
+    }
+
+    if (!sourceLink.isEmpty()) {
+        const QString href = QUrl::fromLocalFile(sourceLink).toString();
+        _statusRightLabel->setText(QString("<a href=\"%1\">%2</a>")
+            .arg(href, shownText.toHtmlEscaped()));
+    } else {
+        _statusRightLabel->setText(shownText.toHtmlEscaped());
+    }
 }
 
 void mandelbrotgui::updateLightColorButton() {
@@ -3711,12 +5520,17 @@ void mandelbrotgui::updateModeEnablement() {
 void mandelbrotgui::updateViewport() {
     if (_viewport) {
         resizeViewportWindowToImageSize();
-        _viewport->update();
+        requestViewportRepaint();
     }
 
     updateSinePreview();
     refreshPalettePreview();
     updateStatusLabels();
+}
+
+void mandelbrotgui::requestViewportRepaint() {
+    if (!_viewport) return;
+    _viewport->update();
 }
 
 void mandelbrotgui::updateSinePreview() {
@@ -3726,14 +5540,14 @@ void mandelbrotgui::updateSinePreview() {
     const QSize widgetSize = preview->size();
     if (!widgetSize.isValid()) return;
 
-    if (!_previewBackend || !_previewBackend.session) {
+    if (!_backend || !_backend.session) {
         preview->setPreviewImage({});
         return;
     }
 
     const auto [rangeMin, rangeMax] = preview->range();
     const Backend::Status colorStatus =
-        _previewBackend.session->setSinePalette(_state.sinePalette);
+        _backend.session->setSinePalette(_state.sinePalette);
     if (!colorStatus) {
         preview->setPreviewImage({});
         return;
@@ -3741,7 +5555,7 @@ void mandelbrotgui::updateSinePreview() {
 
     const int previewWidth = std::max(1, widgetSize.width() - 12);
     const int previewHeight = std::max(1, widgetSize.height() - 28);
-    const QImage image = imageViewToImage(_previewBackend.session->renderSinePreview(
+    const QImage image = imageViewToImage(_backend.session->renderSinePreview(
         previewWidth,
         previewHeight,
         static_cast<float>(rangeMin),
@@ -3787,13 +5601,17 @@ void mandelbrotgui::updateControlWindowSize() {
     }
 
     QSize target = sizeHint().expandedTo(minimumSizeHint());
+    const QSize packedTarget = minimumSizeHint().expandedTo(QSize(1, 1));
     const QMargins outerMargins = layout() ? layout()->contentsMargins() : QMargins();
-    int controlContentHeight = 0;
-    int defaultVisibleContentHeight = 0;
+    int controlContentHeight = 0, defaultVisibleContentHeight = 0;
+    int packedWidth = packedTarget.width();
     if (_controlScrollContent) {
         const QSize contentSize = _controlScrollContent->sizeHint()
             .expandedTo(_controlScrollContent->minimumSizeHint());
+        const QSize contentMinSize = _controlScrollContent->minimumSizeHint()
+            .expandedTo(QSize(1, 1));
         const int contentWidth = contentSize.width();
+        const int contentMinWidth = contentMinSize.width();
         controlContentHeight = contentSize.height();
         if (_viewportGroup) {
             const QMargins contentMargins = _controlScrollContent->contentsMargins();
@@ -3804,15 +5622,42 @@ void mandelbrotgui::updateControlWindowSize() {
         target.setWidth(std::max(
             target.width(),
             contentWidth +
-                outerMargins.left() + outerMargins.right() +
-                kControlScrollBarWidth));
+            outerMargins.left() + outerMargins.right() +
+            kControlScrollBarWidth));
+        packedWidth = std::max(
+            packedWidth,
+            contentMinWidth +
+            outerMargins.left() + outerMargins.right() +
+            kControlScrollBarWidth);
     } else {
         target += QSize(kControlScrollBarWidth, 0);
+        packedWidth = std::max(packedWidth, target.width());
     }
+
+    int fixedPanelsMinWidth = 0;
+    if (QLayout *outerLayout = layout()) {
+        for (int i = 0; i < outerLayout->count(); ++i) {
+            QLayoutItem *item = outerLayout->itemAt(i);
+            if (!item) continue;
+            QWidget *widget = item->widget();
+            if (!widget || widget == _controlScrollArea) continue;
+
+            fixedPanelsMinWidth = std::max(
+                fixedPanelsMinWidth,
+                item->minimumSize().width());
+            fixedPanelsMinWidth = std::max(
+                fixedPanelsMinWidth,
+                widget->minimumSizeHint().width());
+        }
+    }
+    packedWidth = std::max(
+        packedWidth,
+        fixedPanelsMinWidth + outerMargins.left() + outerMargins.right());
+
     const int minHeight = std::max(1, minimumSizeHint().height());
 
-    setMinimumWidth(target.width());
-    setMaximumWidth(target.width());
+    setMinimumWidth(std::max(1, packedWidth));
+    setMaximumWidth(QWIDGETSIZE_MAX);
     setMinimumHeight(minHeight);
     setMaximumHeight(QWIDGETSIZE_MAX);
 
@@ -3852,16 +5697,195 @@ void mandelbrotgui::updateControlWindowSize() {
             desiredHeight = std::min(desiredHeight, maxOnScreenHeight);
         }
 
-        resize(target.width(), desiredHeight);
-    } else if (width() != target.width()) {
-        resize(target.width(), std::max(height(), minHeight));
+        resize(std::max(1, packedWidth), desiredHeight);
+    } else if (width() < packedWidth) {
+        resize(packedWidth, std::max(height(), minHeight));
     }
+
+    if (layout()) layout()->activate();
+    updateStatusRightEdgeAlignment();
+}
+
+void mandelbrotgui::positionWindowsForInitialShow() {
+    if (!_viewport) return;
+
+    const QScreen *screen =
+        (_viewport->windowHandle() && _viewport->windowHandle()->screen()) ?
+        _viewport->windowHandle()->screen() :
+        ((windowHandle() && windowHandle()->screen()) ?
+            windowHandle()->screen() :
+            (this->screen() ? this->screen() : QApplication::primaryScreen()));
+    if (!screen) return;
+
+    const QRect available = screen->availableGeometry();
+    const QSize controlFrameSize = frameGeometry().size();
+    const QSize viewportFrameSize = _viewport->frameGeometry().size();
+    constexpr int gap = 8;
+
+    const int controlY = std::clamp(
+        available.top() + (available.height() - controlFrameSize.height()) / 2,
+        available.top(),
+        std::max(available.top(),
+            available.bottom() - controlFrameSize.height() + 1));
+    const int viewportY = std::clamp(
+        available.top() + (available.height() - viewportFrameSize.height()) / 2,
+        available.top(),
+        std::max(available.top(),
+            available.bottom() - viewportFrameSize.height() + 1));
+
+    int controlX = available.left();
+    int viewportX = controlX + controlFrameSize.width() + gap;
+    const int totalWidth = controlFrameSize.width() + gap + viewportFrameSize.width();
+    if (totalWidth <= available.width()) {
+        controlX = available.left() + (available.width() - totalWidth) / 2;
+        viewportX = controlX + controlFrameSize.width() + gap;
+    } else {
+        viewportX = std::min(
+            controlX + controlFrameSize.width() + gap,
+            available.right() - viewportFrameSize.width() + 1);
+        viewportX = std::max(controlX, viewportX);
+    }
+
+    move(controlX, controlY);
+    _viewport->move(viewportX, viewportY);
+}
+
+void mandelbrotgui::showHelpDialog() {
+    QMessageBox dialog(this);
+    dialog.setWindowTitle("Help");
+    dialog.setIcon(QMessageBox::Information);
+    dialog.setText(
+        "Controls\n"
+        "\n"
+        "Mouse\n"
+        "Left click: use the current navigation mode\n"
+        "Right click: realtime zoom out\n"
+        "Mouse wheel: zoom\n"
+        "Middle click: pick the current target point\n"
+        "\n"
+        "Navigation modes\n"
+        "Realtime Zoom: hold left click to zoom in\n"
+        "Box Zoom: drag a box to zoom into it\n"
+        "Pan: drag to move around\n"
+        "\n"
+        "Keyboard\n"
+        "Esc: cancel the current render\n"
+        "Z: cycle navigation mode\n"
+        "Space: hold for pan\n"
+        "H: go to the home view\n"
+        "G: cycle viewport grid\n"
+        "\n"
+        "Buttons\n"
+        "Calculate: render with the current settings\n"
+        "Home: return to the default view\n"
+        "Zoom: zoom toward the center\n"
+        "Save: save the current image\n"
+        "\n"
+        "Files\n"
+        "Views save and load the current location\n"
+        "Palettes and sine colors can be saved and imported from their controls.");
+    dialog.setStandardButtons(QMessageBox::Ok);
+    dialog.exec();
+}
+
+void mandelbrotgui::showAboutDialog() {
+    QDialog dialog(this);
+    dialog.setWindowTitle("About Mandelbrot GUI");
+    dialog.setModal(true);
+    dialog.setMinimumWidth(500);
+    dialog.setStyleSheet(
+        "QDialog {"
+        " background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
+        "     stop:0 #f7f1e8,"
+        "     stop:0.45 #efe5d6,"
+        "     stop:1 #e5d7c0);"
+        "}"
+        "QLabel#aboutTitle {"
+        " color: #1d2430;"
+        " font-size: 28px;"
+        " font-weight: 700;"
+        "}"
+        "QLabel#aboutSubtitle {"
+        " color: #5b6673;"
+        " font-size: 13px;"
+        "}"
+        "QLabel#aboutNote {"
+        " color: #6a5440;"
+        " font-size: 12px;"
+        " letter-spacing: 0.5px;"
+        "}"
+        "QFrame#aboutAccent {"
+        " background: rgba(82, 55, 29, 0.10);"
+        " border: 1px solid rgba(82, 55, 29, 0.12);"
+        " border-radius: 18px;"
+        "}"
+        "QPushButton {"
+        " min-width: 88px;"
+        " padding: 6px 18px;"
+        " border-radius: 8px;"
+        " border: 1px solid rgba(45, 34, 25, 0.18);"
+        " background: rgba(255, 255, 255, 0.55);"
+        "}"
+        "QPushButton:hover {"
+        " background: rgba(255, 255, 255, 0.82);"
+        "}");
+
+    auto *outerLayout = new QVBoxLayout(&dialog);
+    outerLayout->setContentsMargins(26, 26, 26, 18);
+    outerLayout->setSpacing(18);
+
+    auto *heroLayout = new QHBoxLayout();
+    heroLayout->setContentsMargins(0, 0, 0, 0);
+    heroLayout->setSpacing(18);
+
+    auto *accent = new QFrame(&dialog);
+    accent->setObjectName("aboutAccent");
+    accent->setFixedSize(96, 96);
+    auto *accentLayout = new QVBoxLayout(accent);
+    accentLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto *iconLabel = new QLabel(accent);
+    const QPixmap icon = windowIcon().pixmap(56, 56);
+    iconLabel->setPixmap(icon);
+    iconLabel->setAlignment(Qt::AlignCenter);
+    accentLayout->addWidget(iconLabel);
+    heroLayout->addWidget(accent, 0, Qt::AlignTop);
+
+    auto *titleColumn = new QVBoxLayout();
+    titleColumn->setContentsMargins(0, 4, 0, 0);
+    titleColumn->setSpacing(6);
+
+    auto *titleLabel = new QLabel("Mandelbrot GUI", &dialog);
+    titleLabel->setObjectName("aboutTitle");
+    auto *subtitleLabel = new QLabel(
+        "Interactive Mandelbrot explorer",
+        &dialog);
+    subtitleLabel->setObjectName("aboutSubtitle");
+    auto *noteLabel = new QLabel("Desktop fractal renderer", &dialog);
+    noteLabel->setObjectName("aboutNote");
+
+    titleColumn->addWidget(titleLabel);
+    titleColumn->addWidget(subtitleLabel);
+    titleColumn->addSpacing(4);
+    titleColumn->addWidget(noteLabel);
+    titleColumn->addStretch(1);
+
+    heroLayout->addLayout(titleColumn, 1);
+    outerLayout->addLayout(heroLayout);
+    outerLayout->addStretch(1);
+
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dialog);
+    QObject::connect(buttons, &QDialogButtonBox::accepted,
+        &dialog, &QDialog::accept);
+    outerLayout->addWidget(buttons);
+
+    dialog.exec();
 }
 
 void mandelbrotgui::handleRenderFailure(const QString &message) {
     if (message.isEmpty()) return;
 
-    _statusText = message;
+    setStatusMessage(message);
     if (_lastRenderFailureMessage == message) {
         return;
     }
@@ -3871,7 +5895,7 @@ void mandelbrotgui::handleRenderFailure(const QString &message) {
 }
 
 void mandelbrotgui::syncStateFromControls() {
-    _state.variant = _variantCombo->currentText();
+    _state.backend = _backendCombo->currentText();
     _state.iterations = _iterationsSpin->value();
     _state.useThreads = _useThreadsCheckBox->isChecked();
     _state.julia = _juliaCheck->isChecked();
@@ -3881,16 +5905,58 @@ void mandelbrotgui::syncStateFromControls() {
     _state.panRate = _panRateSlider->value();
     _state.zoomRate = _zoomRateSlider->value();
     _state.exponent = std::max(1.01, _exponentSpin->value());
-    _state.sineName = _sineCombo ? _sineCombo->currentText() : _state.sineName;
+    if (_sineCombo) {
+        QString sineName = _sineCombo->currentData().toString();
+        if (sineName.isEmpty()) {
+            sineName = undecoratedLabel(_sineCombo->currentText());
+        }
+        if (!sineName.isEmpty() && sineName != kNewEntryLabel) {
+            _state.sineName = sineName;
+        }
+    }
     _state.sinePalette.freqR = static_cast<float>(_freqRSpin->value());
     _state.sinePalette.freqG = static_cast<float>(_freqGSpin->value());
     _state.sinePalette.freqB = static_cast<float>(_freqBSpin->value());
     _state.sinePalette.freqMult = static_cast<float>(_freqMultSpin->value());
-    _state.paletteName = _paletteCombo ? _paletteCombo->currentText() : _state.paletteName;
+    if (_paletteCombo) {
+        QString paletteName = _paletteCombo->currentData().toString();
+        if (paletteName.isEmpty()) {
+            paletteName = undecoratedLabel(_paletteCombo->currentText());
+        }
+        if (!paletteName.isEmpty() && paletteName != kNewEntryLabel) {
+            _state.paletteName = paletteName;
+        }
+    }
     _state.palette.totalLength = static_cast<float>(_paletteLengthSpin->value());
     _state.palette.offset = static_cast<float>(_paletteOffsetSpin->value());
     _state.outputWidth = _outputWidthSpin->value();
     _state.outputHeight = _outputHeightSpin->value();
+
+    if (_infoRealEdit) {
+        const QString text = _infoRealEdit->text().trimmed();
+        if (!text.isEmpty()) _pointRealText = text;
+    }
+    if (_infoImagEdit) {
+        const QString text = _infoImagEdit->text().trimmed();
+        if (!text.isEmpty()) _pointImagText = text;
+    }
+    syncStatePointFromText();
+
+    if (_infoZoomEdit) {
+        bool ok = false;
+        const double zoom = _infoZoomEdit->text().trimmed().toDouble(&ok);
+        if (ok) _state.zoom = clampGUIZoom(zoom);
+    }
+    if (_infoSeedRealEdit) {
+        bool ok = false;
+        const double seedReal = _infoSeedRealEdit->text().trimmed().toDouble(&ok);
+        if (ok) _state.seed.setX(seedReal);
+    }
+    if (_infoSeedImagEdit) {
+        bool ok = false;
+        const double seedImag = _infoSeedImagEdit->text().trimmed().toDouble(&ok);
+        if (ok) _state.seed.setY(seedImag);
+    }
 
     switch (_colorMethodCombo->currentIndex()) {
         case 0: _state.colorMethod = Backend::ColorMethod::iterations; break;
@@ -3907,7 +5973,7 @@ void mandelbrotgui::syncStateFromControls() {
 }
 
 void mandelbrotgui::syncControlsFromState() {
-    const QSignalBlocker variantBlocker(_variantCombo);
+    const QSignalBlocker backendBlocker(_backendCombo);
     const QSignalBlocker iterationsBlocker(_iterationsSpin);
     const QSignalBlocker threadsBlocker(_useThreadsCheckBox);
     const QSignalBlocker juliaBlocker(_juliaCheck);
@@ -3933,7 +5999,7 @@ void mandelbrotgui::syncControlsFromState() {
     const QSignalBlocker colorBlocker(_colorMethodCombo);
     const QSignalBlocker fractalBlocker(_fractalCombo);
 
-    _variantCombo->setCurrentText(_state.variant);
+    _backendCombo->setCurrentText(_state.backend);
     _iterationsSpin->setValue(_state.iterations);
     _useThreadsCheckBox->setChecked(_state.useThreads);
     _juliaCheck->setChecked(_state.julia);
@@ -3946,19 +6012,29 @@ void mandelbrotgui::syncControlsFromState() {
     _zoomRateSpin->setValue(_state.zoomRate);
     _exponentSlider->setValue(
         static_cast<int>(std::round(std::max(1.01, _state.exponent) * 100.0)));
-    _exponentSpin->setValue(std::max(1.01, _state.exponent));
+    setAdaptiveSpinValue(_exponentSpin, std::max(1.01, _state.exponent));
     if (_sineCombo && !_state.sineName.isEmpty()) {
-        _sineCombo->setCurrentText(_state.sineName);
+        const int sineIndex = _sineCombo->findData(_state.sineName);
+        if (sineIndex >= 0) {
+            _sineCombo->setCurrentIndex(sineIndex);
+        } else {
+            _sineCombo->setCurrentText(_state.sineName);
+        }
     }
-    _freqRSpin->setValue(_state.sinePalette.freqR);
-    _freqGSpin->setValue(_state.sinePalette.freqG);
-    _freqBSpin->setValue(_state.sinePalette.freqB);
-    _freqMultSpin->setValue(_state.sinePalette.freqMult);
+    setAdaptiveSpinValue(_freqRSpin, _state.sinePalette.freqR);
+    setAdaptiveSpinValue(_freqGSpin, _state.sinePalette.freqG);
+    setAdaptiveSpinValue(_freqBSpin, _state.sinePalette.freqB);
+    setAdaptiveSpinValue(_freqMultSpin, _state.sinePalette.freqMult);
     if (_paletteCombo && !_state.paletteName.isEmpty()) {
-        _paletteCombo->setCurrentText(_state.paletteName);
+        const int paletteIndex = _paletteCombo->findData(_state.paletteName);
+        if (paletteIndex >= 0) {
+            _paletteCombo->setCurrentIndex(paletteIndex);
+        } else {
+            _paletteCombo->setCurrentText(_state.paletteName);
+        }
     }
-    _paletteLengthSpin->setValue(_state.palette.totalLength);
-    _paletteOffsetSpin->setValue(_state.palette.offset);
+    setAdaptiveSpinValue(_paletteLengthSpin, _state.palette.totalLength);
+    setAdaptiveSpinValue(_paletteOffsetSpin, _state.palette.offset);
     _outputWidthSpin->setValue(_state.outputWidth);
     _outputHeightSpin->setValue(_state.outputHeight);
     _colorMethodCombo->setCurrentIndex(static_cast<int>(_state.colorMethod));
@@ -3966,6 +6042,7 @@ void mandelbrotgui::syncControlsFromState() {
 
     updateLightColorButton();
     syncStateReadouts();
+    refreshDirtyComboLabels();
     updateSinePreview();
 }
 
@@ -3973,6 +6050,8 @@ void mandelbrotgui::syncStateReadouts() {
     if (_infoRealEdit) _infoRealEdit->setText(_pointRealText);
     if (_infoImagEdit) _infoImagEdit->setText(_pointImagText);
     if (_infoZoomEdit) _infoZoomEdit->setText(stateToString(_state.zoom, 12));
+    if (_infoSeedRealEdit) _infoSeedRealEdit->setText(stateToString(_state.seed.x(), 12));
+    if (_infoSeedImagEdit) _infoSeedImagEdit->setText(stateToString(_state.seed.y(), 12));
     if (_lightRealEdit) _lightRealEdit->setText(stateToString(_state.light.x(), 12));
     if (_lightImagEdit) _lightImagEdit->setText(stateToString(_state.light.y(), 12));
 }
@@ -3980,71 +6059,133 @@ void mandelbrotgui::syncStateReadouts() {
 void mandelbrotgui::refreshSineList(const QString &preferredName) {
     if (!_sineCombo) return;
 
-    QString errorMessage;
-    ensureSineDirectory(errorMessage);
-
     QStringList names = listSineNames();
-    if (names.isEmpty()) {
-        names.push_back(kDefaultSineName);
-    }
-
     const QString currentName = preferredName.isEmpty() ?
         _state.sineName :
         preferredName;
-    const QString selectedName =
-        names.contains(currentName, Qt::CaseInsensitive) ? currentName : names.front();
+    if (!currentName.isEmpty() &&
+        currentName != kNewEntryLabel &&
+        !names.contains(currentName, Qt::CaseInsensitive)) {
+        names.push_front(currentName);
+    }
+    const QString selectedName = names.contains(currentName, Qt::CaseInsensitive) ?
+        currentName :
+        (names.isEmpty() ? QString() : names.front());
 
     const QSignalBlocker blocker(_sineCombo);
     _sineCombo->clear();
-    _sineCombo->addItems(names);
-    _sineCombo->setCurrentText(selectedName);
+    _sineCombo->addItem(kNewEntryLabel);
+    _sineCombo->setItemData(0, QBrush(QColor(0, 153, 0)), Qt::ForegroundRole);
+    _sineCombo->insertSeparator(1);
+    const bool markUnsaved = isSineDirty();
+    for (const QString &name : names) {
+        const bool unsavedItem =
+            markUnsaved && name.compare(currentName, Qt::CaseInsensitive) == 0;
+        _sineCombo->addItem(decorateUnsavedLabel(name, unsavedItem), name);
+    }
+    if (!selectedName.isEmpty()) {
+        const int selectedIndex = _sineCombo->findData(selectedName);
+        if (selectedIndex >= 0) {
+            _sineCombo->setCurrentIndex(selectedIndex);
+        } else {
+            _sineCombo->setCurrentText(selectedName);
+        }
+    } else {
+        _sineCombo->setCurrentIndex(0);
+    }
 }
 
 void mandelbrotgui::refreshPaletteList(const QString &preferredName) {
     if (!_paletteCombo) return;
 
-    QString errorMessage;
-    ensurePaletteDirectory(errorMessage);
-
     QStringList names = listPaletteNames();
-    if (names.isEmpty()) {
-        names.push_back(kDefaultPaletteName);
-    }
-
     const QString currentName = preferredName.isEmpty() ?
         _state.paletteName :
         preferredName;
-    const QString selectedName =
-        names.contains(currentName, Qt::CaseInsensitive) ? currentName : names.front();
+    if (!currentName.isEmpty() &&
+        currentName != kNewEntryLabel &&
+        !names.contains(currentName, Qt::CaseInsensitive)) {
+        names.push_front(currentName);
+    }
+    const QString selectedName = names.contains(currentName, Qt::CaseInsensitive) ?
+        currentName :
+        (names.isEmpty() ? QString() : names.front());
 
     const QSignalBlocker blocker(_paletteCombo);
     _paletteCombo->clear();
-    _paletteCombo->addItems(names);
-    _paletteCombo->setCurrentText(selectedName);
+    _paletteCombo->addItem(kNewEntryLabel);
+    _paletteCombo->setItemData(0, QBrush(QColor(0, 153, 0)), Qt::ForegroundRole);
+    _paletteCombo->insertSeparator(1);
+    const bool markUnsaved = isPaletteDirty();
+    for (const QString &name : names) {
+        const bool unsavedItem =
+            markUnsaved && name.compare(currentName, Qt::CaseInsensitive) == 0;
+        _paletteCombo->addItem(decorateUnsavedLabel(name, unsavedItem), name);
+    }
+    if (!selectedName.isEmpty()) {
+        const int selectedIndex = _paletteCombo->findData(selectedName);
+        if (selectedIndex >= 0) {
+            _paletteCombo->setCurrentIndex(selectedIndex);
+        } else {
+            _paletteCombo->setCurrentText(selectedName);
+        }
+    } else {
+        _paletteCombo->setCurrentIndex(0);
+    }
+}
+
+void mandelbrotgui::createNewSinePalette(bool requestRenderOnSuccess) {
+    const QStringList existingNames = listSineNames();
+    const QString newName = uniqueIndexedNameFromList(kNewSinePaletteBaseName, existingNames);
+    const Backend::SinePaletteConfig config = makeNewSinePaletteConfig();
+
+    _state.sineName = newName;
+    _state.sinePalette = config;
+    refreshSineList(_state.sineName);
+    syncControlsFromState();
+    updateViewport();
+    if (requestRenderOnSuccess) {
+        requestRender();
+    }
+}
+
+void mandelbrotgui::createNewColorPalette(bool requestRenderOnSuccess) {
+    const QStringList existingNames = listPaletteNames();
+    const QString newName = uniqueIndexedNameFromList(kNewColorPaletteBaseName, existingNames);
+    const Backend::PaletteHexConfig config = makeNewColorPaletteConfig();
+
+    _state.paletteName = newName;
+    _state.palette = config;
+    _palettePreviewDirty = true;
+    refreshPaletteList(_state.paletteName);
+    syncControlsFromState();
+    updateViewport();
+    if (requestRenderOnSuccess) {
+        requestRender();
+    }
 }
 
 void mandelbrotgui::saveSine() {
     syncStateFromControls();
 
-    QString suggested = sanitizePaletteName(_state.sineName);
-    if (suggested.isEmpty()) {
-        suggested = "sine";
-    }
+    QString targetName = normalizePaletteName(_state.sineName);
+    if (!isValidPaletteName(targetName) || targetName == kNewEntryLabel) {
+        const QString suggested = sanitizePaletteName(_state.sineName);
+        bool accepted = false;
+        const QString enteredName = QInputDialog::getText(this,
+            "Save Sine Color",
+            "Name",
+            QLineEdit::Normal,
+            suggested.isEmpty() ? "sine" : suggested,
+            &accepted);
+        if (!accepted) return;
 
-    bool accepted = false;
-    const QString enteredName = QInputDialog::getText(this,
-        "Save Sine Color",
-        "Name",
-        QLineEdit::Normal,
-        suggested,
-        &accepted);
-    if (!accepted) return;
-
-    const QString normalizedName = normalizePaletteName(enteredName);
-    if (!isValidPaletteName(normalizedName)) {
-        QMessageBox::warning(this, "Save Sine Color",
-            "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
-        return;
+        targetName = normalizePaletteName(enteredName);
+        if (!isValidPaletteName(targetName)) {
+            QMessageBox::warning(this, "Save Sine Color",
+                "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
+            return;
+        }
     }
 
     QString errorMessage;
@@ -4053,60 +6194,120 @@ void mandelbrotgui::saveSine() {
         return;
     }
 
-    const std::filesystem::path destinationPath = sineFilePath(normalizedName);
+    std::filesystem::path destinationPath = sineFilePath(targetName);
+    std::error_code existsError;
+    const bool destinationExists =
+        std::filesystem::exists(destinationPath, existsError) && !existsError;
+    if (destinationExists) {
+        const QMessageBox::StandardButton choice = QMessageBox::question(
+            this,
+            "Save Sine Color",
+            QString("Sine \"%1\" already exists. Overwrite it?").arg(targetName),
+            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
+            QMessageBox::Yes);
+        if (choice == QMessageBox::Cancel) return;
+        if (choice == QMessageBox::No) {
+            const QString savePath = showNativeSaveFileDialog(
+                this,
+                "Save Sine Color As",
+                sineDirectoryPath(),
+                QFileInfo(uniqueIndexedPathWithExtension(
+                    sineDirectoryPath(),
+                    targetName,
+                    "txt")).fileName(),
+                "Sine Files (*.txt);;All Files (*.*)");
+            if (savePath.isEmpty()) return;
+
+            const QString savePathWithExtension = QString::fromStdString(
+                PathUtil::appendExtension(
+                    savePath.toStdString(),
+                    "txt"));
+            const QString saveName = normalizePaletteName(
+                QFileInfo(savePathWithExtension).completeBaseName());
+            if (!isValidPaletteName(saveName)) {
+                QMessageBox::warning(this, "Save Sine Color",
+                    "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
+                return;
+            }
+
+            targetName = saveName;
+            destinationPath = sineFilePath(targetName);
+        }
+    }
+
     if (!saveSineToPath(destinationPath, _state.sinePalette, errorMessage)) {
         QMessageBox::warning(this, "Save Sine Color", errorMessage);
         return;
     }
 
-    _state.sineName = normalizedName;
+    _state.sineName = targetName;
+    markSineSavedState(_state.sineName, _state.sinePalette);
+    setStatusSavedPath(QString::fromStdWString(destinationPath.wstring()));
     refreshSineList(_state.sineName);
     syncControlsFromState();
+    updateStatusLabels();
 }
 
 void mandelbrotgui::savePointView() {
     syncStateFromControls();
-    _state.zoom = clampGuiZoom(_state.zoom);
+    _state.zoom = clampGUIZoom(_state.zoom);
 
     QString errorMessage;
-    if (!ensurePointDirectory(errorMessage)) {
+    if (!ensureViewDirectory(errorMessage)) {
         QMessageBox::warning(this, "Save View", errorMessage);
         return;
     }
 
-    const QString defaultPath = QString::fromStdWString(
-        (pointDirectoryPath() / "view.txt").wstring());
-    const QString selectedPath = QFileDialog::getSaveFileName(
+    const QString defaultPath = uniqueIndexedPathWithExtension(
+        viewDirectoryPath(),
+        "View",
+        "txt");
+    const QString selectedPath = showNativeSaveFileDialog(
         this,
         "Save View",
-        defaultPath,
+        viewDirectoryPath(),
+        QFileInfo(defaultPath).fileName(),
         "View Files (*.txt);;All Files (*.*)");
     if (selectedPath.isEmpty()) return;
 
     PointConfig point = {
+        .fractal = fractalTypeToConfigString(_state.fractalType).toStdString(),
+        .inverse = _state.inverse,
+        .julia = _state.julia,
+        .iterations = _state.iterations,
         .real = _pointRealText.toStdString(),
         .imag = _pointImagText.toStdString(),
-        .zoom = _state.zoom
+        .zoom = _state.zoom,
+        .seedReal = stateToString(_state.seed.x()).toStdString(),
+        .seedImag = stateToString(_state.seed.y()).toStdString()
     };
 
-    if (!savePointToPath(selectedPath.toStdString(), point, errorMessage)) {
+    const QString outputPathWithExtension = QString::fromStdString(
+        PathUtil::appendExtension(
+            selectedPath.toStdString(),
+            "txt"));
+    if (!savePointToPath(outputPathWithExtension.toStdString(), point, errorMessage)) {
         QMessageBox::warning(this, "Save View", errorMessage);
+        return;
     }
+    markPointViewSavedState();
+    setStatusSavedPath(outputPathWithExtension);
+    updateStatusLabels();
 }
 
 void mandelbrotgui::loadPointView() {
     QString errorMessage;
-    if (!ensurePointDirectory(errorMessage)) {
+    if (!ensureViewDirectory(errorMessage)) {
         QMessageBox::warning(this, "Load View", errorMessage);
         return;
     }
 
     const QString defaultPath = QString::fromStdWString(
-        pointDirectoryPath().wstring());
-    const QString selectedPath = QFileDialog::getOpenFileName(
+        viewDirectoryPath().wstring());
+    const QString selectedPath = showNativeOpenFileDialog(
         this,
         "Load View",
-        defaultPath,
+        viewDirectoryPath(),
         "View Files (*.txt);;All Files (*.*)");
     if (selectedPath.isEmpty()) return;
 
@@ -4116,19 +6317,31 @@ void mandelbrotgui::loadPointView() {
         return;
     }
 
-    _state.zoom = clampGuiZoom(point.zoom);
+    _state.fractalType = fractalTypeFromConfigString(QString::fromStdString(point.fractal));
+    _state.inverse = point.inverse;
+    _state.julia = point.julia;
+    _state.iterations = std::max(0, point.iterations);
+    _state.zoom = clampGUIZoom(point.zoom);
     _pointRealText = QString::fromStdString(point.real);
     _pointImagText = QString::fromStdString(point.imag);
+    {
+        bool okSeedReal = false, okSeedImag = false;
+        const double seedReal = QString::fromStdString(point.seedReal).toDouble(&okSeedReal);
+        const double seedImag = QString::fromStdString(point.seedImag).toDouble(&okSeedImag);
+        if (okSeedReal) _state.seed.setX(seedReal);
+        if (okSeedImag) _state.seed.setY(seedImag);
+    }
     syncStatePointFromText();
+    markPointViewSavedState();
     syncControlsFromState();
     requestRender();
 }
 
 void mandelbrotgui::importSine() {
-    const QString sourcePath = QFileDialog::getOpenFileName(
+    const QString sourcePath = showNativeOpenFileDialog(
         this,
         "Import Sine Color",
-        QString(),
+        sineDirectoryPath(),
         "Sine Files (*.txt);;All Files (*.*)"
     );
     if (sourcePath.isEmpty()) return;
@@ -4157,8 +6370,11 @@ void mandelbrotgui::importSine() {
 
     _state.sineName = importedName;
     _state.sinePalette = loaded;
+    markSineSavedState(_state.sineName, _state.sinePalette);
+    setStatusSavedPath(QString::fromStdWString(destinationPath.wstring()));
     refreshSineList(_state.sineName);
     syncControlsFromState();
+    updateStatusLabels();
     requestRender();
 }
 
@@ -4178,8 +6394,6 @@ bool mandelbrotgui::loadSineByName(const QString &name,
             if (errorMessage) *errorMessage = localError;
             return false;
         }
-    } else if (normalizedName.compare(kDefaultSineName, Qt::CaseInsensitive) == 0) {
-        loaded = defaultSinePalette();
     } else {
         localError = QString("Sine file not found: %1").arg(normalizedName);
         if (errorMessage) *errorMessage = localError;
@@ -4188,6 +6402,7 @@ bool mandelbrotgui::loadSineByName(const QString &name,
 
     _state.sineName = normalizedName;
     _state.sinePalette = loaded;
+    markSineSavedState(_state.sineName, _state.sinePalette);
     syncControlsFromState();
     updateViewport();
     if (requestRenderOnSuccess) {
@@ -4212,8 +6427,6 @@ bool mandelbrotgui::loadPaletteByName(const QString &name,
             if (errorMessage) *errorMessage = localError;
             return false;
         }
-    } else if (normalizedName.compare(kDefaultPaletteName, Qt::CaseInsensitive) == 0) {
-        loaded = defaultPalette();
     } else {
         localError = QString("Palette not found: %1").arg(normalizedName);
         if (errorMessage) *errorMessage = localError;
@@ -4222,6 +6435,7 @@ bool mandelbrotgui::loadPaletteByName(const QString &name,
 
     _state.paletteName = normalizedName;
     _state.palette = loaded;
+    markPaletteSavedState(_state.paletteName, _state.palette);
     _palettePreviewDirty = true;
     syncControlsFromState();
     updateViewport();
@@ -4236,14 +6450,16 @@ void mandelbrotgui::openPaletteEditor() {
     const QString originalName = _state.paletteName;
     PaletteEditorDialog dialog(_state.palette,
         _state.paletteName,
+        [this](const QString &path) { setStatusSavedPath(path); },
         this);
 
     if (dialog.exec() == QDialog::Accepted) {
         _state.palette = dialog.palette();
         _state.palette.totalLength = static_cast<float>(_paletteLengthSpin->value());
         _state.palette.offset = static_cast<float>(_paletteOffsetSpin->value());
-        if (!dialog.savedPaletteName().isEmpty()) {
+        if (!dialog.savedPaletteName().isEmpty() && !dialog.savedStateDirty()) {
             _state.paletteName = dialog.savedPaletteName();
+            markPaletteSavedState(_state.paletteName, _state.palette);
             refreshPaletteList(_state.paletteName);
         }
         _palettePreviewDirty = true;
@@ -4322,6 +6538,111 @@ void mandelbrotgui::updateAspectLinkedSizes(bool widthChanged) {
     _outputWidthSpin->setValue(newWidth);
 }
 
+void mandelbrotgui::markSineSavedState(const QString &name,
+    const Backend::SinePaletteConfig &palette) {
+    _savedSineName = normalizePaletteName(name);
+    _savedSinePalette = palette;
+    _hasSavedSineState = true;
+}
+
+void mandelbrotgui::markPaletteSavedState(const QString &name,
+    const Backend::PaletteHexConfig &palette) {
+    _savedPaletteName = normalizePaletteName(name);
+    _savedPalette = palette;
+    _hasSavedPaletteState = true;
+}
+
+mandelbrotgui::SavedPointViewState mandelbrotgui::capturePointViewState() const {
+    return SavedPointViewState{
+        .fractalType = _state.fractalType,
+        .inverse = _state.inverse,
+        .julia = _state.julia,
+        .iterations = _state.iterations,
+        .real = _pointRealText,
+        .imag = _pointImagText,
+        .zoom = _state.zoom,
+        .seedReal = _state.seed.x(),
+        .seedImag = _state.seed.y()
+    };
+}
+
+void mandelbrotgui::markPointViewSavedState() {
+    _savedPointViewState = capturePointViewState();
+    _hasSavedPointViewState = true;
+}
+
+bool mandelbrotgui::isSineDirty() const {
+    if (!_hasSavedSineState) return true;
+
+    if (normalizePaletteName(_state.sineName).compare(
+        _savedSineName, Qt::CaseInsensitive) != 0) {
+        return true;
+    }
+
+    return !sameSinePalette(_state.sinePalette, _savedSinePalette);
+}
+
+bool mandelbrotgui::isPaletteDirty() const {
+    if (!_hasSavedPaletteState) return true;
+
+    if (normalizePaletteName(_state.paletteName).compare(
+        _savedPaletteName, Qt::CaseInsensitive) != 0) {
+        return true;
+    }
+
+    return !samePalette(_state.palette, _savedPalette);
+}
+
+bool mandelbrotgui::isPointViewDirty() const {
+    if (!_hasSavedPointViewState) return true;
+
+    const SavedPointViewState current = capturePointViewState();
+    const SavedPointViewState &saved = _savedPointViewState;
+    if (current.fractalType != saved.fractalType ||
+        current.inverse != saved.inverse ||
+        current.julia != saved.julia ||
+        current.iterations != saved.iterations ||
+        !NumberUtil::equalParsedDoubleText(
+            current.real.toStdString(), saved.real.toStdString()) ||
+        !NumberUtil::equalParsedDoubleText(
+            current.imag.toStdString(), saved.imag.toStdString()) ||
+        !NumberUtil::almostEqual(current.zoom, saved.zoom) ||
+        !NumberUtil::almostEqual(current.seedReal, saved.seedReal) ||
+        !NumberUtil::almostEqual(current.seedImag, saved.seedImag)) {
+        return true;
+    }
+
+    return false;
+}
+
+void mandelbrotgui::refreshDirtyComboLabels() {
+    auto refreshCombo = [](QComboBox *combo,
+        const QString &currentName,
+        bool isDirty) {
+            if (!combo) return;
+            if (currentName.isEmpty()) return;
+
+            const QSignalBlocker blocker(combo);
+            for (int i = 0; i < combo->count(); ++i) {
+                const QString itemData = combo->itemData(i).toString();
+                const QString baseName = itemData.isEmpty() ?
+                    undecoratedLabel(combo->itemText(i)) :
+                    itemData;
+                if (baseName.isEmpty() || baseName == kNewEntryLabel) continue;
+
+                const bool unsavedItem =
+                    isDirty && baseName.compare(currentName, Qt::CaseInsensitive) == 0;
+                const QString desiredLabel = decorateUnsavedLabel(baseName, unsavedItem);
+                if (combo->itemText(i) != desiredLabel) {
+                    combo->setItemText(i, desiredLabel);
+                }
+            }
+        };
+
+    refreshCombo(_sineCombo, _state.sineName, isSineDirty());
+    refreshCombo(_paletteCombo, _state.paletteName, isPaletteDirty());
+}
+
 QString mandelbrotgui::stateToString(double value, int precision) const {
     return QString::number(value, 'g', precision);
 }
@@ -4332,102 +6653,11 @@ void mandelbrotgui::syncPointTextFromState() {
 }
 
 void mandelbrotgui::syncStatePointFromText() {
-    bool okReal = false;
-    bool okImag = false;
+    bool okReal = false, okImag = false;
     const double real = _pointRealText.toDouble(&okReal);
     const double imag = _pointImagText.toDouble(&okImag);
     if (okReal) _state.point.setX(real);
     if (okImag) _state.point.setY(imag);
-}
-
-bool mandelbrotgui::syncPreviewSessionForCoords(const UiState &state,
-    QString &errorMessage) {
-    Backend::Session *session = nullptr;
-    if (_backend && _backend.session) {
-        session = _backend.session.get();
-    } else if (_previewBackend && _previewBackend.session) {
-        session = _previewBackend.session.get();
-    }
-    if (!session) {
-        errorMessage = "Backend not loaded.";
-        return false;
-    }
-
-    auto failIfNeeded = [&errorMessage](const Backend::Status &status) {
-        if (status) return false;
-        errorMessage = QString::fromStdString(status.message);
-        return true;
-    };
-
-    if (failIfNeeded(session->setImageSize(
-            state.outputWidth, state.outputHeight, state.aaPixels)))
-        return false;
-    if (failIfNeeded(session->setZoom(
-            state.iterations, static_cast<float>(clampGuiZoom(state.zoom)))))
-        return false;
-    if (failIfNeeded(session->setPoint(
-            _pointRealText.toStdString(), _pointImagText.toStdString())))
-        return false;
-
-    return true;
-}
-
-bool mandelbrotgui::backendPointAtPixel(const QPoint &pixel, QString &real,
-    QString &imag, QString &errorMessage) {
-    if (!syncPreviewSessionForCoords(_state, errorMessage)) return false;
-
-    Backend::Session *session = nullptr;
-    if (_backend && _backend.session) {
-        session = _backend.session.get();
-    } else if (_previewBackend && _previewBackend.session) {
-        session = _previewBackend.session.get();
-    }
-    if (!session) {
-        errorMessage = "Backend not loaded.";
-        return false;
-    }
-
-    std::string realOut;
-    std::string imagOut;
-    const Backend::Status status = session->getPointAtPixel(
-        pixel.x(), pixel.y(), realOut, imagOut);
-    if (!status) {
-        errorMessage = QString::fromStdString(status.message);
-        return false;
-    }
-
-    real = QString::fromStdString(realOut);
-    imag = QString::fromStdString(imagOut);
-    return true;
-}
-
-bool mandelbrotgui::backendComputeZoomPointForPixel(const QPoint &pixel,
-    double targetZoom, QString &real, QString &imag, QString &errorMessage) {
-    if (!syncPreviewSessionForCoords(_state, errorMessage)) return false;
-
-    Backend::Session *session = nullptr;
-    if (_backend && _backend.session) {
-        session = _backend.session.get();
-    } else if (_previewBackend && _previewBackend.session) {
-        session = _previewBackend.session.get();
-    }
-    if (!session) {
-        errorMessage = "Backend not loaded.";
-        return false;
-    }
-
-    std::string realOut;
-    std::string imagOut;
-    const Backend::Status status = session->computeZoomPointForPixel(
-        pixel.x(), pixel.y(), static_cast<float>(targetZoom), realOut, imagOut);
-    if (!status) {
-        errorMessage = QString::fromStdString(status.message);
-        return false;
-    }
-
-    real = QString::fromStdString(realOut);
-    imag = QString::fromStdString(imagOut);
-    return true;
 }
 
 QPoint mandelbrotgui::clampPixelToOutput(const QPoint &pixel) const {
@@ -4438,18 +6668,39 @@ QPoint mandelbrotgui::clampPixelToOutput(const QPoint &pixel) const {
     };
 }
 
-QPointF mandelbrotgui::outputPixelToComplex(const QPoint &pixel) const {
-    const QPoint clampedPixel = clampPixelToOutput(pixel);
-    const QSize size = outputSize();
+QPointF mandelbrotgui::outputPixelToComplexForView(const QPoint &pixel,
+    const QPointF &viewPoint, double viewZoom, const QSize &viewSize) const {
+    const QPoint clampedPixel = {
+        std::clamp(pixel.x(), 0, std::max(0, viewSize.width() - 1)),
+        std::clamp(pixel.y(), 0, std::max(0, viewSize.height() - 1))
+    };
+    const QSize size = viewSize;
     const double dx = (clampedPixel.x() - size.width() / 2.0) /
         std::max(1, size.width());
     const double dy = (clampedPixel.y() - size.height() / 2.0) /
         std::max(1, size.height());
+    const double realScale = 1.0 / std::pow(10.0, viewZoom);
+    const double aspect = static_cast<double>(size.width()) /
+        std::max(1, size.height());
+    const double imagScale = realScale / aspect;
 
     return {
-        dx * currentRealScale() + _state.point.x(),
-        dy * currentImagScale() - _state.point.y()
+        dx * realScale + viewPoint.x(),
+        dy * imagScale - viewPoint.y()
     };
+}
+
+QPointF mandelbrotgui::outputPixelToComplexVisible(const QPoint &pixel) const {
+    if (_hasDisplayedViewState) {
+        return outputPixelToComplexForView(
+            pixel, _displayedPoint, _displayedZoom, _displayedOutputSize);
+    }
+
+    return outputPixelToComplex(pixel);
+}
+
+QPointF mandelbrotgui::outputPixelToComplex(const QPoint &pixel) const {
+    return outputPixelToComplexForView(pixel, _state.point, _state.zoom, outputSize());
 }
 
 double mandelbrotgui::currentRealScale() const {
@@ -4463,8 +6714,43 @@ double mandelbrotgui::currentImagScale() const {
     return currentRealScale() / aspect;
 }
 
+int mandelbrotgui::resolveCurrentIterationCount() const {
+    if (_backend && _backend.session) {
+        return std::max(1, _backend.session->currentIterationCount());
+    }
+
+    return std::max(1, _state.iterations);
+}
+
 void mandelbrotgui::resizeViewportWindowToImageSize() {
     resizeViewportToImageSize(_viewport, outputSize());
+}
+
+int mandelbrotgui::interactionFrameIntervalMs() const {
+    const int fps = std::max(1, _state.interactionTargetFPS);
+    return std::max(
+        1,
+        static_cast<int>(std::lround(1000.0 / static_cast<double>(fps))));
+}
+
+bool mandelbrotgui::canRenderAtTargetFPS() const {
+    const int renderMs = _lastRenderDurationMs.load(std::memory_order_acquire);
+    if (renderMs <= 0) return false;
+    return !_interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+}
+
+bool mandelbrotgui::shouldUseInteractionPreviewFallback() const {
+    return _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+}
+
+double mandelbrotgui::zoomRateFactor() const {
+    return currentZoomFactor(_state.zoomRate);
+}
+
+double mandelbrotgui::panRateFactor() const {
+    constexpr double panRateBase = 1.125;
+    const int clamped = clampSliderValue(_state.panRate);
+    return std::pow(panRateBase, static_cast<double>(clamped - 8));
 }
 
 double mandelbrotgui::currentZoomFactor(int sliderValue) const {

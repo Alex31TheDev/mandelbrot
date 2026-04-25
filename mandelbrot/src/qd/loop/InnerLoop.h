@@ -1,6 +1,5 @@
 {
-    qd_number_t zr2 = zr * zr;
-    qd_number_t zi2 = zi * zi;
+    qd_number_t zr2 = zr * zr, zi2 = zi * zi;
     mag = zr2 + zi2;
 
     if (mag > bailout_qd) break;

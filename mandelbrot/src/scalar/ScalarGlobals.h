@@ -107,7 +107,7 @@ namespace ScalarGlobals {
     );
 
     [[maybe_unused]] static void setAllDefaults() {
-        setZoomGlobals();
+        setZoomGlobals(MIN_ITERATIONS);
         setZoomPoints();
         setFractalExponent();
         setFractalType();

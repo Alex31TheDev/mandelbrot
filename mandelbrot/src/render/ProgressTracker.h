@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 #include <chrono>
 #include <tuple>
 #include <atomic>
@@ -9,12 +8,10 @@
 #include <variant>
 
 #include "cqueue.h"
+
 #include "BackendAPI.h"
 
-struct ProgressConfig {
-    bool formatTime = true;
-    const std::string progressName = "Progress";
-    const std::string opsName = "ops";
+struct ProgressOptions {
     const Backend::Callbacks *callbacks = nullptr;
 };
 
@@ -27,7 +24,7 @@ public:
     static constexpr double SHORT_UNIT_SCALE = 1.0e3;
 
     explicit ProgressTracker(WU totalWork, bool threadSafe,
-        const ProgressConfig &config = ProgressConfig());
+        const ProgressOptions &options = ProgressOptions());
 
     [[nodiscard]] bool completed() const { return _completed; }
 
@@ -45,8 +42,8 @@ public:
     [[nodiscard]] double percentage() const;
     [[nodiscard]] double opsPerSecond() const;
 
-    void update(WU processed = 1, bool printUpdate = true);
-    void complete(bool printUpdate = true);
+    void update(WU processed = 1, bool emitUpdate = true);
+    void complete(bool emitUpdate = true);
 
 private:
     typedef std::chrono::high_resolution_clock::time_point HTP;
@@ -56,29 +53,27 @@ private:
     static constexpr int OPS_WINDOW_MIN_SIZE = 10;
     static constexpr int OPS_WINDOW_MAX_SIZE = 200;
 
-    static constexpr int SHORT_TIME_REMAINING = 30;
-
     WU _totalWork;
     bool _threadSafe;
-    ProgressConfig _config;
+    ProgressOptions _options;
 
     bool _completed = false;
     STP _startTime, _endTime = STP::min();
 
     struct _PlainState {
         WU completedWork = 0;
-        int lastPrinted = -1;
+        int lastEmitted = -1;
 
         HTP lastUpdateTime;
     };
     struct _AtomicState {
         std::atomic<WU> completedWork{ 0 };
-        std::atomic_int lastPrinted{ -1 };
+        std::atomic_int lastEmitted{ -1 };
 
         std::atomic<HTP> lastUpdateTime;
 
         mutable std::mutex opsMutex;
-        mutable std::mutex printfMutex;
+        mutable std::mutex emitMutex;
     };
     std::variant<_PlainState, _AtomicState> _state;
 

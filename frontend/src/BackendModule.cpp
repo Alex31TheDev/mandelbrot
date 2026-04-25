@@ -34,6 +34,10 @@ void BackendModule::reset() {
     }
 }
 
+void BackendModule::forceKill() const {
+    if (session) session->forceKill();
+}
+
 std::filesystem::path executableDir() {
     std::wstring path(MAX_PATH, L'\0');
     const DWORD length = GetModuleFileNameW(nullptr, path.data(),

@@ -3,7 +3,9 @@
 
 #include <cctype>
 #include <cstddef>
+#include <algorithm>
 #include <cmath>
+#include <string>
 
 #include <mpfr.h>
 
@@ -64,6 +66,46 @@ namespace MPFRTypes {
         if (mpfr_get_prec(slot.value) != getPrecisionBits()) {
             mpfr_prec_round(slot.value, getPrecisionBits(), ROUNDING);
         }
+    }
+
+    FORCE_INLINE std::string toString(mpfr_srcptr value) {
+        const int digits = std::max(24,
+            static_cast<int>(std::ceil(
+                static_cast<double>(mpfr_get_prec(value)) * 0.30103)) + 4);
+
+        char *buffer = nullptr;
+        if (mpfr_asprintf(&buffer, "%.*Rg", digits, value) < 0 || !buffer) {
+            return "0";
+        }
+
+        std::string out(buffer);
+        mpfr_free_str(buffer);
+        return out;
+    }
+
+    FORCE_INLINE bool parseNumber(mpfr_t out, const char *text) {
+        if (text == nullptr) return false;
+
+        while (std::isspace(static_cast<unsigned char>(*text))) ++text;
+        if (*text == '\0') return false;
+
+        char *end = nullptr;
+        mpfr_strtofr(out, text, &end, 10, ROUNDING);
+        if (end == text) return false;
+
+        while (*end != '\0' &&
+            std::isspace(static_cast<unsigned char>(*end))) ++end;
+
+        if (*end != '\0') return false;
+        return mpfr_number_p(out) != 0 || mpfr_zero_p(out) != 0;
+    }
+
+    FORCE_INLINE bool isValidNumber(const char *text) {
+        mpfr_t value;
+        mpfr_init2(value, 64);
+        const bool valid = parseNumber(value, text);
+        mpfr_clear(value);
+        return valid;
     }
 
     FORCE_INLINE mpfr_ptr nextTemp() {
@@ -196,39 +238,13 @@ namespace MPFRTypes {
 
     FORCE_INLINE mpfr_num_2_t sincos(mpfr_srcptr value) {
         mpfr_num_2_t out{};
-        mpfr_ptr sinOut = nextTemp();
-        mpfr_ptr cosOut = nextTemp();
 
+        mpfr_ptr sinOut = nextTemp(), cosOut = nextTemp();
         mpfr_sin_cos(sinOut, cosOut, value, ROUNDING);
 
         out.x = sinOut;
         out.y = cosOut;
         return out;
-    }
-
-    FORCE_INLINE bool parseNumber(mpfr_t out, const char *text) {
-        if (text == nullptr) return false;
-
-        while (std::isspace(static_cast<unsigned char>(*text))) ++text;
-        if (*text == '\0') return false;
-
-        char *end = nullptr;
-        mpfr_strtofr(out, text, &end, 10, ROUNDING);
-        if (end == text) return false;
-
-        while (*end != '\0' &&
-            std::isspace(static_cast<unsigned char>(*end))) ++end;
-
-        if (*end != '\0') return false;
-        return mpfr_number_p(out) != 0 || mpfr_zero_p(out) != 0;
-    }
-
-    FORCE_INLINE bool isValidNumber(const char *text) {
-        mpfr_t value;
-        mpfr_init2(value, 64);
-        const bool valid = parseNumber(value, text);
-        mpfr_clear(value);
-        return valid;
     }
 }
 

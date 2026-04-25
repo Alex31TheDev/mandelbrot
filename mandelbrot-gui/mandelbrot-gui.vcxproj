@@ -118,7 +118,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <QtRcc Include="mandelbrotgui.qrc" />
-    <QtMoc Include="mandelbrotgui.h" />
+    <ClInclude Include="mandelbrotgui.h" />
     <ClCompile Include="mandelbrotgui.cpp" />
     <ClCompile Include="main.cpp" />
     <ResourceCompile Include="mandelbrot-gui.rc" />
@@ -148,8 +148,7 @@
     <CoreVariant Include="MPFR" />
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='x64'">
-    <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*"
-      Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
+    <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*" Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
   </ItemGroup>
   <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
     <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
@@ -178,23 +177,14 @@
   </Target>
   <Target Name="BundlePaletteFiles" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)palettes" />
-    <Copy SourceFiles="@(PaletteAsset)"
-          DestinationFiles="@(PaletteAsset->'$(OutDir)palettes\%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Condition="'@(PaletteAsset)'!=''" />
+    <Copy SourceFiles="@(PaletteAsset)" DestinationFiles="@(PaletteAsset->'$(OutDir)palettes\%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(PaletteAsset)'!=''" />
   </Target>
   <Target Name="BundleIconFile" AfterTargets="Build">
-    <Copy SourceFiles="@(IconAsset)"
-          DestinationFiles="@(IconAsset->'$(OutDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Condition="'@(IconAsset)'!=''" />
+    <Copy SourceFiles="@(IconAsset)" DestinationFiles="@(IconAsset->'$(OutDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(IconAsset)'!=''" />
   </Target>
   <Target Name="BundleSineFiles" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)sines" />
-    <Copy SourceFiles="@(SineAsset)"
-          DestinationFiles="@(SineAsset->'$(OutDir)sines\%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Condition="'@(SineAsset)'!=''" />
+    <Copy SourceFiles="@(SineAsset)" DestinationFiles="@(SineAsset->'$(OutDir)sines\%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(SineAsset)'!=''" />
   </Target>
   <Target Name="QtDeployCustom" AfterTargets="IntelVcpkgAppLocal" Condition="Exists('$(TargetPath)')">
     <PropertyGroup>

@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "QDTypes.h"
+#include "../render/RenderIterationStats.h"
 
 #include "util/InlineUtil.h"
 
@@ -25,7 +26,9 @@ namespace QDRenderer {
         qd_param_t dr, qd_param_t di);
 
     void renderPixelQD(uint8_t *pixels, size_t &pos,
-        int x, qd_number_t ci, uint64_t *totalIterCount = nullptr);
+        int x, qd_number_t ci,
+        OptionalIterationStats iterStats = std::nullopt,
+        std::optional<int> y = std::nullopt);
 }
 
 #endif

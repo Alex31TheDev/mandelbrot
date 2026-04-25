@@ -1,11 +1,11 @@
 #pragma once
+#include "../KeyValueWriter.h"
 
 #include <iosfwd>
 #include <string>
 #include <variant>
 
 #include "BackendAPI.h"
-#include "../KeyValueWriter.h"
 
 class PaletteWriter : public KeyValueWriter {
 public:

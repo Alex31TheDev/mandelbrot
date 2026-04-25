@@ -993,8 +993,10 @@
     <ClInclude Include="src\qd\qdlib\qd_real.h" />
     <ClInclude Include="src\render\ProgressTracker.h" />
     <ClInclude Include="src\scalar\ScalarCoords.h" />
+    <ClInclude Include="src\render\RenderIterationStats.h" />
     <ClInclude Include="src\render\RenderImage.h" />
     <ClInclude Include="src\scalar\ScalarGlobals.h" />
+    <ClInclude Include="src\scalar\ScalarPrecision.h" />
     <ClInclude Include="src\scalar\ScalarSinePalette.h" />
     <ClInclude Include="src\scalar\ScalarTypes.h" />
     <ClInclude Include="src\vector\CommonDefs.h" />
@@ -1030,8 +1032,10 @@
     <ClCompile Include="src\qd\qdlib\dd_routines.cpp" />
     <ClCompile Include="src\qd\qdlib\qd_routines.cpp" />
     <ClCompile Include="src\render\RenderImage.cpp" />
+    <ClCompile Include="src\render\RenderIterationStats.cpp" />
     <ClCompile Include="src\render\ProgressTracker.cpp" />
     <ClCompile Include="src\scalar\ScalarGlobals.cpp" />
+    <ClCompile Include="src\scalar\ScalarPrecision.cpp" />
     <ClCompile Include="src\scalar\ScalarSinePalette.cpp" />
     <ClCompile Include="src\vector\VectorColorPalette.cpp" />
     <ClCompile Include="src\vector\VectorGlobals.cpp" />

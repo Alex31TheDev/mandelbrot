@@ -126,7 +126,7 @@ namespace ArgsUsage {
         }
 
         const std::string prefixLower = StringUtil::toLower(currentPrefix());
-        if (lower.rfind(prefixLower + " - ", 0) == 0) {
+        if (StringUtil::startsWith(lower, prefixLower + " - ")) {
             const std::string suffix = lower.substr(prefixLower.size() + 3);
             if (const auto it = aliases.find(suffix); it != aliases.end()) {
                 return makeConfigName(it->second);

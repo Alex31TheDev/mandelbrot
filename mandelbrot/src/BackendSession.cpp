@@ -1,25 +1,27 @@
 #include "BackendAPI.h"
 
-#include <algorithm>
 #include <cmath>
-#include <iomanip>
-#include <limits>
 #include <memory>
-#include <sstream>
 #include <string>
-#include <type_traits>
 
 #include "util/ParserUtil.h"
+
 #include "image/Image.h"
+
 #include "render/RenderGlobals.h"
 #include "render/RenderImage.h"
+
 #include "scalar/ScalarGlobals.h"
+#include "scalar/ScalarPrecision.h"
 #include "scalar/ScalarColors.h"
 #include "scalar/ScalarCoords.h"
 #include "scalar/ScalarRenderer.h"
+
 #include "vector/VectorGlobals.h"
+
 #include "mpfr/MPFRGlobals.h"
 #include "mpfr/MPFRCoords.h"
+
 #include "qd/QDGlobals.h"
 #include "qd/QDCoords.h"
 #include "qd/QDTypes.h"
@@ -46,11 +48,6 @@ static bool isValidFullInput(const std::string &value) {
 #endif
 }
 
-static bool isValidPaletteColor(const ScalarPaletteColor &entry) {
-    return entry.R >= ZERO_H && entry.G >= ZERO_H &&
-        entry.B >= ZERO_H && entry.length >= ZERO_H;
-}
-
 static ScalarPaletteColor makePaletteColor(const Backend::PaletteRGBEntry &entry) {
     ScalarPaletteColor color{};
     static_cast<ScalarColor &>(color) = { entry.R, entry.G, entry.B };
@@ -66,100 +63,6 @@ static ScalarPaletteColor makePaletteColor(const Backend::PaletteHexEntry &entry
     color.length = entry.length;
     return color;
 }
-
-static uint8_t toColorByte(scalar_half_t value) {
-    const double clamped = std::clamp(static_cast<double>(value), 0.0, 1.0);
-    return static_cast<uint8_t>(clamped * 255.0 + 0.5);
-}
-
-template<typename T>
-static std::string toScalarString(const T &value) {
-    std::ostringstream oss;
-
-    if constexpr (std::is_floating_point_v<T>) {
-        oss << std::setprecision(std::numeric_limits<T>::max_digits10);
-    }
-
-    oss << value;
-    return oss.str();
-}
-
-#if defined(USE_MPFR)
-static std::string toMpfrString(mpfr_srcptr value) {
-    const int digits = std::max(24,
-        static_cast<int>(std::ceil(
-            static_cast<double>(mpfr_get_prec(value)) * 0.30103)) + 4);
-
-    char *buffer = nullptr;
-    if (mpfr_asprintf(&buffer, "%.*Rg", digits, value) < 0 || !buffer) {
-        return "0";
-    }
-
-    std::string out(buffer);
-    mpfr_free_str(buffer);
-    return out;
-}
-#endif
-
-#if defined(USE_QD)
-static std::string toQdString(const qd_real &value) {
-    if (!isfinite(value)) return "0";
-    if (value == qd_real(0.0)) return "0";
-
-    qd_real v = value;
-    bool neg = false;
-    if (v < qd_real(0.0)) {
-        neg = true;
-        v = -v;
-    }
-
-    int exp10 = static_cast<int>(
-        std::floor(std::log10(std::abs(to_double(v))))
-        );
-
-    qd_real scaled = v / pow(qd_real(10.0), exp10);
-    while (scaled >= qd_real(10.0)) {
-        scaled /= qd_real(10.0);
-        ++exp10;
-    }
-    while (scaled < qd_real(1.0)) {
-        scaled *= qd_real(10.0);
-        --exp10;
-    }
-
-    constexpr int DIGITS = 62;
-    std::string digits;
-    digits.reserve(DIGITS);
-
-    for (int i = 0; i < DIGITS; ++i) {
-        int d = static_cast<int>(std::floor(to_double(scaled)));
-        d = std::clamp(d, 0, 9);
-
-        digits.push_back(static_cast<char>('0' + d));
-        scaled = (scaled - qd_real(static_cast<double>(d))) * qd_real(10.0);
-    }
-
-    std::string out;
-    out.reserve(DIGITS + 16);
-
-    if (neg) out.push_back('-');
-    out.push_back(digits[0]);
-    out.push_back('.');
-    out.append(digits.begin() + 1, digits.end());
-
-    while (!out.empty() && out.back() == '0') {
-        out.pop_back();
-    }
-    if (!out.empty() && out.back() == '.') {
-        out.push_back('0');
-    }
-
-    out.push_back('e');
-    if (exp10 >= 0) out.push_back('+');
-    out.append(std::to_string(exp10));
-    return out;
-}
-#endif
 
 static Backend::ImageView makeImageView(const Image *image) {
     if (!image) return {};
@@ -205,8 +108,7 @@ public:
         }
 
 #if defined(USE_MPFR)
-        std::string targetReal;
-        std::string targetImag;
+        std::string targetReal, targetImag;
         if (auto status = _pointFromPixelString(
             pixelX, pixelY, targetReal, targetImag); !status) {
             return status;
@@ -214,8 +116,8 @@ public:
 
         const int oldCount = count;
         const scalar_half_t oldZoom = zoom;
-        const std::string oldPointReal = _pointReal;
-        const std::string oldPointImag = _pointImag;
+        const std::string oldPointReal = _pointReal,
+            oldPointImag = _pointImag;
 
         if (!setZoomGlobals(oldCount, targetZoom)) {
             return makeFailure("Scale must be > -3.25.");
@@ -224,8 +126,7 @@ public:
         _pointReal = "0";
         _pointImag = "0";
 
-        std::string offsetReal;
-        std::string offsetImag;
+        std::string offsetReal, offsetImag;
         const Backend::Status offsetStatus = _pointFromPixelString(
             pixelX, pixelY, offsetReal, offsetImag);
 
@@ -253,15 +154,14 @@ public:
         mpfr_sub(pointRealMp, targetRealMp, offsetRealMp, MPFRTypes::ROUNDING);
         mpfr_sub(pointImagMp, offsetImagMp, targetImagMp, MPFRTypes::ROUNDING);
 
-        real = toMpfrString(pointRealMp);
-        imag = toMpfrString(pointImagMp);
+        real = MPFRTypes::toString(pointRealMp);
+        imag = MPFRTypes::toString(pointImagMp);
 
         mpfr_clears(targetRealMp, targetImagMp, offsetRealMp, offsetImagMp,
             pointRealMp, pointImagMp, static_cast<mpfr_ptr>(nullptr));
         return Backend::Status::success();
 #elif defined(USE_QD)
-        std::string targetReal;
-        std::string targetImag;
+        std::string targetReal, targetImag;
         if (auto status = _pointFromPixelString(
             pixelX, pixelY, targetReal, targetImag); !status) {
             return status;
@@ -269,8 +169,8 @@ public:
 
         const int oldCount = count;
         const scalar_half_t oldZoom = zoom;
-        const std::string oldPointReal = _pointReal;
-        const std::string oldPointImag = _pointImag;
+        const std::string oldPointReal = _pointReal,
+            oldPointImag = _pointImag;
 
         if (!setZoomGlobals(oldCount, targetZoom)) {
             return makeFailure("Scale must be > -3.25.");
@@ -279,8 +179,7 @@ public:
         _pointReal = "0";
         _pointImag = "0";
 
-        std::string offsetReal;
-        std::string offsetImag;
+        std::string offsetReal, offsetImag;
         const Backend::Status offsetStatus = _pointFromPixelString(
             pixelX, pixelY, offsetReal, offsetImag);
 
@@ -290,30 +189,26 @@ public:
 
         if (!offsetStatus) return offsetStatus;
 
-        qd_real targetRealQd;
-        qd_real targetImagQd;
-        qd_real offsetRealQd;
-        qd_real offsetImagQd;
-        qd_real pointRealQd;
-        qd_real pointImagQd;
+        qd_real targetRealQD, targetImagQD;
+        qd_real offsetRealQD, offsetImagQD;
+        qd_real pointRealQD, pointImagQD;
 
-        if (!QDTypes::parseNumber(targetRealQd, targetReal.c_str()) ||
-            !QDTypes::parseNumber(targetImagQd, targetImag.c_str()) ||
-            !QDTypes::parseNumber(offsetRealQd, offsetReal.c_str()) ||
-            !QDTypes::parseNumber(offsetImagQd, offsetImag.c_str())) {
+        if (!QDTypes::parseNumber(targetRealQD, targetReal.c_str()) ||
+            !QDTypes::parseNumber(targetImagQD, targetImag.c_str()) ||
+            !QDTypes::parseNumber(offsetRealQD, offsetReal.c_str()) ||
+            !QDTypes::parseNumber(offsetImagQD, offsetImag.c_str())) {
             return makeFailure("Point coordinates must be valid numbers.");
         }
 
-        pointRealQd = targetRealQd - offsetRealQd;
-        pointImagQd = offsetImagQd - targetImagQd;
+        pointRealQD = targetRealQD - offsetRealQD;
+        pointImagQD = offsetImagQD - targetImagQD;
 
-        real = toQdString(pointRealQd);
-        imag = toQdString(pointImagQd);
+        real = QDTypes::toString(pointRealQD);
+        imag = QDTypes::toString(pointImagQD);
 
         return Backend::Status::success();
 #else
-        scalar_full_t targetReal = ZERO_F;
-        scalar_full_t targetImag = ZERO_F;
+        scalar_full_t targetReal = ZERO_F, targetImag = ZERO_F;
         if (auto status = _pointFromPixel(pixelX, pixelY, targetReal, targetImag); !status) {
             return status;
         }
@@ -330,8 +225,7 @@ public:
         }
 
         setZoomPoints(ZERO_F, ZERO_F, oldSeedR, oldSeedI);
-        scalar_full_t offsetReal = ZERO_F;
-        scalar_full_t offsetImag = ZERO_F;
+        scalar_full_t offsetReal = ZERO_F, offsetImag = ZERO_F;
         const Backend::Status offsetStatus = _pointFromPixel(
             pixelX, pixelY, offsetReal, offsetImag);
 
@@ -347,6 +241,14 @@ public:
 #endif
     }
 
+    int currentIterationCount() const override {
+        return count;
+    }
+
+    int precisionRank() const override {
+        return static_cast<int>(ScalarPrecision::precisionRank());
+    }
+
     Backend::Status setImageSize(int imageWidth, int imageHeight, int aa) override {
         if (!setImageGlobals(imageWidth, imageHeight, aa)) {
             return makeFailure("Width, height, and aaPixels must be > 0.");
@@ -360,6 +262,8 @@ public:
     }
 
     Backend::Status setZoom(int iterCount, float zoomScale) override {
+        _autoIterations = iterCount < 1;
+
         if (!setZoomGlobals(iterCount, zoomScale)) {
             return makeFailure("Scale must be > -3.25.");
         }
@@ -420,8 +324,7 @@ public:
         );
         return Backend::Status::success();
 #else
-        scalar_full_t real = ZERO_F;
-        scalar_full_t imag = ZERO_F;
+        scalar_full_t real = ZERO_F, imag = ZERO_F;
 
         if (auto status = _pointFromPixel(pixelX, pixelY, real, imag); !status) {
             return status;
@@ -464,18 +367,17 @@ public:
 
         mpfr_clears(seedRealMp, seedImagMp, static_cast<mpfr_ptr>(nullptr));
 #elif defined(USE_QD)
-        qd_real seedRealQd;
-        qd_real seedImagQd;
-        if (!QDTypes::parseNumber(seedRealQd, _seedReal.c_str()) ||
-            !QDTypes::parseNumber(seedImagQd, _seedImag.c_str())) {
+        qd_real seedRealQD, seedImagQD;
+        if (!QDTypes::parseNumber(seedRealQD, _seedReal.c_str()) ||
+            !QDTypes::parseNumber(seedImagQD, _seedImag.c_str())) {
             return makeFailure("Seed coordinates must be valid numbers.");
         }
 
         setZoomPoints(
             point_r,
             point_i,
-            static_cast<scalar_full_t>(to_double(seedRealQd)),
-            static_cast<scalar_full_t>(to_double(seedImagQd))
+            static_cast<scalar_full_t>(to_double(seedRealQD)),
+            static_cast<scalar_full_t>(to_double(seedImagQD))
         );
 #else
         setZoomPoints(
@@ -504,8 +406,7 @@ public:
         );
         return Backend::Status::success();
 #else
-        scalar_full_t real = ZERO_F;
-        scalar_full_t imag = ZERO_F;
+        scalar_full_t real = ZERO_F, imag = ZERO_F;
 
         if (auto status = _pointFromPixel(pixelX, pixelY, real, imag); !status) {
             return status;
@@ -629,8 +530,7 @@ public:
     }
 
     Backend::Status setLight(int pixelX, int pixelY) override {
-        scalar_full_t real = ZERO_F;
-        scalar_full_t imag = ZERO_F;
+        scalar_full_t real = ZERO_F, imag = ZERO_F;
 
         if (auto status = _pointFromPixel(pixelX, pixelY, real, imag); !status) {
             return status;
@@ -713,9 +613,7 @@ public:
                 minValue + span * CAST_H(x) / widthDenom :
                 minValue;
 
-            scalar_half_t r = ZERO_H;
-            scalar_half_t g = ZERO_H;
-            scalar_half_t b = ZERO_H;
+            scalar_half_t r = ZERO_H, g = ZERO_H, b = ZERO_H;
             ScalarRenderer::sampleColorFormula(value, r, g, b);
 
             for (int y = 0; y < previewHeight; ++y) {
@@ -738,15 +636,27 @@ public:
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str());
 
+        RenderIterationStats iterStats;
         renderImage(_image.get(), &_callbacks,
             static_cast<bool>(_callbacks.onProgress),
-            static_cast<bool>(_callbacks.onInfo));
+            static_cast<bool>(_callbacks.onInfo) || _autoIterations,
+            _autoIterations
+                ? OptionalIterationStats(std::ref(iterStats))
+                : std::nullopt);
+
+        if (_autoIterations) {
+            applyAutoIterations(iterStats);
+        }
 
         return Backend::Status::success();
     }
 
     void clearImage() override {
         if (_image) _image->clear();
+    }
+
+    void forceKill() override {
+        forceKillRenderThreads();
     }
 
     Backend::ImageView imageView() const override {
@@ -768,10 +678,7 @@ public:
 
 private:
     Backend::Callbacks _callbacks;
-    std::unique_ptr<Image> _image;
-    std::unique_ptr<Image> _palettePreviewImage;
-    std::unique_ptr<Image> _sinePreviewImage;
-    int _lastAAPixels = 1;
+    bool _autoIterations = true;
 
     std::string _pointReal = "0";
     std::string _pointImag = "0";
@@ -779,30 +686,35 @@ private:
     std::string _seedImag = "0";
     std::string _exponent = "2";
 
-    template<typename PaletteConfigT>
-    Backend::Status _setPaletteImpl(
-        const PaletteConfigT &paletteConfig,
-        const std::string &invalidEntryMessage
-    ) {
-        if (paletteConfig.totalLength <= ZERO_H || paletteConfig.offset < ZERO_H) {
-            return makeFailure("Palette length must be > 0 and offset must be >= 0.");
-        }
+    std::unique_ptr<Image> _image;
+    std::unique_ptr<Image> _palettePreviewImage;
+    std::unique_ptr<Image> _sinePreviewImage;
+    int _lastAAPixels = 1;
 
-        std::vector<ScalarPaletteColor> entries;
-        entries.reserve(paletteConfig.entries.size());
+    void applyAutoIterations(const RenderIterationStats &stats) {
+        if (!stats.valid) return;
 
-        for (const auto &entry : paletteConfig.entries) {
-            ScalarPaletteColor parsed = makePaletteColor(entry);
-            if (!isValidPaletteColor(parsed)) {
-                return makeFailure(invalidEntryMessage);
+        setZoomGlobals(stats.autoIterationCount(count), zoom);
+    }
+
+    Backend::Status _ensureImage() {
+        const bool needsNewImage = !_image ||
+            _image->outputWidth() != outputWidth ||
+            _image->outputHeight() != outputHeight ||
+            _lastAAPixels != aaPixels;
+
+        if (needsNewImage) {
+            if (auto image = Image::create(outputWidth, outputHeight,
+                useThreads, aaPixels); !image) {
+                return makeFailure("Failed to allocate image.");
+            } else {
+                _image = std::move(image);
             }
 
-            entries.push_back(parsed);
-        }
-
-        if (!setPaletteGlobals(entries, paletteConfig.totalLength,
-            paletteConfig.offset, paletteConfig.blendEnds)) {
-            return makeFailure("Palette must contain at least 2 valid entries.");
+            _image->setCallbacks(&_callbacks);
+            _lastAAPixels = aaPixels;
+        } else {
+            _image->clear();
         }
 
         return Backend::Status::success();
@@ -835,8 +747,8 @@ private:
         getOutputCenterReal_mp(realMp, pixelX);
         getOutputCenterImag_mp(imagMp, pixelY);
 
-        real = toMpfrString(realMp);
-        imag = toMpfrString(imagMp);
+        real = MPFRTypes::toString(realMp);
+        imag = MPFRTypes::toString(imagMp);
 
         mpfr_clears(realMp, imagMp, static_cast<mpfr_ptr>(nullptr));
         return Backend::Status::success();
@@ -848,17 +760,15 @@ private:
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str());
 
-        qd_real realQd;
-        qd_real imagQd;
-        getOutputCenterReal_qd(realQd, pixelX);
-        getOutputCenterImag_qd(imagQd, pixelY);
+        qd_real realQD, imagQD;
+        getOutputCenterReal_qd(realQD, pixelX);
+        getOutputCenterImag_qd(imagQD, pixelY);
 
-        real = toQdString(realQd);
-        imag = toQdString(imagQd);
+        real = QDTypes::toString(realQD);
+        imag = QDTypes::toString(imagQD);
         return Backend::Status::success();
 #else
-        scalar_full_t realVal = ZERO_F;
-        scalar_full_t imagVal = ZERO_F;
+        scalar_full_t realVal = ZERO_F, imagVal = ZERO_F;
         if (auto status = _pointFromPixel(pixelX, pixelY, realVal, imagVal); !status) {
             return status;
         }
@@ -869,22 +779,30 @@ private:
 #endif
     }
 
-    Backend::Status _ensureImage() {
-        const bool needsNewImage = !_image ||
-            _image->outputWidth() != outputWidth ||
-            _image->outputHeight() != outputHeight ||
-            _lastAAPixels != aaPixels;
+    template<typename PaletteConfigT>
+    Backend::Status _setPaletteImpl(
+        const PaletteConfigT &paletteConfig,
+        const std::string &invalidEntryMessage
+    ) {
+        if (paletteConfig.totalLength <= ZERO_H || paletteConfig.offset < ZERO_H) {
+            return makeFailure("Palette length must be > 0 and offset must be >= 0.");
+        }
 
-        if (needsNewImage) {
-            if (auto image = Image::create(outputWidth, outputHeight,
-                useThreads, aaPixels); !image)
-                return makeFailure("Failed to allocate image.");
-            else _image = std::move(image);
+        std::vector<ScalarPaletteColor> entries;
+        entries.reserve(paletteConfig.entries.size());
 
-            _image->setCallbacks(&_callbacks);
-            _lastAAPixels = aaPixels;
-        } else {
-            _image->clear();
+        for (const auto &entry : paletteConfig.entries) {
+            ScalarPaletteColor parsed = makePaletteColor(entry);
+            if (!parsed.valid()) {
+                return makeFailure(invalidEntryMessage);
+            }
+
+            entries.push_back(parsed);
+        }
+
+        if (!setPaletteGlobals(entries, paletteConfig.totalLength,
+            paletteConfig.offset, paletteConfig.blendEnds)) {
+            return makeFailure("Palette must contain at least 2 valid entries.");
         }
 
         return Backend::Status::success();

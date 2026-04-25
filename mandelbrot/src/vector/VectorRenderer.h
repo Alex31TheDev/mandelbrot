@@ -6,6 +6,7 @@
 
 #include "VectorTypes.h"
 #include "../scalar/ScalarTypes.h"
+#include "../render/RenderIterationStats.h"
 
 #include "util/InlineUtil.h"
 
@@ -30,7 +31,9 @@ namespace VectorRenderer {
         simd_full_t dr, simd_full_t di);
 
     void VECTOR_CALL renderPixelSIMD(uint8_t *pixels, size_t &pos, int width,
-        scalar_full_t x, simd_full_t ci, uint64_t *totalIterCount = nullptr);
+        scalar_full_t x, simd_full_t ci,
+        OptionalIterationStats iterStats = std::nullopt,
+        std::optional<int> y = std::nullopt);
 }
 
 #endif

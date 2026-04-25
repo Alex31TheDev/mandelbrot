@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <algorithm>
 
 #include "../scalar/ScalarTypes.h"
 #include "VectorTypes.h"
@@ -14,6 +15,7 @@ using namespace ScalarGlobals;
 using namespace VectorGlobals;
 
 #include "../image/Image.h"
+#include "../render/RenderIterationStats.h"
 #include "VectorCoords.h"
 
 #define _FORMULA_VECTOR
@@ -215,7 +217,7 @@ FORCE_INLINE void _iterateFractal4_vec(
 constexpr int WIDTH_128_STRIDE = 4 * Image::STRIDE;
 
 template <int N, int total>
-consteval auto _makeRgbMask() {
+consteval auto _makeRGBMask() {
     std::array<int8_t, total> mask{};
 
     for (int i = 0; i < N; i++) {
@@ -228,14 +230,14 @@ consteval auto _makeRgbMask() {
     return mask;
 }
 
-constexpr auto _rgbMask_arr = _makeRgbMask<4, 16>();
+constexpr auto _rgbMask_arr = _makeRGBMask<4, 16>();
 static_assert(is_constexpr_test<_rgbMask_arr>());
 
 static const __m128i _rgbMask = _mm_loadu_si128(
     reinterpret_cast<const __m128i *>(_rgbMask_arr.data())
 );
 
-#define shuffleRgb_vec(rgb) _mm_shuffle_epi8(rgb, _rgbMask)
+#define shuffleRGB_vec(rgb) _mm_shuffle_epi8(rgb, _rgbMask)
 
 #define store128bitLane_vec(out, data, lane) \
     _mm_storeu_si128(reinterpret_cast<__m128i *>( \
@@ -244,26 +246,26 @@ static const __m128i _rgbMask = _mm_loadu_si128(
 template<typename T>
 FORCE_INLINE void writePixelData_vec(uint8_t *out, T RGBA8) {
     if constexpr (std::is_same_v<T, __m128i>) {
-        store128bitLane_vec(out, shuffleRgb_vec(RGBA8), 0);
+        store128bitLane_vec(out, shuffleRGB_vec(RGBA8), 0);
     } else if constexpr (std::is_same_v<T, __m256i>) {
-        store128bitLane_vec(out, shuffleRgb_vec(
+        store128bitLane_vec(out, shuffleRGB_vec(
             _mm256_castsi256_si128(RGBA8)), 0);
-        store128bitLane_vec(out, shuffleRgb_vec(
+        store128bitLane_vec(out, shuffleRGB_vec(
             _mm256_extracti128_si256(RGBA8, 1)), 1);
     } else if constexpr (std::is_same_v<T, __m512i>) {
-        store128bitLane_vec(out, shuffleRgb_vec(
+        store128bitLane_vec(out, shuffleRGB_vec(
             _mm512_extracti32x4_epi32(RGBA8, 0)), 0);
-        store128bitLane_vec(out, shuffleRgb_vec(
+        store128bitLane_vec(out, shuffleRGB_vec(
             _mm512_extracti32x4_epi32(RGBA8, 1)), 1);
-        store128bitLane_vec(out, shuffleRgb_vec(
+        store128bitLane_vec(out, shuffleRGB_vec(
             _mm512_extracti32x4_epi32(RGBA8, 2)), 2);
-        store128bitLane_vec(out, shuffleRgb_vec(
+        store128bitLane_vec(out, shuffleRGB_vec(
             _mm512_extracti32x4_epi32(RGBA8, 3)), 3);
     } else STATIC_FAIL_MSG(T, "Unsupported SIMD type");
 }
 
 #else
-#include "../scalar/ScalarRenderer.h"
+#include "../scalar/ScalarColors.h"
 #endif
 
 #define normCos_vec(x) \
@@ -420,9 +422,9 @@ FORCE_INLINE void _setPixels_vec(
 
     UNROLL(SIMD_HALF_WIDTH);
     for (size_t i = 0; i < width; i++) {
-        out[i * Image::STRIDE] = ScalarRenderer::colorToInt(R_arr[i]);
-        out[i * Image::STRIDE + 1] = ScalarRenderer::colorToInt(G_arr[i]);
-        out[i * Image::STRIDE + 2] = ScalarRenderer::colorToInt(B_arr[i]);
+        out[i * Image::STRIDE] = toColorByte(R_arr[i]);
+        out[i * Image::STRIDE + 1] = toColorByte(G_arr[i]);
+        out[i * Image::STRIDE + 2] = toColorByte(B_arr[i]);
     }
 #endif
 
@@ -556,7 +558,31 @@ FORCE_INLINE void _colorPixels_vec(
         ); \
     }
 
-#define _RENDER_ITER_SUM(n) SIMD_HORIZ_ADD_F(_RENDER_VAR(iter, n))
+FORCE_INLINE void recordIterationStats_vec(
+    OptionalIterationStats iterStats,
+    simd_full_t iter,
+    int validWidth,
+    int x,
+    std::optional<int> y
+) {
+    if (!iterStats) return;
+
+    alignas(SIMD_FULL_ALIGNMENT) scalar_full_t iterLanes[SIMD_FULL_WIDTH];
+    SIMD_STORE_F(iterLanes, iter);
+
+    for (int lane = 0; lane < validWidth; ++lane) {
+        const int64_t pixelIter = static_cast<int64_t>(
+            std::min<scalar_full_t>(
+                iterLanes[lane],
+                static_cast<scalar_full_t>(count)));
+        iterStats->get().record(pixelIter, x + lane, y);
+    }
+}
+
+#define _RENDER_ITER_STATS(n) \
+    recordIterationStats_vec( \
+        iterStats, _RENDER_VAR(iter, n), _RENDER_VAR(width, n), \
+        static_cast<int>(x) + _RENDER_OFFSET(n), y)
 
 namespace VectorRenderer {
     void VECTOR_CALL initCoordsSIMD(
@@ -617,7 +643,8 @@ namespace VectorRenderer {
 
     void VECTOR_CALL renderPixelSIMD(
         uint8_t *pixels, size_t &pos, int width,
-        scalar_full_t x, simd_full_t ci, uint64_t *totalIterCount
+        scalar_full_t x, simd_full_t ci,
+        OptionalIterationStats iterStats, std::optional<int> y
     ) {
         if (!useQuadPath()) {
             _RENDER_WIDTH(1);
@@ -636,10 +663,7 @@ namespace VectorRenderer {
 
             _RENDER_COLOR(1);
 
-            if (totalIterCount) {
-                const scalar_full_t sum = _RENDER_ITER_SUM(1);
-                *totalIterCount = static_cast<uint64_t>(sum) + width;
-            }
+            _RENDER_ITER_STATS(1);
         } else {
             _RENDER_WIDTH(1);
             _RENDER_WIDTH(2);
@@ -685,14 +709,10 @@ namespace VectorRenderer {
             _RENDER_COLOR(3);
             _RENDER_COLOR(4);
 
-            if (totalIterCount) {
-                const scalar_full_t sum =
-                    _RENDER_ITER_SUM(1) +
-                    _RENDER_ITER_SUM(2) +
-                    _RENDER_ITER_SUM(3) +
-                    _RENDER_ITER_SUM(4);
-                *totalIterCount = static_cast<uint64_t>(sum) + width;
-            }
+            _RENDER_ITER_STATS(1);
+            _RENDER_ITER_STATS(2);
+            _RENDER_ITER_STATS(3);
+            _RENDER_ITER_STATS(4);
         }
     }
 }

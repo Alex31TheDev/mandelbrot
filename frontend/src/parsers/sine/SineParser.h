@@ -1,10 +1,10 @@
 #pragma once
+#include "../KeyValueParser.h"
 
 #include <string>
 #include <vector>
 
 #include "BackendAPI.h"
-#include "../KeyValueParser.h"
 
 class SineParser
     : public KeyValueParser<Backend::SinePaletteConfig> {

@@ -4,8 +4,7 @@
 #include <QtWidgets/QApplication>
 #include <QStyleFactory>
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::Round);
     QApplication app(argc, argv);

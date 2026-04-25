@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "BackendAPI.h"
+
 #include "util/FormatUtil.h"
 
 PaletteWriter::PaletteWriter(const Backend::PaletteRGBConfig &palette)
@@ -24,8 +25,8 @@ void PaletteWriter::_writeBody(std::ostream &out) const {
             << "offset=" << palette.offset << '\n'
             << "blendEnds=" << FormatUtil::formatBool(palette.blendEnds) << '\n';
 
-        using PaletteT = std::decay_t<decltype(palette)>;
-        if constexpr (std::is_same_v<PaletteT, Backend::PaletteRGBConfig>) {
+        using T = std::decay_t<decltype(palette)>;
+        if constexpr (std::is_same_v<T, Backend::PaletteRGBConfig>) {
             for (const Backend::PaletteRGBEntry &entry : palette.entries) {
                 out << "color="
                     << FormatUtil::formatHexColor(entry.R, entry.G, entry.B)

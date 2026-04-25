@@ -28,8 +28,7 @@ bool KeyValueParser<Output>::_parseFileLine(
     std::string token;
 
     while (iss >> token) {
-        std::string key;
-        std::string value;
+        std::string key, value;
         if (!_parseTokenKeyValue(token, key, value)) {
             err = _invalidTokenErrorPrefix() + token;
             return false;

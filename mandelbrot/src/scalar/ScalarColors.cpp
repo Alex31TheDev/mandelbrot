@@ -29,6 +29,10 @@ ScalarColor ScalarColor::fromString(std::string_view hex) {
     return out;
 }
 
+bool ScalarColor::valid() const {
+    return R >= ZERO_H && G >= ZERO_H && B >= ZERO_H;
+}
+
 ScalarPaletteColor ScalarPaletteColor::fromString(
     std::string_view hex, const std::string &lengthStr
 ) {
@@ -37,4 +41,8 @@ ScalarPaletteColor ScalarPaletteColor::fromString(
 
     out.length = parseNumber(lengthStr, NEGONE_H);
     return out;
+}
+
+bool ScalarPaletteColor::valid() const {
+    return ScalarColor::valid() && length >= ZERO_H;
 }

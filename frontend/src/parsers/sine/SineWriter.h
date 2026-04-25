@@ -4,6 +4,7 @@
 #include <string>
 
 #include "BackendAPI.h"
+
 #include "../KeyValueWriter.h"
 
 class SineWriter : public KeyValueWriter {

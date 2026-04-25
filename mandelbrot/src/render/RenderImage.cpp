@@ -1,11 +1,8 @@
 #include "RenderImage.h"
 
-#include <cstdio>
 #include <cstdint>
-#include <cinttypes>
 
 #include <memory>
-#include <mutex>
 #include <numeric>
 
 #include "../image/Image.h"
@@ -23,16 +20,16 @@ using namespace RenderGlobals;
 struct RowRenderer {
     void operator()(
         Image *image, size_t &pos, unsigned xstart, unsigned xend,
-        unsigned y, uint64_t *iterPtr, uint64_t &totalCount
-    ) const {
+        unsigned y, OptionalIterationStats iterStats
+        ) const {
         const auto ci = getCenterImag(y);
 
         for (unsigned x = xstart; x <= xend; ++x) {
             ScalarRenderer::renderPixelScalar(
                 image->pixels(), pos,
-                static_cast<int>(x), ci, iterPtr
+                static_cast<int>(x), ci,
+                iterStats, static_cast<int>(y)
             );
-            if (iterPtr) totalCount += *iterPtr;
         }
     }
 };
@@ -54,8 +51,8 @@ struct RowRenderer {
 
     void operator()(
         Image *image, size_t &pos, unsigned xstart, unsigned xend,
-        unsigned y, uint64_t *iterPtr, uint64_t &totalCount
-    ) const {
+        unsigned y, OptionalIterationStats iterStats
+        ) const {
         const simd_full_t ci = getCenterImag_vec(SIMD_SET1_F(y));
 
         for (unsigned x = xstart; x <= xend; x += chunkWidth) {
@@ -66,42 +63,35 @@ struct RowRenderer {
 
             VectorRenderer::renderPixelSIMD(
                 image->pixels(), pos,
-                simdWidth, x, ci, iterPtr
+                simdWidth, x, ci,
+                iterStats, static_cast<int>(y)
             );
-            if (iterPtr) totalCount += *iterPtr;
         }
     }
 };
 
 #elif defined(USE_MPFR)
 
-#include "../mpfr/MPFRCoords.h"
 #include "../mpfr/MPFRRenderer.h"
-#include "../mpfr/MPFRTypes.h"
 
 struct RowRenderer {
-    mpfr_t ci;
+    std::shared_ptr<const MPFRRenderer::PerturbationReference> reference;
 
     RowRenderer() {
-        MPFRTypes::initRaw(ci);
-    }
-
-    ~RowRenderer() {
-        mpfr_clear(ci);
+        reference = MPFRRenderer::preparePerturbationReference();
     }
 
     void operator()(
         Image *image, size_t &pos, unsigned xstart, unsigned xend,
-        unsigned y, uint64_t *iterPtr,  uint64_t &totalCount
-    ) {
-        getCenterImag_mp(ci, static_cast<int>(y));
-
+        unsigned y, OptionalIterationStats iterStats
+        ) {
         for (unsigned x = xstart; x <= xend; ++x) {
             MPFRRenderer::renderPixelMPFR(
                 image->pixels(), pos,
-                static_cast<int>(x), ci, iterPtr
+                static_cast<int>(x),
+                static_cast<int>(y), iterStats,
+                reference.get()
             );
-            if (iterPtr) totalCount += *iterPtr;
         }
     }
 };
@@ -116,16 +106,16 @@ struct RowRenderer {
 
     void operator()(
         Image *image, size_t &pos, unsigned xstart, unsigned xend,
-        unsigned y, uint64_t *iterPtr, uint64_t &totalCount
-    ) {
+        unsigned y, OptionalIterationStats iterStats
+        ) {
         getCenterImag_qd(ci, static_cast<int>(y));
 
         for (unsigned x = xstart; x <= xend; ++x) {
             QDRenderer::renderPixelQD(
                 image->pixels(), pos,
-                static_cast<int>(x), ci, iterPtr
+                static_cast<int>(x), ci,
+                iterStats, static_cast<int>(y)
             );
-            if (iterPtr) totalCount += *iterPtr;
         }
     }
 };
@@ -134,43 +124,44 @@ struct RowRenderer {
 #error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, USE_MPFR, or USE_QD)"
 #endif
 
-#include "util/FormatUtil.h"
-
-const ProgressConfig progressConfig = {
-    .progressName = "Rendering",
-    .opsName = "pixels"
-};
-
 constexpr int MIN_THREADING_HEIGHT = 50;
 constexpr int MAX_TASK_COUNT = 4096;
 
-inline std::unique_ptr<ProgressTracker>
+static std::unique_ptr<ProgressTracker>
 createProgressTracker(bool trackProgress,
     const Backend::Callbacks *callbacks = nullptr) {
     if (trackProgress) {
-        auto config = progressConfig;
-        config.callbacks = callbacks;
-
+        const ProgressOptions options{
+            .callbacks = callbacks
+        };
         return std::make_unique<ProgressTracker>(width * height,
-            useThreads, config);
+            useThreads, options);
     } else return nullptr;
 }
 
-inline ThreadPool<> &getThreadPool() {
-    static ThreadPool<> pool;
+static std::unique_ptr<ThreadPool<>> &getThreadPool(bool create = true) {
+    static std::unique_ptr<ThreadPool<>> pool = std::make_unique<ThreadPool<>>();
+    if (create && !pool) {
+        pool = std::make_unique<ThreadPool<>>();
+    }
     return pool;
+}
+
+void forceKillRenderThreads() {
+    auto &pool = getThreadPool(false);
+    if (!pool) return;
+    pool->forceTerminate();
+    pool.reset();
 }
 
 static void renderStrip(
     Image *image,
     unsigned xstart, unsigned xend,
     unsigned ystart, unsigned yend,
-    uint64_t *totalIterCount, ProgressTracker *progress
+    ProgressTracker *progress,
+    OptionalIterationStats iterStats
 ) {
     RowRenderer renderer;
-
-    uint64_t iterCount = 0, totalCount = 0;
-    uint64_t *iterPtr = totalIterCount ? &iterCount : nullptr;
 
     const unsigned rowWidth = xend - xstart + 1;
 
@@ -180,17 +171,15 @@ static void renderStrip(
 
         renderer(
             image, pos, xstart, xend,
-            y, iterPtr, totalCount
+            y, iterStats
         );
 
         pos += image->tailBytes();
         if (progress) progress->update(rowWidth);
     }
-
-    if (totalIterCount) *totalIterCount = totalCount;
 }
 
-inline void emitIterations(const Backend::Callbacks *callbacks,
+static void emitIterations(const Backend::Callbacks *callbacks,
     uint64_t iter, ProgressTracker::SU time) {
     if (!callbacks || !callbacks->onInfo) return;
 
@@ -212,29 +201,36 @@ inline void emitIterations(const Backend::Callbacks *callbacks,
 static void renderImageSequential(
     Image *image,
     const Backend::Callbacks *callbacks,
-    bool trackProgress, bool trackIterations
+    bool trackProgress, bool trackIterations,
+    OptionalIterationStats iterStats
 ) {
     auto progress = createProgressTracker(trackProgress, callbacks);
 
-    uint64_t iterCount = 0;
-    uint64_t *iterPtr = trackIterations ? &iterCount : nullptr;
+    RenderIterationStats localStats;
+    if (trackIterations && !iterStats) iterStats = std::ref(localStats);
 
-    renderStrip(image, 0, width - 1, 0, height - 1, iterPtr, progress.get());
+    renderStrip(image, 0, width - 1, 0, height - 1, progress.get(),
+        trackIterations ? iterStats : std::nullopt);
 
     if (trackProgress) progress->complete();
-    if (trackIterations) emitIterations(callbacks, iterCount, progress->elapsed());
+    if (trackIterations) {
+        emitIterations(callbacks, iterStats->get().totalIterations,
+            progress->elapsed());
+    }
 }
 
 static void renderImageParallel(
     Image *image,
     const Backend::Callbacks *callbacks,
-    bool trackProgress, bool trackIterations
+    bool trackProgress, bool trackIterations,
+    OptionalIterationStats iterStats
 ) {
-    auto &pool = getThreadPool();
+    auto &pool = *getThreadPool();
 
     if (height < MIN_THREADING_HEIGHT ||
         pool.size() <= 1) {
-        renderImageSequential(image, callbacks, trackProgress, trackIterations);
+        renderImageSequential(image, callbacks, trackProgress,
+            trackIterations, iterStats);
         return;
     }
 
@@ -245,8 +241,8 @@ static void renderImageParallel(
     const int rowsPerTask = height / taskCount;
     const int extraRows = height % taskCount;
 
-    auto iterCounts = trackIterations
-        ? std::make_unique<uint64_t[]>(taskCount)
+    auto stats = trackIterations
+        ? std::make_unique<RenderIterationStats[]>(taskCount)
         : nullptr;
 
     int startY = 0;
@@ -254,13 +250,16 @@ static void renderImageParallel(
     for (int i = 0; i < taskCount; ++i) {
         const int chunkRows = rowsPerTask + (i < extraRows ? 1 : 0);
         const int endY = startY + chunkRows;
-        uint64_t *iterPtr = trackIterations ? &iterCounts[i] : nullptr;
+
+        OptionalIterationStats taskStats =
+            stats ? OptionalIterationStats(std::ref(stats[i])) :
+            std::nullopt;
 
         pool.enqueueDetach([=, &progress]() {
             renderStrip(image,
                 0, width - 1,
                 startY, endY - 1,
-                iterPtr, progress.get());
+                progress.get(), taskStats);
             });
 
         startY = endY;
@@ -268,24 +267,26 @@ static void renderImageParallel(
 
     pool.waitForTasks();
 
-    const uint64_t totalCount = trackIterations
-        ? std::accumulate(iterCounts.get(),
-            iterCounts.get() + taskCount, 0Ui64)
-        : 0;
-
     if (trackProgress) progress->complete();
-    if (trackIterations)
-        emitIterations(callbacks, totalCount, progress->elapsed());
+    if (trackIterations) {
+        RenderIterationStats mergedStats;
+        for (int i = 0; i < taskCount; ++i) mergedStats.merge(stats[i]);
+        if (iterStats) iterStats->get().merge(mergedStats);
+
+        emitIterations(callbacks, mergedStats.totalIterations,
+            progress->elapsed());
+    }
 }
 
 void renderImage(
     Image *image,
     const Backend::Callbacks *callbacks,
-    bool trackProgress, bool trackIterations
+    bool trackProgress, bool trackIterations,
+    OptionalIterationStats iterStats
 ) {
     auto render = useThreads
         ? renderImageParallel
         : renderImageSequential;
 
-    render(image, callbacks, trackProgress, trackIterations);
+    render(image, callbacks, trackProgress, trackIterations, iterStats);
 }

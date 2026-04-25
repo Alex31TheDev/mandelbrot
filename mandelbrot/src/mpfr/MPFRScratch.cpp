@@ -6,7 +6,7 @@ void MPFRScratch::initAll(mpfr_prec_t bits) {
 
     auto initOne = [bits](mpfr_t value) {
         mpfr_init2(value, bits);
-    };
+        };
 
     initOne(cr); initOne(ci);
     initOne(zr); initOne(zi);
@@ -33,7 +33,7 @@ void MPFRScratch::roundAll(mpfr_prec_t bits) {
 
     auto roundOne = [bits](mpfr_t value) {
         mpfr_prec_round(value, bits, MPFRTypes::ROUNDING);
-    };
+        };
 
     roundOne(cr); roundOne(ci);
     roundOne(zr); roundOne(zi);

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "BackendAPI.h"
+
 #include "util/FormatUtil.h"
 
 static void printAllocatedImageEvent(const Backend::ImageEvent &event) {

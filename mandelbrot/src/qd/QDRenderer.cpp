@@ -14,6 +14,7 @@ using namespace ScalarGlobals;
 
 #include "QDCoords.h"
 #include "../scalar/ScalarRenderer.h"
+#include "../render/RenderIterationStats.h"
 
 #define FORMULA_QD
 #define _SKIP_FORMULA_OPS
@@ -160,7 +161,8 @@ namespace QDRenderer {
 
     void renderPixelQD(
         uint8_t *pixels, size_t &pos,
-        int x, qd_number_t ci, uint64_t *totalIterCount
+        int x, qd_number_t ci,
+        OptionalIterationStats iterStats, std::optional<int> y
     ) {
         qd_number_t cr = getCenterReal_qd(x);
 
@@ -187,9 +189,7 @@ namespace QDRenderer {
             dr, di
         );
 
-        if (totalIterCount) {
-            *totalIterCount = static_cast<uint64_t>(i);
-        }
+        if (iterStats) iterStats->get().record(i, x, y);
     }
 }
 

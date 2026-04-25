@@ -11,6 +11,12 @@
 #include "util/MacroUtil.h"
 #include "util/InlineUtil.h"
 
+#include <iomanip>
+#include <limits>
+#include <sstream>
+#include <string>
+#include <type_traits>
+
 #if defined(USE_FLOATS)
 typedef float scalar_full_t;
 #define SC_SYM_F(a) _CONCAT2(a, f)
@@ -33,6 +39,18 @@ struct scalar_full_2_t {
 struct scalar_half_2_t {
     scalar_half_t x, y;
 };
+
+template<typename T>
+std::string toScalarString(const T &value) {
+    std::ostringstream oss;
+
+    if constexpr (std::is_floating_point_v<T>) {
+        oss << std::setprecision(std::numeric_limits<T>::max_digits10);
+    }
+
+    oss << value;
+    return oss.str();
+}
 
 #define CAST_F(x) static_cast<scalar_full_t>(x)
 #define CAST_H(x) static_cast<scalar_half_t>(x)

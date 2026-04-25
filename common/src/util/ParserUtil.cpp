@@ -1,5 +1,3 @@
-#include "ParserUtil.h"
-
 #include <cstdint>
 #include <cctype>
 #include <cstring>
@@ -10,6 +8,9 @@
 #include <tuple>
 #include <optional>
 #include <functional>
+
+#include "ParserUtil.h"
+#include "StringUtil.h"
 
 ArgsVec::ArgsVec(int count)
     : argc(count), argv(new char *[count + 1]) {
@@ -50,8 +51,7 @@ namespace ParserUtil {
 
     bool parseBool(std::string_view input,
         std::optional<std::reference_wrapper<bool>> ok) {
-        bool valid = false;
-        bool result = false;
+        bool valid = false, result = false;
 
         if (!input.empty()) {
             if (insensitiveCompare(input, "true")) {
@@ -70,7 +70,7 @@ namespace ParserUtil {
     std::tuple<uint8_t, uint8_t, uint8_t>
         parseHexString(std::string_view str,
             std::optional<std::reference_wrapper<bool>> ok) {
-        if (!str.empty() && str[0] == '#') str.remove_prefix(1);
+        if (StringUtil::startsWith(str, "#")) str.remove_prefix(1);
 
         const bool fullHex = (str.size() == 6);
         const bool shortHex = (str.size() == 3);
