@@ -1,8 +1,6 @@
 #include "PointParser.h"
 
-#include <cmath>
 #include <functional>
-#include <limits>
 
 #include "util/ParserUtil.h"
 
@@ -23,8 +21,8 @@ bool PointParser::parse(
         return false;
     }
 
-    if (!std::isfinite(out.zoom)) {
-        err = "Point file zoom must be a finite number.";
+    if (out.zoom.empty()) {
+        err = "Point file zoom must be provided.";
         return false;
     }
 
@@ -76,11 +74,7 @@ bool PointParser::_handleFileValues(
     }
 
     if (const auto it = values.find("zoom"); it != values.end()) {
-        bool ok = false;
-        out.zoom = parseNumber<double>(it->second, std::ref(ok), out.zoom);
-        if (!ok) {
-            out.zoom = std::numeric_limits<double>::quiet_NaN();
-        }
+        out.zoom = it->second;
     }
 
     if (const auto it = values.find("seed_real"); it != values.end()) {

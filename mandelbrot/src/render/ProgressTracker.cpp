@@ -72,10 +72,15 @@ double ProgressTracker::percentage() const {
 }
 
 double ProgressTracker::opsPerSecond() const {
-    if (_completed) {
+    if (_completed || _threadSafe) {
         const double timeSec = static_cast<double>(elapsed().count())
             / SHORT_UNIT_SCALE;
-        return static_cast<double>(_totalWork) / timeSec;
+        if (timeSec <= 0.0) return 0.0;
+
+        const double work = _completed
+            ? static_cast<double>(_totalWork)
+            : static_cast<double>(completedWork());
+        return work / timeSec;
     }
 
     auto calc = [](const auto &history) -> double {
@@ -95,18 +100,7 @@ double ProgressTracker::opsPerSecond() const {
         }
         };
 
-    return std::visit(
-        [&](auto &&state) -> double {
-            using T = std::decay_t<decltype(state)>;
-
-            if constexpr (std::is_same_v<T, _PlainState>) {
-                return calc(_opsHistory);
-            } else if constexpr (std::is_same_v<T, _AtomicState>) {
-                std::scoped_lock lock(state.opsMutex);
-                return calc(_opsHistory);
-            } else return 0.0;
-        }, _state
-    );
+    return calc(_opsHistory);
 }
 
 void ProgressTracker::_emitProgress(int perc, bool completed) {
@@ -185,6 +179,8 @@ std::tuple<int, int> ProgressTracker::_updateWork(WU processed) {
 }
 
 void ProgressTracker::_updateOpsHistory(WU processed) {
+    if (_threadSafe) return;
+
     auto update = [&](auto &history, HU elapsed) {
         if (history.size() >= OPS_WINDOW_MAX_SIZE) history.pop();
         history.push({ processed, elapsed });
@@ -229,7 +225,18 @@ void ProgressTracker::update(WU processed, bool emitUpdate) {
 void ProgressTracker::complete(bool emitUpdate) {
     _completed = true;
     _endTime = steady_clock::now();
-    _opsHistory.clear();
+
+    std::visit(
+        [&](auto &&state) {
+            using T = std::decay_t<decltype(state)>;
+            if constexpr (std::is_same_v<T, _AtomicState>) {
+                std::scoped_lock lock(state.opsMutex);
+                _opsHistory.clear();
+            } else {
+                _opsHistory.clear();
+            }
+        }, _state
+    );
 
     if (emitUpdate) {
         _emitProgress(100, true);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -37,6 +38,9 @@ class QAction;
 class QMenu;
 class QMenuBar;
 
+inline constexpr int kPrecisionInteractionDelayMs = 200;
+inline constexpr double kBoostedPanSpeedFactor = 2.0;
+
 class mandelbrotgui final : public QWidget {
 public:
     static constexpr auto defaultBackendType = "FloatAVX2";
@@ -54,6 +58,14 @@ public:
         lightPoint
     };
 
+    struct ViewTextState {
+        QString pointReal = "0";
+        QString pointImag = "0";
+        QString zoomText = "0";
+        QSize outputSize;
+        bool valid = false;
+    };
+
     mandelbrotgui(QWidget *parent = nullptr);
     ~mandelbrotgui() override;
 
@@ -67,28 +79,41 @@ public:
     void updateMouseCoords(const QPoint &pixel);
     void clearMouseCoords();
     void onViewportClosed();
+    void requestApplicationShutdown(bool closeViewportWindow);
     void adjustIterationsBy(int delta);
     void cycleNavMode();
     void cancelQueuedRenders();
+    void quickSaveImage();
+    void toggleViewportFullscreen();
+    void finalizeViewportFullscreenTransition();
     [[nodiscard]] NavMode navMode() const { return _navMode; }
+    [[nodiscard]] NavMode displayedNavMode() const;
+    void setDisplayedNavModeOverride(std::optional<NavMode> mode);
     [[nodiscard]] SelectionTarget selectionTarget() const { return _selectionTarget; }
     [[nodiscard]] bool viewportUsesDirectPick() const {
         return _selectionTarget != SelectionTarget::zoomPoint;
     }
     [[nodiscard]] bool renderInFlight() const { return _renderInFlight; }
     [[nodiscard]] QSize outputSize() const;
-    [[nodiscard]] QPointF currentViewPoint() const { return _state.point; }
-    [[nodiscard]] double currentViewZoom() const { return _state.zoom; }
     [[nodiscard]] const QImage &previewImage() const { return _previewImage; }
     [[nodiscard]] bool previewUsesBackendMemory() const { return _previewUsesBackendMemory; }
     [[nodiscard]] bool hasDisplayedViewState() const { return _hasDisplayedViewState; }
-    [[nodiscard]] QPointF displayedViewPoint() const { return _displayedPoint; }
-    [[nodiscard]] double displayedViewZoom() const { return _displayedZoom; }
-    [[nodiscard]] QSize displayedViewOutputSize() const { return _displayedOutputSize; }
+    [[nodiscard]] ViewTextState currentViewTextState() const;
+    [[nodiscard]] ViewTextState displayedViewTextState() const;
+    bool previewPannedViewState(const QPoint &delta,
+        ViewTextState &view, QString &errorMessage);
+    bool previewScaledViewState(const QPoint &pixel, double scaleMultiplier,
+        ViewTextState &view, QString &errorMessage);
+    bool previewBoxZoomViewState(const QRect &selectionRect,
+        ViewTextState &view, QString &errorMessage);
+    bool mapViewPixelToViewPixel(const ViewTextState &sourceView,
+        const ViewTextState &targetView, const QPoint &pixel,
+        QPointF &mappedPixel, QString &errorMessage);
     [[nodiscard]] QString viewportStatusText() const;
     [[nodiscard]] int interactionFrameIntervalMs() const;
     [[nodiscard]] bool canRenderAtTargetFPS() const;
     [[nodiscard]] bool shouldUseInteractionPreviewFallback() const;
+    [[nodiscard]] int panRateValue() const { return std::max(0, _state.panRate); }
     [[nodiscard]] double panRateFactor() const;
     [[nodiscard]] double zoomRateFactor() const;
 
@@ -102,6 +127,7 @@ private:
 
     struct UIState {
         QString backend;
+        bool manualBackendSelection = false;
         int iterations = 0;
         int aaPixels = 1;
         bool useThreads = true;
@@ -147,6 +173,9 @@ private:
     bool applyStateToSession(const UIState &state,
         const QString &pointRealText,
         const QString &pointImagText,
+        const QString &zoomText,
+        const QString &seedRealText,
+        const QString &seedImagText,
         const std::optional<PendingPickAction> &pickAction,
         QString &errorMessage);
     void finishRenderThread(bool forceKillOnTimeout = false, int timeoutMs = 0);
@@ -163,6 +192,10 @@ private:
     void updateViewport();
     void requestViewportRepaint();
     void resizeViewportWindowToImageSize();
+    void freezeViewportPreview(bool disableViewport = false,
+        bool clearInteractionPreview = false);
+    void setViewportInteractive(bool enabled);
+    void shutdownForExit(bool closeViewportWindow);
     void updateControlWindowSize();
     void positionWindowsForInitialShow();
     void updateStatusRightEdgeAlignment();
@@ -186,6 +219,10 @@ private:
     void updateSelectionTarget(int index);
     void updateNavMode(int index);
     void updateAspectLinkedSizes(bool widthChanged);
+    void prepareInteractionPreview(bool forceFallbackPreview);
+    void cycleViewportGrid();
+    void toggleViewportMinimalUI();
+    bool commitImageSave(const QString &path, bool appendDate, const QString &type);
     bool loadSineByName(const QString &name,
         bool requestRenderOnSuccess = true,
         QString *errorMessage = nullptr);
@@ -203,8 +240,12 @@ private:
     void refreshDirtyComboLabels();
 
     [[nodiscard]] QString stateToString(double value, int precision = 17) const;
+    void syncZoomTextFromState();
+    void syncStateZoomFromText();
     void syncPointTextFromState();
     void syncStatePointFromText();
+    void syncSeedTextFromState();
+    void syncStateSeedFromText();
     struct SavedPointViewState {
         Backend::FractalType fractalType = Backend::FractalType::mandelbrot;
         bool inverse = false;
@@ -212,40 +253,49 @@ private:
         int iterations = 0;
         QString real = "0";
         QString imag = "0";
-        double zoom = 0.0;
-        double seedReal = 0.0;
-        double seedImag = 0.0;
+        QString zoom = "0";
+        QString seedReal = "0";
+        QString seedImag = "0";
     };
     [[nodiscard]] SavedPointViewState capturePointViewState() const;
     [[nodiscard]] QPoint clampPixelToOutput(const QPoint &pixel) const;
-    [[nodiscard]] QPointF outputPixelToComplexVisible(const QPoint &pixel) const;
-    [[nodiscard]] QPointF outputPixelToComplexForView(const QPoint &pixel,
-        const QPointF &viewPoint,
-        double viewZoom,
-        const QSize &viewSize) const;
-    [[nodiscard]] QPointF outputPixelToComplex(const QPoint &pixel) const;
-    [[nodiscard]] double currentRealScale() const;
-    [[nodiscard]] double currentImagScale() const;
     [[nodiscard]] double currentZoomFactor(int sliderValue) const;
     [[nodiscard]] int resolveCurrentIterationCount() const;
     [[nodiscard]] bool ensureBackendReady(QString &errorMessage) const;
+    [[nodiscard]] bool ensureNavigationSessionReady(QString &errorMessage) const;
+    [[nodiscard]] bool applyNavigationStateToSession(QString &errorMessage);
+    bool backendPanPointByDelta(const QPoint &delta,
+        QString &realText, QString &imagText, QString &errorMessage);
+    bool backendPointAtPixel(const QPoint &pixel,
+        QString &realText, QString &imagText, QString &errorMessage);
+    bool backendZoomViewAtPixel(const QPoint &pixel, double scaleMultiplier,
+        ViewTextState &view, QString &errorMessage);
+    bool backendBoxZoomView(const QRect &selectionRect,
+        ViewTextState &view, QString &errorMessage);
 
     struct RenderRequest {
         UIState state;
         QString pointRealText;
         QString pointImagText;
+        QString zoomText;
+        QString seedRealText;
+        QString seedImagText;
         std::optional<PendingPickAction> pickAction;
         uint64_t id = 0;
     };
 
     UIState _state;
     BackendModule _backend;
+    Backend::Session *_renderSession = nullptr;
+    Backend::Session *_navigationSession = nullptr;
+    Backend::Session *_previewSession = nullptr;
     Backend::Callbacks _callbacks;
     QWidget *_viewport = nullptr;
 
     QImage _previewImage;
     bool _previewUsesBackendMemory = false;
     std::atomic_bool _interactionPreviewFallbackLatched{ false };
+    std::atomic_bool _interactionPreviewForced{ false };
     QPixmap _palettePreviewPixmap;
     std::optional<PendingPickAction> _pendingPickAction;
     QPoint _lastMousePixel;
@@ -257,6 +307,9 @@ private:
     QString _mouseText;
     QString _pointRealText = "0";
     QString _pointImagText = "0";
+    QString _zoomText = "-0.65";
+    QString _seedRealText = "0";
+    QString _seedImagText = "0";
     QString _viewportFPSText = "FPS -";
     QString _viewportRenderTimeText;
     QString _imageMemoryText;
@@ -267,6 +320,7 @@ private:
     bool _progressCancelled = false;
     bool _renderInFlight = false;
     bool _closing = false;
+    bool _shutdownQueued = false;
     bool _controlWindowSized = false;
     bool _renderStopRequested = false;
     bool _palettePreviewDirty = true;
@@ -290,8 +344,9 @@ private:
     std::atomic_uint64_t _backendGeneration{ 1 };
     std::atomic_int64_t _lastProgressUIUpdateMs{ 0 };
     std::atomic_int32_t _lastRenderDurationMs{ 0 };
-    QPointF _displayedPoint{ 0.0, 0.0 };
-    double _displayedZoom = -0.65;
+    QString _displayedPointRealText = "0";
+    QString _displayedPointImagText = "0";
+    QString _displayedZoomText = "-0.65";
     QSize _displayedOutputSize{ 1920, 1080 };
     bool _hasDisplayedViewState = false;
     QTimer _statusMarqueeTimer;
@@ -368,5 +423,6 @@ private:
     QAction *_aboutAction = nullptr;
 
     NavMode _navMode = NavMode::realtimeZoom;
+    std::optional<NavMode> _displayedNavModeOverride;
     SelectionTarget _selectionTarget = SelectionTarget::zoomPoint;
 };

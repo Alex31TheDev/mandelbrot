@@ -38,7 +38,7 @@ struct ParsedArgs {
     int aaPixels = 1;
     std::string point_r = "0";
     std::string point_i = "0";
-    float zoom = 0.0f;
+    std::string zoom = "0";
     std::string count = "auto";
     bool useThreads = false;
     std::string colorMethod = DEFAULT_COLOR_METHOD.name;
@@ -112,18 +112,6 @@ static void addArgumentStringFull(
     arg.store_into(value);
 }
 
-static void addArgument_H(
-    argparse::ArgumentParser &parser,
-    const char *name, float &value,
-    std::optional<float> defaultValue = std::nullopt
-) {
-    auto &arg = parser.add_argument(name);
-    if (defaultValue) arg.default_value(*defaultValue).skip_token(skipOption);
-
-    arg.action([](const std::string &str) { return parseNumber<float>(str); });
-    arg.store_into(value);
-}
-
 static void addArgumentBool(
     argparse::ArgumentParser &parser,
     const char *name, bool &value,
@@ -152,7 +140,7 @@ static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) 
     addArgument_INT32(parser, "height", args.height);
     addArgumentStringFull(parser, "point_r", args.point_r, "0");
     addArgumentStringFull(parser, "point_i", args.point_i, "0");
-    addArgument_H(parser, "zoom", args.zoom);
+    addArgumentStringFull(parser, "zoom", args.zoom, "0");
     addArgumentString(parser, "count", args.count, defaultCount);
     addArgument_INT32(parser, "AA", args.aaPixels, 1);
     addArgumentBool(parser, "useThreads", args.useThreads, false);

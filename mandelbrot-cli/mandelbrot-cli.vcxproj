@@ -129,6 +129,7 @@
     <CoreVariant Include="FloatAVX2" />
     <CoreVariant Include="DoubleAVX2" />
     <CoreVariant Include="MPFR" />
+    <CoreVariant Include="KF2" />
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='x64'">
     <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*" Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />

@@ -6,9 +6,11 @@
 
 #include <string>
 #include <string_view>
+#include <filesystem>
 #include <tuple>
 #include <chrono>
 
+#include "IncludeWin32.h"
 #include "StringUtil.h"
 
 using namespace std::chrono;
@@ -22,6 +24,15 @@ static bool safeLocaltime(time_t time, tm &out) {
 }
 
 namespace PathUtil {
+    std::filesystem::path executableDir() {
+        std::wstring path(MAX_PATH, L'\0');
+        const DWORD length = GetModuleFileNameW(nullptr, path.data(),
+            static_cast<DWORD>(path.size()));
+
+        path.resize(length);
+        return std::filesystem::path(path).parent_path();
+    }
+
     std::tuple<std::string_view, std::string_view>
         splitFilename(std::string_view filePath) {
         std::string_view name, ext;

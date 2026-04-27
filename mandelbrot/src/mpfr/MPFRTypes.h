@@ -9,15 +9,20 @@
 
 #include <mpfr.h>
 
+#include "MPFRGlobals.h"
 #include "ThreadLocalPool.h"
 #include "util/InlineUtil.h"
 
 namespace MPFRTypes {
     constexpr mpfr_rnd_t ROUNDING = MPFR_RNDN;
-    constexpr mpfr_prec_t DEFAULT_PRECISION_BITS = 256;
     constexpr size_t TEMP_POOL_SIZE = 128;
 
-    inline mpfr_prec_t precisionBits = DEFAULT_PRECISION_BITS;
+    FORCE_INLINE constexpr mpfr_prec_t digits2bits(int digits) {
+        const int safeDigits = digits < 2 ? 2 : digits;
+        return static_cast<mpfr_prec_t>(safeDigits * 4);
+    }
+
+    inline mpfr_prec_t precisionBits = digits2bits(MPFRGlobals::MIN_PRECISION_DIGITS);
 
     struct TempValue {
         mpfr_t value;
@@ -34,21 +39,13 @@ namespace MPFRTypes {
         }
     };
 
-    FORCE_INLINE constexpr mpfr_prec_t digits2bits(int digits) {
-        const int safeDigits = digits < 2 ? 2 : digits;
-        return static_cast<mpfr_prec_t>(safeDigits * 4);
-    }
-
     FORCE_INLINE void setPrecisionBits(mpfr_prec_t bits) {
-        precisionBits = bits > 1 ? bits : DEFAULT_PRECISION_BITS;
-    }
-
-    FORCE_INLINE mpfr_prec_t getPrecisionBits() {
-        return precisionBits;
+        precisionBits = bits > 1 ? bits :
+            digits2bits(MPFRGlobals::MIN_PRECISION_DIGITS);
     }
 
     FORCE_INLINE void initRaw(mpfr_t value) {
-        mpfr_init2(value, getPrecisionBits());
+        mpfr_init2(value, precisionBits);
     }
 
     FORCE_INLINE void initRaw(mpfr_t value, double initialValue) {
@@ -58,20 +55,23 @@ namespace MPFRTypes {
 
     FORCE_INLINE void ensurePrecision(TempValue &slot) {
         if (!slot.initialized) {
-            mpfr_init2(slot.value, getPrecisionBits());
+            mpfr_init2(slot.value, precisionBits);
             slot.initialized = true;
             return;
         }
 
-        if (mpfr_get_prec(slot.value) != getPrecisionBits()) {
-            mpfr_prec_round(slot.value, getPrecisionBits(), ROUNDING);
+        if (mpfr_get_prec(slot.value) != precisionBits) {
+            mpfr_prec_round(slot.value, precisionBits, ROUNDING);
         }
     }
 
     FORCE_INLINE std::string toString(mpfr_srcptr value) {
-        const int digits = std::max(24,
+        const int digits = std::max(
+            MPFRGlobals::MIN_PRECISION_DIGITS,
             static_cast<int>(std::ceil(
-                static_cast<double>(mpfr_get_prec(value)) * 0.30103)) + 4);
+                static_cast<double>(mpfr_get_prec(value)) * MPFRGlobals::LOG10_2))
+        ) + MPFRGlobals::STRING_GUARD_DIGITS;
+
 
         char *buffer = nullptr;
         if (mpfr_asprintf(&buffer, "%.*Rg", digits, value) < 0 || !buffer) {
@@ -251,9 +251,5 @@ namespace MPFRTypes {
 typedef mpfr_srcptr mpfr_number_t;
 typedef mpfr_srcptr mpfr_param_t;
 typedef MPFRTypes::mpfr_num_2_t mpfr_num_2_t;
-
-FORCE_INLINE mpfr_num_2_t sincos_mp(mpfr_param_t x) {
-    return MPFRTypes::sincos(x);
-}
 
 #endif

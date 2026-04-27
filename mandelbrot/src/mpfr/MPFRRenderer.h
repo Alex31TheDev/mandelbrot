@@ -5,8 +5,8 @@
 #include <cstdint>
 
 #include "MPFRTypes.h"
+#include "../render/RenderIterationStats.h"
 
-#include "util/InlineUtil.h"
 
 namespace MPFRRenderer {
     void initCoordsMPFR(mpfr_t cr, mpfr_t ci,
@@ -23,7 +23,9 @@ namespace MPFRRenderer {
         mpfr_srcptr dr, mpfr_srcptr di);
 
     void renderPixelMPFR(uint8_t *pixels, size_t &pos,
-        int x, mpfr_srcptr ci, uint64_t *totalIterCount = nullptr);
+        int x, mpfr_srcptr ci,
+        OptionalIterationStats iterStats = std::nullopt,
+        std::optional<int> y = std::nullopt);
 }
 
 #endif

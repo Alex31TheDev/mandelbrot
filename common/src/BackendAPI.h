@@ -139,6 +139,14 @@ namespace Backend {
         std::vector<PaletteHexEntry> entries;
     };
 
+    struct ViewportState {
+        int32_t outputWidth = 0;
+        int32_t outputHeight = 0;
+        std::string pointReal = "0";
+        std::string pointImag = "0";
+        std::string zoom = "0";
+    };
+
     class Session {
     public:
         virtual ~Session() = default;
@@ -147,14 +155,24 @@ namespace Backend {
 
         virtual Status getPointAtPixel(int pixelX, int pixelY,
             std::string &real, std::string &imag) = 0;
-        virtual Status computeZoomPointForPixel(int pixelX, int pixelY,
-            float targetZoom, std::string &real, std::string &imag) = 0;
+        virtual Status getPanPointByDelta(int deltaX, int deltaY,
+            std::string &real, std::string &imag) = 0;
+        virtual Status getZoomPointByScale(int pixelX, int pixelY,
+            double scaleMultiplier,
+            std::string &zoom, std::string &real, std::string &imag) = 0;
+        virtual Status getBoxZoomPoint(int left, int top, int right, int bottom,
+            std::string &zoom, std::string &real, std::string &imag) = 0;
+        virtual Status mapViewPixelToViewPixel(
+            const ViewportState &sourceView,
+            const ViewportState &targetView,
+            int pixelX, int pixelY,
+            double &mappedX, double &mappedY) = 0;
         virtual int currentIterationCount() const = 0;
         virtual int precisionRank() const = 0;
 
         virtual Status setImageSize(int width, int height, int aaPixels) = 0;
         virtual void setUseThreads(bool useThreads) = 0;
-        virtual Status setZoom(int iterCount, float zoom) = 0;
+        virtual Status setZoom(int iterCount, const std::string &zoom) = 0;
         virtual Status setPoint(const std::string &real,
             const std::string &imag) = 0;
         virtual Status setPoint(int pixelX, int pixelY) = 0;

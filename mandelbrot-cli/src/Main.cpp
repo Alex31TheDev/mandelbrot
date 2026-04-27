@@ -112,28 +112,35 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    const char *variantArg = argv[1];
-    if (ArgsUsage::isHelpArg(variantArg)) {
+    const char *backendArg = argv[1];
+    if (ArgsUsage::isHelpArg(backendArg)) {
         ArgsUsage::printTopLevelUsage(argv[0]);
         return 0;
     }
 
-    const std::string configName = ArgsUsage::resolveVariant(variantArg);
+    const std::string configName = ArgsUsage::resolveBackend(backendArg);
     if (configName.empty()) {
-        fprintf(stderr, "Unknown variant: %s\n\n", variantArg);
+        fprintf(stderr, "Unknown backend: %s\n\n", backendArg);
         ArgsUsage::printTopLevelUsage(argv[0]);
         return 1;
     }
 
     std::string error;
-    BackendModule backend = loadBackendModule(executableDir(), configName, error);
+    BackendModule backend = loadBackendModule(PathUtil::executableDir(),
+        configName, error);
     if (!backend) {
         fprintf(stderr, "%s\n", error.c_str());
         return 1;
     }
 
+    Backend::Session *session = backend.makeSession();
+    if (!session) {
+        fprintf(stderr, "Failed to create backend session.\n");
+        return 1;
+    }
+
     CallbackFormatter formatter;
-    formatter.bind(*backend.session);
+    formatter.bind(*session);
 
     std::vector<char *> forwardedArgs = makeForwardedArgs(argc, argv);
     if (ArgsParser::checkHelp(static_cast<int>(forwardedArgs.size()),
@@ -147,10 +154,10 @@ int main(int argc, char **argv) {
 
     if (ArgsUsage::argsCount(static_cast<int>(forwardedArgs.size())) == 1 &&
         std::string_view(forwardedArgs[1]) == ArgsUsage::replOption) {
-        return runRepl(*backend.session, argv[0]);
+        return runRepl(*session, argv[0]);
     }
 
-    return static_cast<int>(!runOnce(*backend.session,
+    return static_cast<int>(!runOnce(*session,
         static_cast<int>(forwardedArgs.size()),
         forwardedArgs.data()));
 }

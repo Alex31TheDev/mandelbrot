@@ -6,7 +6,6 @@
 
 #include "MPFRTypes.h"
 #include "MPFRGlobals.h"
-#include "../render/RenderGlobals.h"
 
 #include "util/InlineUtil.h"
 
@@ -14,7 +13,7 @@ FORCE_INLINE int clampCoordToImage_mp(int coord, int size) {
     return std::clamp(coord, 0, std::max(0, size - 1));
 }
 
-FORCE_INLINE void getCenterRealForImage_mp(mpfr_t out, int x,
+FORCE_INLINE void getImageCenterReal_mp(mpfr_t out, int x,
     mpfr_srcptr halfImgWidth, mpfr_srcptr invImgWidth) {
     using namespace MPFRGlobals;
 
@@ -25,7 +24,7 @@ FORCE_INLINE void getCenterRealForImage_mp(mpfr_t out, int x,
     mpfr_add(out, out, point_r_mp, MPFRTypes::ROUNDING);
 }
 
-FORCE_INLINE void getCenterImagForImage_mp(mpfr_t out, int y,
+FORCE_INLINE void getImageCenterImag_mp(mpfr_t out, int y,
     mpfr_srcptr halfImgHeight, mpfr_srcptr invImgHeight) {
     using namespace MPFRGlobals;
 
@@ -38,42 +37,27 @@ FORCE_INLINE void getCenterImagForImage_mp(mpfr_t out, int y,
 
 FORCE_INLINE void getCenterReal_mp(mpfr_t out, int x) {
     using namespace MPFRGlobals;
-
-    getCenterRealForImage_mp(out, x, halfWidth_mp, invWidth_mp);
+    getImageCenterReal_mp(out, x, halfWidth_mp, invWidth_mp);
 }
 
 FORCE_INLINE void getCenterImag_mp(mpfr_t out, int y) {
     using namespace MPFRGlobals;
-
-    getCenterImagForImage_mp(out, y, halfHeight_mp, invHeight_mp);
+    getImageCenterImag_mp(out, y, halfHeight_mp, invHeight_mp);
 }
 
-FORCE_INLINE void getOutputCenterReal_mp(mpfr_t out, int x) {
-    using namespace RenderGlobals;
+void getOutputCenterReal_mp(mpfr_t out, int x);
+void getOutputCenterImag_mp(mpfr_t out, int y);
 
-    mpfr_ptr halfOutputWidth = MPFRTypes::nextTemp();
-    mpfr_set_si(halfOutputWidth, outputWidth, MPFRTypes::ROUNDING);
-    mpfr_div_2ui(halfOutputWidth, halfOutputWidth, 1, MPFRTypes::ROUNDING);
+void getOutputPixelX_mp(mpfr_t out, mpfr_srcptr real);
+void getOutputPixelY_mp(mpfr_t out, mpfr_srcptr imag);
 
-    mpfr_ptr invOutputWidth = MPFRTypes::nextTemp();
-    mpfr_set_si(invOutputWidth, outputWidth, MPFRTypes::ROUNDING);
-    mpfr_ui_div(invOutputWidth, 1, invOutputWidth, MPFRTypes::ROUNDING);
-
-    getCenterRealForImage_mp(out, x, halfOutputWidth, invOutputWidth);
-}
-
-FORCE_INLINE void getOutputCenterImag_mp(mpfr_t out, int y) {
-    using namespace RenderGlobals;
-
-    mpfr_ptr halfOutputHeight = MPFRTypes::nextTemp();
-    mpfr_set_si(halfOutputHeight, outputHeight, MPFRTypes::ROUNDING);
-    mpfr_div_2ui(halfOutputHeight, halfOutputHeight, 1, MPFRTypes::ROUNDING);
-
-    mpfr_ptr invOutputHeight = MPFRTypes::nextTemp();
-    mpfr_set_si(invOutputHeight, outputHeight, MPFRTypes::ROUNDING);
-    mpfr_ui_div(invOutputHeight, 1, invOutputHeight, MPFRTypes::ROUNDING);
-
-    getCenterImagForImage_mp(out, y, halfOutputHeight, invOutputHeight);
-}
+void getOutputCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
+    int x, int y);
+void getOutputPixelPoint_mp(mpfr_t xOut, mpfr_t yOut,
+    mpfr_srcptr real, mpfr_srcptr imag);
+void getPanCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
+    int deltaX, int deltaY);
+void getBoxCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
+    int left, int top, int right, int bottom);
 
 #endif

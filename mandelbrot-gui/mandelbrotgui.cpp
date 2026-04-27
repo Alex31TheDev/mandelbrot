@@ -91,6 +91,7 @@ namespace {
     constexpr auto kUnsavedLabelSuffix = " (unsaved)";
     constexpr auto kNewColorPaletteBaseName = "New Palette";
     constexpr auto kNewSinePaletteBaseName = "New Sine";
+    constexpr auto kCommittedLineEditTextProperty = "_mandelbrotCommittedText";
     constexpr double kMinGUIZoom = -3.2499;
     constexpr int kControlScrollBarWidth = 10;
     constexpr int kControlWindowScreenPadding = 48;
@@ -99,6 +100,8 @@ namespace {
         1.000625, 1.00125, 1.0025, 1.005, 1.01, 1.015, 1.02, 1.025, 1.03, 1.04,
         1.05, 1.06, 1.07, 1.08, 1.09, 1.10, 1.11, 1.12, 1.14, 1.17, 1.20
     };
+    constexpr int kGridModes[] = { 0, 2, 3, 5, 9 };
+    constexpr int kGridModeCount = sizeof(kGridModes) / sizeof(kGridModes[0]);
 
     struct PaletteStop {
         int id = 0;
@@ -114,6 +117,27 @@ namespace {
 
     int clampSliderValue(int value) {
         return std::clamp(value, 0, 20);
+    }
+
+    QString committedLineEditText(const QLineEdit *edit) {
+        return edit ? edit->text().trimmed() : QString();
+    }
+
+    void markLineEditTextCommitted(QLineEdit *edit) {
+        if (!edit) return;
+        edit->setProperty(kCommittedLineEditTextProperty, committedLineEditText(edit));
+    }
+
+    void setCommittedLineEditText(QLineEdit *edit, const QString &text) {
+        if (!edit) return;
+        edit->setText(text);
+        markLineEditTextCommitted(edit);
+    }
+
+    bool hasUncommittedLineEditChange(const QLineEdit *edit) {
+        if (!edit) return false;
+        return committedLineEditText(edit) !=
+            edit->property(kCommittedLineEditTextProperty).toString();
     }
 
     QString decorateUnsavedLabel(const QString &name, bool unsaved) {
@@ -243,7 +267,7 @@ namespace {
     }
 
     std::filesystem::path sineDirectoryPath() {
-        return executableDir() / "sines";
+        return PathUtil::executableDir() / "sines";
     }
 
     std::filesystem::path sineFilePath(const QString &name) {
@@ -252,7 +276,7 @@ namespace {
     }
 
     std::filesystem::path paletteDirectoryPath() {
-        return executableDir() / "palettes";
+        return PathUtil::executableDir() / "palettes";
     }
 
     std::filesystem::path paletteFilePath(const QString &name) {
@@ -261,11 +285,11 @@ namespace {
     }
 
     std::filesystem::path viewDirectoryPath() {
-        return executableDir() / "views";
+        return PathUtil::executableDir() / "views";
     }
 
     std::filesystem::path savesDirectoryPath() {
-        return executableDir() / "saves";
+        return PathUtil::executableDir() / "saves";
     }
 
     struct NativeDialogFilter {
@@ -581,7 +605,7 @@ namespace {
         QStringList names;
 
         std::error_code ec;
-        const std::filesystem::path dir = executableDir() / "backends";
+        const std::filesystem::path dir = PathUtil::executableDir() / "backends";
         if (!std::filesystem::exists(dir, ec) || ec) {
             errorMessage = "Backend directory was not found.";
             return names;
@@ -963,6 +987,12 @@ namespace {
     QImage imageViewToImage(const Backend::ImageView &view) {
         const QImage wrapped = wrapImageViewToImage(view);
         return wrapped.copy();
+    }
+
+    QImage makeBlankViewportImage() {
+        QImage image(1, 1, QImage::Format_RGB888);
+        image.fill(Qt::black);
+        return image;
     }
 
     double effectiveDevicePixelRatio(const QWidget *widget) {
@@ -2691,6 +2721,8 @@ namespace {
 
     class ViewportWindow final : public QWidget {
     public:
+        friend class ::mandelbrotgui;
+
         explicit ViewportWindow(mandelbrotgui *owner)
             : QWidget(nullptr), _owner(owner) {
             updateWindowTitle();
@@ -2702,6 +2734,7 @@ namespace {
             _rtZoomTimer.setTimerType(Qt::PreciseTimer);
             _rtZoomTimer.setInterval(interactionTickIntervalMs);
             QObject::connect(&_rtZoomTimer, &QTimer::timeout, this, [this]() {
+                syncRealtimeZoomTimerInterval();
                 applyRealtimeZoomStep(false);
                 });
 
@@ -2718,6 +2751,7 @@ namespace {
 
                 commitPanOffset();
                 if (_panning) {
+                    syncPanRedrawTimerInterval();
                     _panRedrawTimer.start();
                 }
                 });
@@ -2736,6 +2770,22 @@ namespace {
                 commitZoomOutPreview();
                 if (_zoomOutDragActive && _zoomOutPendingCommit) {
                     _zoomOutRedrawTimer.start();
+                }
+                });
+
+            _arrowPanTimer.setTimerType(Qt::PreciseTimer);
+            _arrowPanTimer.setInterval(interactionTickIntervalMs);
+            QObject::connect(&_arrowPanTimer, &QTimer::timeout, this, [this]() {
+                syncArrowPanTimerInterval();
+                applyArrowPanStep();
+                });
+
+            _fullscreenResizeTimer.setTimerType(Qt::PreciseTimer);
+            _fullscreenResizeTimer.setSingleShot(true);
+            _fullscreenResizeTimer.setInterval(120);
+            QObject::connect(&_fullscreenResizeTimer, &QTimer::timeout, this, [this]() {
+                if (_fullscreenTransitionPending && _owner) {
+                    _owner->finalizeViewportFullscreenTransition();
                 }
                 });
         }
@@ -2761,13 +2811,6 @@ namespace {
             update();
         }
 
-        struct PreviewViewState {
-            QPointF point{ 0.0, 0.0 };
-            double zoom = 0.0;
-            QSize outputSize;
-            bool valid = false;
-        };
-
         struct PreviewTransform {
             QPointF center;
             QPointF translation;
@@ -2775,54 +2818,46 @@ namespace {
             double scaleY = 1.0;
         };
 
-        [[nodiscard]] PreviewViewState displayedPreviewView() const {
+        [[nodiscard]] mandelbrotgui::ViewTextState displayedPreviewView() const {
             if (!_owner || !_owner->hasDisplayedViewState()) {
                 return {};
             }
 
-            const QSize output = _owner->displayedViewOutputSize();
-            if (output.width() <= 0 || output.height() <= 0) {
-                return {};
-            }
-
-            return PreviewViewState{
-                _owner->displayedViewPoint(),
-                _owner->displayedViewZoom(),
-                output,
-                true
-            };
+            return _owner->displayedViewTextState();
         }
 
-        [[nodiscard]] PreviewViewState targetPreviewView() const {
+        [[nodiscard]] mandelbrotgui::ViewTextState targetPreviewView() const {
             if (!_owner) {
                 return {};
             }
 
-            PreviewViewState view{
-                _owner->currentViewPoint(),
-                _owner->currentViewZoom(),
-                _owner->outputSize(),
-                true
-            };
-            if (view.outputSize.width() <= 0 || view.outputSize.height() <= 0) {
-                view.valid = false;
-                return view;
-            }
+            mandelbrotgui::ViewTextState view = _owner->currentViewTextState();
+            if (!view.valid) return view;
 
             if (_panning && !_panOffset.isNull()) {
-                const QPoint outputDelta = mapToOutputDelta(_panOffset);
-                const double realScale = 1.0 / std::pow(10.0, view.zoom);
-                const double aspect = static_cast<double>(view.outputSize.width()) /
-                    std::max(1, view.outputSize.height());
-                const double imagScale = realScale / aspect;
-                view.point.rx() -= static_cast<double>(outputDelta.x()) /
-                    std::max(1, view.outputSize.width()) * realScale;
-                view.point.ry() += static_cast<double>(outputDelta.y()) /
-                    std::max(1, view.outputSize.height()) * imagScale;
+                QString error;
+                mandelbrotgui::ViewTextState pannedView;
+                if (_owner->previewPannedViewState(
+                    mapToOutputDelta(_panOffset), pannedView, error)) {
+                    view = pannedView;
+                } else {
+                    view.valid = false;
+                    return view;
+                }
             }
 
             if (!NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0)) {
-                view.zoom = clampGUIZoom(view.zoom - std::log10(_zoomOutPreviewScale));
+                QString error;
+                mandelbrotgui::ViewTextState scaledView;
+                const QPoint outputCenter = mapToOutputPixel(
+                    QPoint(width() / 2, height() / 2));
+                if (_owner->previewScaledViewState(
+                    outputCenter, _zoomOutPreviewScale, scaledView, error)) {
+                    view = scaledView;
+                } else {
+                    view.valid = false;
+                    return view;
+                }
             }
 
             return view;
@@ -2834,45 +2869,105 @@ namespace {
                 return std::nullopt;
             }
 
-            const PreviewViewState sourceView = displayedPreviewView();
-            const PreviewViewState targetView = targetPreviewView();
+            const mandelbrotgui::ViewTextState sourceView = displayedPreviewView();
+            const mandelbrotgui::ViewTextState targetView = targetPreviewView();
             if (!sourceView.valid || !targetView.valid) {
                 return std::nullopt;
             }
 
-            const double sourceRealScale = 1.0 / std::pow(10.0, sourceView.zoom);
-            const double targetRealScale = 1.0 / std::pow(10.0, targetView.zoom);
-            if (!(sourceRealScale > 0.0) || !(targetRealScale > 0.0) ||
-                !std::isfinite(sourceRealScale) || !std::isfinite(targetRealScale)) {
+            if (sourceView.outputSize.width() <= 0 ||
+                sourceView.outputSize.height() <= 0 ||
+                targetView.outputSize.width() <= 0 ||
+                targetView.outputSize.height() <= 0) {
                 return std::nullopt;
             }
 
-            const double sourceAspect = static_cast<double>(sourceView.outputSize.width()) /
-                std::max(1, sourceView.outputSize.height());
-            const double targetAspect = static_cast<double>(targetView.outputSize.width()) /
-                std::max(1, targetView.outputSize.height());
-            if (!(sourceAspect > 0.0) || !(targetAspect > 0.0) ||
-                !std::isfinite(sourceAspect) || !std::isfinite(targetAspect)) {
+            const int targetMidX = std::clamp(
+                targetView.outputSize.width() / 2,
+                0,
+                std::max(0, targetView.outputSize.width() - 1));
+            const int targetMidY = std::clamp(
+                targetView.outputSize.height() / 2,
+                0,
+                std::max(0, targetView.outputSize.height() - 1));
+
+            QPointF sourceLeft;
+            QPointF sourceRight;
+            QPointF sourceTop;
+            QPointF sourceBottom;
+            QString error;
+            if (!_owner->mapViewPixelToViewPixel(
+                sourceView, targetView,
+                QPoint(0, targetMidY), sourceLeft, error) ||
+                !_owner->mapViewPixelToViewPixel(
+                    sourceView, targetView,
+                    QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY),
+                    sourceRight, error) ||
+                !_owner->mapViewPixelToViewPixel(
+                    sourceView, targetView,
+                    QPoint(targetMidX, 0), sourceTop, error) ||
+                !_owner->mapViewPixelToViewPixel(
+                    sourceView, targetView,
+                    QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1)),
+                    sourceBottom, error)) {
                 return std::nullopt;
             }
 
-            const double sourceImagScale = sourceRealScale / sourceAspect;
-            const double targetImagScale = targetRealScale / targetAspect;
-            if (!(sourceImagScale > 0.0) || !(targetImagScale > 0.0) ||
-                !std::isfinite(sourceImagScale) || !std::isfinite(targetImagScale)) {
+            const auto sourceToLogical = [&](const QPointF &pixel) {
+                return QPointF(
+                    pixel.x() * logicalSize.width() /
+                        std::max(1, sourceView.outputSize.width()),
+                    pixel.y() * logicalSize.height() /
+                        std::max(1, sourceView.outputSize.height()));
+            };
+            const auto targetToLogical = [&](const QPoint &pixel) {
+                return QPointF(
+                    static_cast<double>(pixel.x()) * logicalSize.width() /
+                        std::max(1, targetView.outputSize.width()),
+                    static_cast<double>(pixel.y()) * logicalSize.height() /
+                        std::max(1, targetView.outputSize.height()));
+            };
+
+            const QPointF sourceLeftLogical = sourceToLogical(sourceLeft);
+            const QPointF sourceRightLogical = sourceToLogical(sourceRight);
+            const QPointF sourceTopLogical = sourceToLogical(sourceTop);
+            const QPointF sourceBottomLogical = sourceToLogical(sourceBottom);
+            const QPointF targetLeftLogical = targetToLogical(QPoint(0, targetMidY));
+            const QPointF targetRightLogical = targetToLogical(
+                QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY));
+            const QPointF targetTopLogical = targetToLogical(QPoint(targetMidX, 0));
+            const QPointF targetBottomLogical = targetToLogical(
+                QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1)));
+
+            const double sourceSpanX = sourceRightLogical.x() - sourceLeftLogical.x();
+            const double sourceSpanY = sourceBottomLogical.y() - sourceTopLogical.y();
+            if (NumberUtil::almostEqual(sourceSpanX, 0.0, 1e-9) ||
+                NumberUtil::almostEqual(sourceSpanY, 0.0, 1e-9)) {
                 return std::nullopt;
             }
 
             const QPointF center(
                 static_cast<double>(logicalSize.width()) / 2.0,
                 static_cast<double>(logicalSize.height()) / 2.0);
+            const double scaleX =
+                (targetRightLogical.x() - targetLeftLogical.x()) / sourceSpanX;
+            const double scaleY =
+                (targetBottomLogical.y() - targetTopLogical.y()) / sourceSpanY;
+            const double translationXLeft =
+                targetLeftLogical.x() - center.x() -
+                scaleX * (sourceLeftLogical.x() - center.x());
+            const double translationXRight =
+                targetRightLogical.x() - center.x() -
+                scaleX * (sourceRightLogical.x() - center.x());
+            const double translationYTop =
+                targetTopLogical.y() - center.y() -
+                scaleY * (sourceTopLogical.y() - center.y());
+            const double translationYBottom =
+                targetBottomLogical.y() - center.y() -
+                scaleY * (sourceBottomLogical.y() - center.y());
             const QPointF translation(
-                ((sourceView.point.x() - targetView.point.x()) / targetRealScale) *
-                logicalSize.width(),
-                ((targetView.point.y() - sourceView.point.y()) / targetImagScale) *
-                logicalSize.height());
-            const double scaleX = sourceRealScale / targetRealScale;
-            const double scaleY = sourceImagScale / targetImagScale;
+                (translationXLeft + translationXRight) * 0.5,
+                (translationYTop + translationYBottom) * 0.5);
             if (!std::isfinite(translation.x()) || !std::isfinite(translation.y()) ||
                 !std::isfinite(scaleX) || !std::isfinite(scaleY) ||
                 !(scaleX > 0.0) || !(scaleY > 0.0)) {
@@ -2917,6 +3012,10 @@ namespace {
                 } else {
                     painter.drawImage(rect(), image);
                 }
+            }
+
+            if (_minimalUI) {
+                return;
             }
 
             painter.setRenderHint(QPainter::Antialiasing, true);
@@ -2982,55 +3081,27 @@ namespace {
             _owner->updateMouseCoords(mapToOutputPixel(_lastMousePos));
 
             if (_owner->viewportUsesDirectPick() &&
-                event->button() == Qt::LeftButton) {
+                event->button() == Qt::LeftButton &&
+                !_spacePan) {
                 _owner->pickAtPixel(mapToOutputPixel(_lastMousePos));
                 return;
             }
 
             const auto mode = effectiveMode();
             const bool panDrag =
+                event->button() == Qt::MiddleButton ||
                 (mode == mandelbrotgui::NavMode::pan &&
                     (event->button() == Qt::LeftButton ||
-                        event->button() == Qt::RightButton)) ||
-                ((mode == mandelbrotgui::NavMode::zoom ||
-                    mode == mandelbrotgui::NavMode::realtimeZoom) &&
-                    event->button() == Qt::MiddleButton);
+                        event->button() == Qt::RightButton));
             if (panDrag) {
-                _panning = true;
-                _spacePanPanning = false;
-                _dragOrigin = _lastMousePos;
-                _panOffset = {};
-                _selectionRect = {};
-                _zoomOutPending = false;
-                _zoomOutDragActive = false;
-                _zoomOutDragMoved = false;
-                _zoomOutPendingCommit = false;
-                _zoomOutPreviewScale = 1.0;
-                _rtZoomTimer.stop();
-                _rtZoomLastStepAt = {};
-                _panRedrawTimer.stop();
-                _zoomOutRedrawTimer.stop();
-                _panRedrawTimer.start();
-                grabMouse();
-                setCursor(Qt::ClosedHandCursor);
-                update();
+                beginPanInteraction(event->button());
                 return;
             }
 
             if (mode == mandelbrotgui::NavMode::realtimeZoom) {
                 if (event->button() == Qt::LeftButton ||
                     event->button() == Qt::RightButton) {
-                    if (!_rtZoomAnchorPixel.has_value()) {
-                        const QSize output = _owner->outputSize();
-                        _rtZoomAnchorPixel = QPointF(
-                            static_cast<double>(std::max(0, output.width() / 2)),
-                            static_cast<double>(std::max(0, output.height() / 2)));
-                    }
-                    _rtZoomZoomIn = event->button() == Qt::LeftButton;
-                    _rtZoomLastStepAt = std::chrono::steady_clock::now();
-                    grabMouse();
-                    applyRealtimeZoomStep(true);
-                    _rtZoomTimer.start();
+                    beginRealtimeZoom(event->button() == Qt::LeftButton);
                     return;
                 }
             }
@@ -3108,13 +3179,11 @@ namespace {
             _owner->updateMouseCoords(mapToOutputPixel(_lastMousePos));
 
             if (_panning) {
-                _panRedrawTimer.stop();
-                _panning = false;
-                _spacePanPanning = false;
-                commitPanOffset();
-                releaseMouse();
-                updateCursor();
-                update();
+                if (_panButton == Qt::NoButton ||
+                    event->button() == _panButton ||
+                    event->button() == Qt::NoButton) {
+                    endPanInteraction();
+                }
                 return;
             }
 
@@ -3239,6 +3308,15 @@ namespace {
         }
 
         void keyPressEvent(QKeyEvent *event) override {
+            if (!event->isAutoRepeat() &&
+                (event->key() == Qt::Key_Shift ||
+                    event->key() == Qt::Key_Control)) {
+                refreshActiveInteractionTimers();
+            }
+            if (handleArrowPanKeyPress(event)) {
+                event->accept();
+                return;
+            }
             if (event->isAutoRepeat()) return;
 
             if (event->key() == Qt::Key_Escape) {
@@ -3249,38 +3327,44 @@ namespace {
 
             if (event->key() == Qt::Key_Z) {
                 _owner->cycleNavMode();
+                event->accept();
                 return;
             }
 
             if (event->key() == Qt::Key_Space) {
                 _spacePan = true;
-                if (!_panning && !_rtZoomTimer.isActive() &&
-                    _selectionRect.isNull() && !_zoomOutDragActive) {
-                    _panning = true;
-                    _spacePanPanning = true;
-                    _dragOrigin = _lastMousePos;
-                    _panOffset = {};
-                    _selectionRect = {};
-                    _zoomOutPending = false;
-                    _zoomOutDragActive = false;
-                    _zoomOutDragMoved = false;
-                    _zoomOutPendingCommit = false;
-                    _zoomOutPreviewScale = 1.0;
-                    _rtZoomTimer.stop();
-                    _rtZoomLastStepAt = {};
-                    _panRedrawTimer.stop();
-                    _zoomOutRedrawTimer.stop();
-                    _panRedrawTimer.start();
-                    setCursor(Qt::ClosedHandCursor);
-                    update();
-                } else {
-                    setCursor(Qt::OpenHandCursor);
+                if (_owner) {
+                    _owner->setDisplayedNavModeOverride(mandelbrotgui::NavMode::pan);
                 }
+                if (canBeginPanInteraction()) {
+                    beginPanInteraction(Qt::NoButton);
+                } else {
+                    updateCursor();
+                }
+                return;
+            }
+
+            if (event->key() == Qt::Key_F1) {
+                toggleMinimalUI();
+                event->accept();
+                return;
+            }
+
+            if (event->key() == Qt::Key_F2) {
+                _owner->quickSaveImage();
+                event->accept();
+                return;
+            }
+
+            if (event->key() == Qt::Key_F12) {
+                toggleFullscreen();
+                event->accept();
                 return;
             }
 
             if (event->key() == Qt::Key_H) {
                 _owner->applyHomeView();
+                event->accept();
                 return;
             }
 
@@ -3294,21 +3378,30 @@ namespace {
         }
 
         void keyReleaseEvent(QKeyEvent *event) override {
+            if (!event->isAutoRepeat() &&
+                (event->key() == Qt::Key_Shift ||
+                    event->key() == Qt::Key_Control)) {
+                refreshActiveInteractionTimers();
+            }
+            if (handleArrowPanKeyRelease(event)) {
+                event->accept();
+                return;
+            }
             if (event->isAutoRepeat()) return;
-            if (event->key() != Qt::Key_Space) return;
-
-            _spacePan = false;
-            if (_spacePanPanning && _panning) {
-                _panRedrawTimer.stop();
-                _panning = false;
-                _spacePanPanning = false;
-                commitPanOffset();
-                updateCursor();
-                update();
+            if (event->key() != Qt::Key_Space) {
+                QWidget::keyReleaseEvent(event);
                 return;
             }
 
-            _spacePanPanning = false;
+            _spacePan = false;
+            if (_panning && _panButton == Qt::NoButton) {
+                endPanInteraction();
+                return;
+            }
+
+            if (_owner && !_panning) {
+                _owner->setDisplayedNavModeOverride(std::nullopt);
+            }
             updateCursor();
         }
 
@@ -3322,27 +3415,273 @@ namespace {
             }
         }
 
+        void resizeEvent(QResizeEvent *event) override {
+            QWidget::resizeEvent(event);
+            if (_fullscreenTransitionPending) {
+                _fullscreenResizeTimer.start();
+            }
+        }
+
         void closeEvent(QCloseEvent *event) override {
             _rtZoomTimer.stop();
             _rtZoomLastStepAt = {};
             _panRedrawTimer.stop();
             _zoomOutRedrawTimer.stop();
+            _arrowPanTimer.stop();
             if (mouseGrabber() == this) {
                 releaseMouse();
             }
-            QWidget::closeEvent(event);
-            _owner->onViewportClosed();
+            event->accept();
+            if (_owner) {
+                _owner->requestApplicationShutdown(false);
+            }
         }
 
     private:
         void cycleGridMode() {
-            switch (_gridDivisions) {
-                case 0: _gridDivisions = 2; break;
-                case 2: _gridDivisions = 5; break;
-                case 5: _gridDivisions = 9; break;
-                default: _gridDivisions = 0; break;
-            }
+            int idx = 0;
+            while (idx < kGridModeCount && kGridModes[idx] != _gridDivisions)
+                ++idx;
+            idx = (idx + 1) % kGridModeCount;
+
+            _gridDivisions = kGridModes[idx];
             update();
+        }
+
+        void toggleMinimalUI() {
+            _minimalUI = !_minimalUI;
+            updateCursor();
+            update();
+        }
+
+        void toggleFullscreen() {
+            if (_owner) {
+                _owner->toggleViewportFullscreen();
+            }
+        }
+
+        [[nodiscard]] bool precisionModifierActive() const {
+            return QApplication::keyboardModifiers().testFlag(Qt::ShiftModifier);
+        }
+
+        [[nodiscard]] bool speedModifierActive() const {
+            return QApplication::keyboardModifiers().testFlag(Qt::ControlModifier);
+        }
+
+        [[nodiscard]] int baseInteractionTickIntervalMs() const {
+            return _owner ? _owner->interactionFrameIntervalMs() : 16;
+        }
+
+        [[nodiscard]] int precisionInteractionTickIntervalMs() const {
+            return precisionModifierActive() ?
+                kPrecisionInteractionDelayMs :
+                baseInteractionTickIntervalMs();
+        }
+
+        void syncPanRedrawTimerInterval() {
+            _panRedrawTimer.setInterval(precisionInteractionTickIntervalMs());
+        }
+
+        void syncRealtimeZoomTimerInterval() {
+            _rtZoomTimer.setInterval(precisionInteractionTickIntervalMs());
+        }
+
+        void syncArrowPanTimerInterval() {
+            _arrowPanTimer.setInterval(precisionInteractionTickIntervalMs());
+        }
+
+        void refreshActiveInteractionTimers() {
+            syncPanRedrawTimerInterval();
+            syncRealtimeZoomTimerInterval();
+            syncArrowPanTimerInterval();
+        }
+
+        void resetZoomOutDragState() {
+            _zoomOutPending = false;
+            _zoomOutDragActive = false;
+            _zoomOutDragMoved = false;
+            _zoomOutPendingCommit = false;
+            _zoomOutPreviewScale = 1.0;
+        }
+
+        void stopRealtimeZoom() {
+            _rtZoomTimer.stop();
+            _rtZoomLastStepAt = {};
+        }
+
+        [[nodiscard]] bool canBeginPanInteraction() const {
+            return !_panning &&
+                !_rtZoomTimer.isActive() &&
+                _selectionRect.isNull() &&
+                !_zoomOutDragActive;
+        }
+
+        void beginPanInteraction(Qt::MouseButton button) {
+            _panning = true;
+            _panButton = button;
+            if (_owner) {
+                _owner->setDisplayedNavModeOverride(mandelbrotgui::NavMode::pan);
+            }
+            _dragOrigin = _lastMousePos;
+            _panOffset = {};
+            _selectionRect = {};
+            resetZoomOutDragState();
+            stopRealtimeZoom();
+            _panRedrawTimer.stop();
+            _zoomOutRedrawTimer.stop();
+            syncPanRedrawTimerInterval();
+            _panRedrawTimer.start();
+            grabMouse();
+            updateCursor();
+            update();
+        }
+
+        void endPanInteraction() {
+            _panRedrawTimer.stop();
+            _panning = false;
+            commitPanOffset();
+            _panButton = Qt::NoButton;
+            if (_owner) {
+                _owner->setDisplayedNavModeOverride(std::nullopt);
+            }
+            if (mouseGrabber() == this) {
+                releaseMouse();
+            }
+            updateCursor();
+            update();
+        }
+
+        void beginRealtimeZoom(bool zoomIn) {
+            if (!_rtZoomAnchorPixel.has_value()) {
+                const QSize output = _owner->outputSize();
+                _rtZoomAnchorPixel = QPointF(
+                    static_cast<double>(std::max(0, output.width() / 2)),
+                    static_cast<double>(std::max(0, output.height() / 2)));
+            }
+            _rtZoomZoomIn = zoomIn;
+            _rtZoomLastStepAt = std::chrono::steady_clock::now();
+            syncRealtimeZoomTimerInterval();
+            grabMouse();
+            if (!precisionModifierActive()) {
+                applyRealtimeZoomStep(true);
+            }
+            _rtZoomTimer.start();
+        }
+
+        bool handleArrowPanKeyPress(QKeyEvent *event) {
+            if (!_owner || effectiveMode() != mandelbrotgui::NavMode::pan) {
+                return false;
+            }
+            if (_panning || _zoomOutDragActive || !_selectionRect.isNull() ||
+                _rtZoomTimer.isActive()) {
+                return false;
+            }
+
+            bool *pressed = nullptr;
+            switch (event->key()) {
+                case Qt::Key_Left:
+                    pressed = &_arrowPanLeft;
+                    break;
+                case Qt::Key_Right:
+                    pressed = &_arrowPanRight;
+                    break;
+                case Qt::Key_Up:
+                    pressed = &_arrowPanUp;
+                    break;
+                case Qt::Key_Down:
+                    pressed = &_arrowPanDown;
+                    break;
+                default:
+                    return false;
+            }
+
+            const bool alreadyPressed = *pressed;
+            *pressed = true;
+            syncArrowPanTimerInterval();
+            if (!_arrowPanTimer.isActive()) {
+                _arrowPanTimer.start();
+            }
+            const bool precisionMode =
+                event->modifiers().testFlag(Qt::ShiftModifier);
+            if (!event->isAutoRepeat() && !alreadyPressed && !precisionMode) {
+                applyArrowPanStep();
+            }
+            return true;
+        }
+
+        bool handleArrowPanKeyRelease(QKeyEvent *event) {
+            bool *pressed = nullptr;
+            switch (event->key()) {
+                case Qt::Key_Left:
+                    pressed = &_arrowPanLeft;
+                    break;
+                case Qt::Key_Right:
+                    pressed = &_arrowPanRight;
+                    break;
+                case Qt::Key_Up:
+                    pressed = &_arrowPanUp;
+                    break;
+                case Qt::Key_Down:
+                    pressed = &_arrowPanDown;
+                    break;
+                default:
+                    return false;
+            }
+
+            *pressed = false;
+            if (!_arrowPanLeft && !_arrowPanRight &&
+                !_arrowPanUp && !_arrowPanDown) {
+                _arrowPanTimer.stop();
+            } else {
+                syncArrowPanTimerInterval();
+            }
+            return true;
+        }
+
+        void applyArrowPanStep() {
+            if (!_owner || effectiveMode() != mandelbrotgui::NavMode::pan) {
+                _arrowPanTimer.stop();
+                return;
+            }
+            if (_panning || _zoomOutDragActive || !_selectionRect.isNull() ||
+                _rtZoomTimer.isActive()) {
+                return;
+            }
+
+            const int xDir =
+                (_arrowPanLeft ? 1 : 0) +
+                (_arrowPanRight ? -1 : 0);
+            const int yDir =
+                (_arrowPanUp ? 1 : 0) +
+                (_arrowPanDown ? -1 : 0);
+            if (xDir == 0 && yDir == 0) {
+                _arrowPanTimer.stop();
+                return;
+            }
+
+            const int panRate = _owner->panRateValue();
+            if (panRate <= 0) {
+                return;
+            }
+
+            int step = 1;
+            if (panRate > 1) {
+                const int shiftedRate = panRate - 1;
+                const double panFactor = std::pow(1.125,
+                    static_cast<double>(shiftedRate - 8));
+                if (!(panFactor > 0.0) || !std::isfinite(panFactor)) {
+                    return;
+                }
+                step = std::max(1,
+                    static_cast<int>(std::lround(16.0 * panFactor)));
+            }
+            if (speedModifierActive()) {
+                step = std::max(1,
+                    static_cast<int>(std::lround(
+                        static_cast<double>(step) *
+                        kBoostedPanSpeedFactor)));
+            }
+            _owner->panByPixels(QPoint(xDir * step, yDir * step));
         }
 
         void drawGrid(QPainter &painter) {
@@ -3439,10 +3778,22 @@ namespace {
         }
 
         mandelbrotgui::NavMode effectiveMode() const {
-            return _spacePan ? mandelbrotgui::NavMode::pan : _owner->navMode();
+            return (_spacePan || (_panning && _panButton == Qt::MiddleButton)) ?
+                mandelbrotgui::NavMode::pan :
+                _owner->navMode();
         }
 
         void updateCursor() {
+            if (_minimalUI) {
+                setCursor(Qt::BlankCursor);
+                return;
+            }
+
+            if (_panning) {
+                setCursor(Qt::ClosedHandCursor);
+                return;
+            }
+
             switch (effectiveMode()) {
                 case mandelbrotgui::NavMode::realtimeZoom:
                 case mandelbrotgui::NavMode::zoom:
@@ -3537,7 +3888,10 @@ namespace {
                 return;
             }
 
-            const double panFactor = std::max(0.1, _owner->panRateFactor());
+            double panFactor = std::max(0.1, _owner->panRateFactor());
+            if (speedModifierActive()) {
+                panFactor *= kBoostedPanSpeedFactor;
+            }
             const double followPixelsPerSecond = 32.0 * panFactor * 60.0;
             const double maxStep = std::max(1.0, followPixelsPerSecond * elapsedSeconds);
             if (distance <= maxStep) {
@@ -3566,6 +3920,7 @@ namespace {
         QTimer _rtZoomTimer;
         QTimer _panRedrawTimer;
         QTimer _zoomOutRedrawTimer;
+        QTimer _arrowPanTimer;
         QPoint _lastMousePos;
         QPoint _dragOrigin;
         QPoint _selectionOrigin;
@@ -3576,19 +3931,31 @@ namespace {
         bool _rtZoomZoomIn = true;
         bool _panning = false;
         bool _spacePan = false;
-        bool _spacePanPanning = false;
+        Qt::MouseButton _panButton = Qt::NoButton;
         bool _zoomOutPending = false;
         bool _zoomOutDragActive = false;
         bool _zoomOutDragMoved = false;
         bool _zoomOutPendingCommit = false;
+        bool _arrowPanLeft = false;
+        bool _arrowPanRight = false;
+        bool _arrowPanUp = false;
+        bool _arrowPanDown = false;
         QPoint _zoomOutDragLastPos;
         double _zoomOutPreviewScale = 1.0;
         int _gridDivisions = 0;
+        bool _minimalUI = false;
+        bool _fullscreenManaged = false;
+        bool _fullscreenTransitionPending = false;
+        bool _restoreMaximized = false;
+        QRect _restoreGeometry;
+        QSize _restoreOutputSize;
+        QTimer _fullscreenResizeTimer;
     };
 }
 
 mandelbrotgui::mandelbrotgui(QWidget *parent)
     : QWidget(parent) {
+    qApp->installEventFilter(this);
     buildUI();
     populateControls();
     if (_startupBackendError) return;
@@ -3608,13 +3975,8 @@ mandelbrotgui::mandelbrotgui(QWidget *parent)
 }
 
 mandelbrotgui::~mandelbrotgui() {
-    _closing = true;
-    if (_viewport) {
-        _viewport->close();
-        _viewport = nullptr;
-    }
-
-    finishRenderThread();
+    qApp->removeEventFilter(this);
+    shutdownForExit(true);
 }
 
 void mandelbrotgui::buildUI() {
@@ -4146,9 +4508,12 @@ void mandelbrotgui::initializeState() {
     _mouseText = "Mouse: -";
     _viewportRenderTimeText.clear();
     _imageMemoryText = "Render: -  Output: -";
+    syncZoomTextFromState();
     syncPointTextFromState();
-    _displayedPoint = _state.point;
-    _displayedZoom = _state.zoom;
+    syncSeedTextFromState();
+    _displayedPointRealText = _pointRealText;
+    _displayedPointImagText = _pointImagText;
+    _displayedZoomText = _zoomText;
     _displayedOutputSize = outputSize();
     _hasDisplayedViewState = true;
     markPointViewSavedState();
@@ -4158,12 +4523,14 @@ void mandelbrotgui::connectUI() {
     QObject::connect(_backendCombo, &QComboBox::currentTextChanged,
         this, [this](const QString &text) {
             _state.backend = text;
+            _state.manualBackendSelection = true;
             loadSelectedBackend();
         });
 
     QObject::connect(_useThreadsCheckBox, &QCheckBox::toggled,
         this, [this](bool checked) {
             _state.useThreads = checked;
+            freezeViewportPreview(false, false);
         });
 
     auto requestFromControls = [this]() {
@@ -4356,16 +4723,20 @@ void mandelbrotgui::connectUI() {
         syncStateReadouts();
         requestRender();
         };
-    QObject::connect(_infoRealEdit, &QLineEdit::editingFinished,
-        this, [applyViewTextEdits]() { applyViewTextEdits(); });
-    QObject::connect(_infoImagEdit, &QLineEdit::editingFinished,
-        this, [applyViewTextEdits]() { applyViewTextEdits(); });
-    QObject::connect(_infoZoomEdit, &QLineEdit::editingFinished,
-        this, [applyViewTextEdits]() { applyViewTextEdits(); });
-    QObject::connect(_infoSeedRealEdit, &QLineEdit::editingFinished,
-        this, [applyViewTextEdits]() { applyViewTextEdits(); });
-    QObject::connect(_infoSeedImagEdit, &QLineEdit::editingFinished,
-        this, [applyViewTextEdits]() { applyViewTextEdits(); });
+    auto connectViewTextEdit = [this, applyViewTextEdits](QLineEdit *edit) {
+        if (!edit) return;
+        markLineEditTextCommitted(edit);
+        QObject::connect(edit, &QLineEdit::editingFinished,
+            this, [edit, applyViewTextEdits]() {
+                if (!hasUncommittedLineEditChange(edit)) return;
+                applyViewTextEdits();
+            });
+        };
+    connectViewTextEdit(_infoRealEdit);
+    connectViewTextEdit(_infoImagEdit);
+    connectViewTextEdit(_infoZoomEdit);
+    connectViewTextEdit(_infoSeedRealEdit);
+    connectViewTextEdit(_infoSeedImagEdit);
 
     QObject::connect(_paletteCombo, &QComboBox::currentTextChanged,
         this, [this, confirmDiscardDirtyPalette](const QString &name) {
@@ -4454,8 +4825,8 @@ void mandelbrotgui::connectUI() {
 void mandelbrotgui::loadSelectedBackend() {
     _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
     _callbackRenderRequestId.store(0, std::memory_order_release);
-    if (_backend && _backend.session) {
-        _backend.session->setCallbacks({});
+    if (_backend && _renderSession) {
+        _renderSession->setCallbacks({});
     }
     if (_state.backend.isEmpty()) {
         _startupBackendError = true;
@@ -4464,22 +4835,42 @@ void mandelbrotgui::loadSelectedBackend() {
         return;
     }
 
+    freezeViewportPreview(true, true);
     finishRenderThread();
-    if (!_previewImage.isNull() && _previewUsesBackendMemory) {
-        _previewImage = _previewImage.copy();
-    }
-    _previewUsesBackendMemory = false;
     _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
+    _interactionPreviewForced.store(false, std::memory_order_release);
+    _renderSession = nullptr;
+    _navigationSession = nullptr;
+    _previewSession = nullptr;
     _backend.reset();
     _lastPresentedRenderId = 0;
     _progressCancelled = false;
 
     std::string error;
-    _backend = loadBackendModule(executableDir(),
+    _backend = loadBackendModule(PathUtil::executableDir(),
         _state.backend.toStdString(), error);
-    if (_backend && _backend.session) {
+    if (_backend) {
+        _renderSession = _backend.makeSession();
+        if (!_renderSession && error.empty()) {
+            error = "Failed to create backend session.";
+        }
+    }
+    if (_backend) {
+        _navigationSession = _backend.makeSession();
+        if (!_navigationSession && error.empty()) {
+            error = "Failed to create navigation session.";
+        }
+    }
+    if (_backend) {
+        _previewSession = _backend.makeSession();
+        if (!_previewSession && error.empty()) {
+            error = "Failed to create preview session.";
+        }
+    }
+    if (_renderSession && _navigationSession && _previewSession) {
         bindBackendCallbacks();
         startRenderWorker();
+        setViewportInteractive(true);
         updateViewport();
         return;
     }
@@ -4494,6 +4885,7 @@ void mandelbrotgui::loadSelectedBackend() {
     }
 
     QMessageBox::warning(this, "Backend", message);
+    setViewportInteractive(true);
 }
 
 QString mandelbrotgui::backendForRank(int rank) const {
@@ -4592,20 +4984,20 @@ void mandelbrotgui::bindBackendCallbacks() {
             _progressCancelled = false;
             _pixelsPerSecondText = pixelsPerSecond;
             updateStatusLabels();
-            requestViewportRepaint();
             });
         };
 
     _callbacks.onImage = [this, backendGeneration](const Backend::ImageEvent &event) {
         if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+        const uint64_t renderId = _callbackRenderRequestId.load(std::memory_order_acquire);
         if (event.kind == Backend::ImageEventKind::allocated) {
+            if (renderId == 0) return;
             const QString imageMemoryText = formatImageMemoryText(event);
 
             QMetaObject::invokeMethod(this, [this, imageMemoryText, backendGeneration]() {
                 if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
                 _imageMemoryText = imageMemoryText;
                 updateStatusLabels();
-                requestViewportRepaint();
                 });
             return;
         }
@@ -4617,7 +5009,6 @@ void mandelbrotgui::bindBackendCallbacks() {
             if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
             setStatusSavedPath(path);
             updateStatusLabels();
-            requestViewportRepaint();
             });
         };
 
@@ -4636,12 +5027,13 @@ void mandelbrotgui::bindBackendCallbacks() {
 
             setStatusMessage(text);
             updateStatusLabels();
-            requestViewportRepaint();
             });
         };
 
     _callbacks.onDebug = [this, backendGeneration](const Backend::DebugEvent &event) {
         if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+        const uint64_t renderId = _callbackRenderRequestId.load(std::memory_order_acquire);
+        if (renderId == 0) return;
         if (!event.message) return;
         const QString message = QString::fromUtf8(event.message);
 
@@ -4649,11 +5041,9 @@ void mandelbrotgui::bindBackendCallbacks() {
             if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
             setStatusMessage(message);
             updateStatusLabels();
-            requestViewportRepaint();
             });
         };
-
-    _backend.session->setCallbacks(_callbacks);
+    _renderSession->setCallbacks(_callbacks);
 }
 
 void mandelbrotgui::startRenderWorker() {
@@ -4717,48 +5107,82 @@ void mandelbrotgui::startRenderWorker() {
                 });
 
             QString error;
-            if (!applyStateToSession(
-                request.state,
-                request.pointRealText,
-                request.pointImagText,
-                request.pickAction,
-                error)) {
-                    {
-                        const std::scoped_lock lock(_renderMutex);
-                        _queuedRenderRequest.reset();
+            int rank = 0;
+            Backend::Status status;
+            Backend::ImageView view;
+            auto renderStart = std::chrono::steady_clock::now();
+            auto renderEnd = renderStart;
+            {
+                if (!applyStateToSession(
+                    request.state,
+                    request.pointRealText,
+                    request.pointImagText,
+                    request.zoomText,
+                    request.seedRealText,
+                    request.seedImagText,
+                    request.pickAction,
+                    error)) {
+                    status = Backend::Status::failure(error.toStdString());
+                } else {
+                    rank = _renderSession->precisionRank();
+                    if (!request.state.manualBackendSelection &&
+                        backendForRank(rank) != request.state.backend) {
+                        status = Backend::Status::success();
+                    } else {
+                        renderStart = std::chrono::steady_clock::now();
+                        status = _renderSession->render();
+                        renderEnd = std::chrono::steady_clock::now();
                     }
-
-                    QMetaObject::invokeMethod(this, [this, error, requestId = request.id, backendGeneration]() {
-                        if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
-                        if (requestId != _latestRenderRequestId.load(std::memory_order_acquire)) return;
-
-                        _renderInFlight = false;
-                        _progressActive = false;
-                        _progressCancelled = false;
-                        _progressValue = 0;
-                        _progressText.clear();
-                        _pixelsPerSecondText = "0 pixels/s";
-                        handleRenderFailure(error);
-                        updateStatusLabels();
-                        });
-                    continue;
+                }
             }
 
-            const int rank = _backend.session->precisionRank();
-            if (backendForRank(rank) != request.state.backend) {
+            const bool staleRequest =
+                backendGeneration != _backendGeneration.load(std::memory_order_acquire) ||
+                request.id != _callbackRenderRequestId.load(std::memory_order_acquire) ||
+                request.id != _latestRenderRequestId.load(std::memory_order_acquire);
+            if (staleRequest) {
+                continue;
+            }
+
+            if (!status) {
+                const QString failureMessage = error.isEmpty() ?
+                    QString::fromStdString(status.message) :
+                    error;
+                {
+                    const std::scoped_lock lock(_renderMutex);
+                    _queuedRenderRequest.reset();
+                }
+
+                QMetaObject::invokeMethod(this, [this, failureMessage, requestId = request.id, backendGeneration]() {
+                    if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
+                    if (requestId != _latestRenderRequestId.load(std::memory_order_acquire)) return;
+
+                    _renderInFlight = false;
+                    _interactionPreviewForced.store(false, std::memory_order_release);
+                    _progressActive = false;
+                    _progressCancelled = false;
+                    _progressValue = 0;
+                    _progressText.clear();
+                    _pixelsPerSecondText = "0 pixels/s";
+                    handleRenderFailure(failureMessage);
+                    updateStatusLabels();
+                    });
+                continue;
+            }
+
+            view = _renderSession->imageView();
+            if (!request.state.manualBackendSelection &&
+                backendForRank(rank) != request.state.backend) {
                 QMetaObject::invokeMethod(this, [this,
                     rank,
                     requestId = request.id,
                     backendGeneration,
                     pick = request.pickAction]() {
-                    switchBackend(rank, requestId, backendGeneration, pick);
+                        switchBackend(rank, requestId, backendGeneration, pick);
                     });
                 continue;
             }
 
-            const auto renderStart = std::chrono::steady_clock::now();
-            const Backend::Status status = _backend.session->render();
-            const auto renderEnd = std::chrono::steady_clock::now();
             const auto renderElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                 renderEnd - renderStart);
             const qint64 renderMs = std::max<qint64>(1, renderElapsed.count());
@@ -4781,30 +5205,6 @@ void mandelbrotgui::startRenderWorker() {
                 previewFallbackLatched,
                 std::memory_order_release);
 
-            if (!status) {
-                const QString message = QString::fromStdString(status.message);
-                {
-                    const std::scoped_lock lock(_renderMutex);
-                    _queuedRenderRequest.reset();
-                }
-
-                QMetaObject::invokeMethod(this, [this, message, requestId = request.id, backendGeneration]() {
-                    if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
-                    if (requestId != _latestRenderRequestId.load(std::memory_order_acquire)) return;
-
-                    _renderInFlight = false;
-                    _progressActive = false;
-                    _progressCancelled = false;
-                    _progressValue = 0;
-                    _progressText.clear();
-                    _pixelsPerSecondText = "0 pixels/s";
-                    handleRenderFailure(message);
-                    updateStatusLabels();
-                    });
-                continue;
-            }
-
-            const Backend::ImageView view = _backend.session->imageView();
             bool hasQueuedRender = false;
             {
                 const std::scoped_lock lock(_renderMutex);
@@ -4813,20 +5213,22 @@ void mandelbrotgui::startRenderWorker() {
             const bool canUseDirectPreview =
                 !hasQueuedRender &&
                 !previewFallbackLatched;
-            const QImage renderedImage = canUseDirectPreview ?
-                wrapImageViewToImage(view) :
-                imageViewToImage(view);
             const UIState renderedState = request.state;
             const QString renderedPointReal = request.pointRealText;
             const QString renderedPointImag = request.pointImagText;
+            const QString renderedZoomText = request.zoomText;
+            if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) {
+                continue;
+            }
             QMetaObject::invokeMethod(this, [this,
-                renderedImage,
+                view,
                 canUseDirectPreview,
                 renderFPS,
                 renderMs,
                 renderedState,
                 renderedPointReal,
                 renderedPointImag,
+                renderedZoomText,
                 requestId = request.id,
                 backendGeneration]() {
                     if (backendGeneration != _backendGeneration.load(std::memory_order_acquire)) return;
@@ -4835,6 +5237,8 @@ void mandelbrotgui::startRenderWorker() {
 
                     const bool currentRender =
                         requestId == _callbackRenderRequestId.load(std::memory_order_acquire);
+                    const bool latestRender =
+                        requestId == _latestRenderRequestId.load(std::memory_order_acquire);
                     if (currentRender) {
                         _renderInFlight = false;
                         _progressActive = false;
@@ -4847,39 +5251,166 @@ void mandelbrotgui::startRenderWorker() {
                         .arg(QString::number(renderFPS, 'f', 1));
                     _viewportRenderTimeText = QString::fromStdString(
                         FormatUtil::formatDuration(renderMs));
-                    _previewImage = renderedImage;
-                    _previewUsesBackendMemory = canUseDirectPreview;
+                    const bool presentDirect =
+                        canUseDirectPreview &&
+                        latestRender &&
+                        !_interactionPreviewForced.load(std::memory_order_acquire);
+                    _previewImage = presentDirect ?
+                        wrapImageViewToImage(view) :
+                        imageViewToImage(view);
+                    _previewUsesBackendMemory = presentDirect;
                     const QWidget *dprSource = _viewport ? _viewport : this;
                     _previewImage.setDevicePixelRatio(effectiveDevicePixelRatio(dprSource));
-                    bool okReal = false, okImag = false;
-                    const double renderedReal = renderedPointReal.toDouble(&okReal);
-                    const double renderedImag = renderedPointImag.toDouble(&okImag);
-                    const QPointF renderedPoint = (okReal && okImag) ?
-                        QPointF(renderedReal, renderedImag) :
-                        renderedState.point;
-                    _displayedPoint = renderedPoint;
-                    _displayedZoom = renderedState.zoom;
+                    _interactionPreviewForced.store(false, std::memory_order_release);
+                    _displayedPointRealText = renderedPointReal;
+                    _displayedPointImagText = renderedPointImag;
+                    _displayedZoomText = renderedZoomText;
                     _displayedOutputSize = QSize(
                         renderedState.outputWidth,
                         renderedState.outputHeight);
                     _hasDisplayedViewState = true;
                     updateViewport();
                     updateStatusLabels();
-                });
+                }, Qt::BlockingQueuedConnection);
         }
         });
 }
 
 bool mandelbrotgui::ensureBackendReady(QString &errorMessage) const {
-    if (_backend && _backend.session) return true;
+    if (_backend && _renderSession) return true;
 
     errorMessage = "Backend not loaded.";
     return false;
 }
 
+bool mandelbrotgui::ensureNavigationSessionReady(QString &errorMessage) const {
+    if (_navigationSession) return true;
+
+    errorMessage = "Navigation session unavailable.";
+    return false;
+}
+
+bool mandelbrotgui::applyNavigationStateToSession(QString &errorMessage) {
+    if (!ensureNavigationSessionReady(errorMessage)) return false;
+
+    auto failIfNeeded = [&errorMessage](const Backend::Status &status) {
+        if (status) return false;
+        errorMessage = QString::fromStdString(status.message);
+        return true;
+        };
+
+    if (failIfNeeded(_navigationSession->setImageSize(
+        _state.outputWidth, _state.outputHeight, _state.aaPixels))) {
+        return false;
+    }
+    _navigationSession->setUseThreads(_state.useThreads);
+    if (failIfNeeded(_navigationSession->setZoom(
+        _state.iterations,
+        _zoomText.toStdString()))) {
+        return false;
+    }
+    if (failIfNeeded(_navigationSession->setPoint(
+        _pointRealText.toStdString(),
+        _pointImagText.toStdString()))) {
+        return false;
+    }
+    if (failIfNeeded(_navigationSession->setSeed(
+        _seedRealText.toStdString(),
+        _seedImagText.toStdString()))) {
+        return false;
+    }
+    return true;
+}
+
+bool mandelbrotgui::backendPanPointByDelta(const QPoint &delta,
+    QString &realText, QString &imagText, QString &errorMessage) {
+    if (!applyNavigationStateToSession(errorMessage)) return false;
+
+    std::string real;
+    std::string imag;
+    const Backend::Status status = _navigationSession->getPanPointByDelta(
+        delta.x(), delta.y(), real, imag);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    realText = QString::fromStdString(real);
+    imagText = QString::fromStdString(imag);
+    return true;
+}
+
+bool mandelbrotgui::backendPointAtPixel(const QPoint &pixel,
+    QString &realText, QString &imagText, QString &errorMessage) {
+    if (!applyNavigationStateToSession(errorMessage)) return false;
+
+    std::string real;
+    std::string imag;
+    const Backend::Status status = _navigationSession->getPointAtPixel(
+        pixel.x(), pixel.y(), real, imag);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    realText = QString::fromStdString(real);
+    imagText = QString::fromStdString(imag);
+    return true;
+}
+
+bool mandelbrotgui::backendZoomViewAtPixel(const QPoint &pixel,
+    double scaleMultiplier,
+    ViewTextState &view, QString &errorMessage) {
+    if (!applyNavigationStateToSession(errorMessage)) return false;
+
+    std::string zoom;
+    std::string real;
+    std::string imag;
+    const Backend::Status status = _navigationSession->getZoomPointByScale(
+        pixel.x(), pixel.y(), scaleMultiplier, zoom, real, imag);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    view.pointReal = QString::fromStdString(real);
+    view.pointImag = QString::fromStdString(imag);
+    view.zoomText = QString::fromStdString(zoom);
+    view.outputSize = outputSize();
+    view.valid = true;
+    return true;
+}
+
+bool mandelbrotgui::backendBoxZoomView(const QRect &selectionRect,
+    ViewTextState &view, QString &errorMessage) {
+    if (!applyNavigationStateToSession(errorMessage)) return false;
+
+    const QRect rect = selectionRect.normalized();
+    std::string zoom;
+    std::string real;
+    std::string imag;
+    const Backend::Status status = _navigationSession->getBoxZoomPoint(
+        rect.left(), rect.top(), rect.right(), rect.bottom(),
+        zoom, real, imag);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    view.pointReal = QString::fromStdString(real);
+    view.pointImag = QString::fromStdString(imag);
+    view.zoomText = QString::fromStdString(zoom);
+    view.outputSize = outputSize();
+    view.valid = true;
+    return true;
+}
+
 bool mandelbrotgui::applyStateToSession(const UIState &state,
     const QString &pointRealText,
     const QString &pointImagText,
+    const QString &zoomText,
+    const QString &seedRealText,
+    const QString &seedImagText,
     const std::optional<PendingPickAction> &pickAction,
     QString &errorMessage) {
     if (!ensureBackendReady(errorMessage)) return false;
@@ -4890,54 +5421,54 @@ bool mandelbrotgui::applyStateToSession(const UIState &state,
         return true;
         };
 
-    if (failIfNeeded(_backend.session->setImageSize(
+    if (failIfNeeded(_renderSession->setImageSize(
         state.outputWidth, state.outputHeight, state.aaPixels)))
         return false;
-    _backend.session->setUseThreads(state.useThreads);
-    if (failIfNeeded(_backend.session->setZoom(
+    _renderSession->setUseThreads(state.useThreads);
+    if (failIfNeeded(_renderSession->setZoom(
         state.iterations,
-        static_cast<float>(clampGUIZoom(state.zoom)))))
+        zoomText.toStdString())))
         return false;
-    if (failIfNeeded(_backend.session->setPoint(
+    if (failIfNeeded(_renderSession->setPoint(
         pointRealText.toStdString(),
         pointImagText.toStdString())))
         return false;
-    if (failIfNeeded(_backend.session->setSeed(
-        stateToString(state.seed.x()).toStdString(),
-        stateToString(state.seed.y()).toStdString())))
+    if (failIfNeeded(_renderSession->setSeed(
+        seedRealText.toStdString(),
+        seedImagText.toStdString())))
         return false;
-    if (failIfNeeded(_backend.session->setFractalType(state.fractalType)))
+    if (failIfNeeded(_renderSession->setFractalType(state.fractalType)))
         return false;
-    _backend.session->setFractalMode(state.julia, state.inverse);
-    if (failIfNeeded(_backend.session->setFractalExponent(
+    _renderSession->setFractalMode(state.julia, state.inverse);
+    if (failIfNeeded(_renderSession->setFractalExponent(
         stateToString(state.exponent).toStdString())))
         return false;
-    if (failIfNeeded(_backend.session->setColorMethod(state.colorMethod)))
+    if (failIfNeeded(_renderSession->setColorMethod(state.colorMethod)))
         return false;
-    if (failIfNeeded(_backend.session->setSinePalette(state.sinePalette)))
+    if (failIfNeeded(_renderSession->setSinePalette(state.sinePalette)))
         return false;
-    if (failIfNeeded(_backend.session->setColorPalette(state.palette)))
+    if (failIfNeeded(_renderSession->setColorPalette(state.palette)))
         return false;
-    if (failIfNeeded(_backend.session->setLight(
+    if (failIfNeeded(_renderSession->setLight(
         static_cast<float>(state.light.x()),
         static_cast<float>(state.light.y()))))
         return false;
-    if (failIfNeeded(_backend.session->setLightColor(state.lightColor)))
+    if (failIfNeeded(_renderSession->setLightColor(state.lightColor)))
         return false;
 
     if (pickAction) {
         Backend::Status status;
         switch (pickAction->target) {
             case SelectionTarget::zoomPoint:
-                status = _backend.session->setPoint(
+                status = _renderSession->setPoint(
                     pickAction->pixel.x(), pickAction->pixel.y());
                 break;
             case SelectionTarget::seedPoint:
-                status = _backend.session->setSeed(
+                status = _renderSession->setSeed(
                     pickAction->pixel.x(), pickAction->pixel.y());
                 break;
             case SelectionTarget::lightPoint:
-                status = _backend.session->setLight(
+                status = _renderSession->setLight(
                     pickAction->pixel.x(), pickAction->pixel.y());
                 break;
         }
@@ -4964,24 +5495,26 @@ void mandelbrotgui::finishRenderThread(bool forceKillOnTimeout, int timeoutMs) {
 #ifdef _WIN32
         HANDLE renderThreadHandle =
             static_cast<HANDLE>(_renderThread.native_handle());
-        if (forceKillOnTimeout) {
-            if (renderThreadHandle) {
-                const DWORD waitResult = WaitForSingleObject(
-                    renderThreadHandle, static_cast<DWORD>(std::max(0, timeoutMs)));
-                if (waitResult == WAIT_TIMEOUT) {
-                    _backend.forceKill();
-                    TerminateThread(renderThreadHandle, 1);
-                    WaitForSingleObject(renderThreadHandle, INFINITE);
-                }
+        const auto waitForThread = [renderThreadHandle](int waitMs) {
+            if (!renderThreadHandle) return true;
+            const DWORD waitResult = WaitForSingleObject(
+                renderThreadHandle,
+                waitMs <= 0 ? 0u : static_cast<DWORD>(waitMs));
+            return waitResult == WAIT_OBJECT_0;
+        };
+
+        const int boundedWaitMs = std::max(0, timeoutMs);
+        bool stopped = waitForThread(boundedWaitMs);
+        if (!stopped && forceKillOnTimeout) {
+            _backend.forceKill();
+            stopped = waitForThread(std::max(250, boundedWaitMs));
+            if (!stopped && renderThreadHandle) {
+                TerminateThread(renderThreadHandle, 1);
+                stopped = waitForThread(1000);
             }
-        } else if (timeoutMs > 0) {
-            if (renderThreadHandle) {
-                const DWORD waitResult = WaitForSingleObject(
-                    renderThreadHandle, static_cast<DWORD>(timeoutMs));
-                if (waitResult == WAIT_TIMEOUT) {
-                    TerminateThread(renderThreadHandle, 1);
-                    WaitForSingleObject(renderThreadHandle, INFINITE);
-                }
+        } else if (!stopped) {
+            while (!stopped) {
+                stopped = waitForThread(250);
             }
         }
 #else
@@ -5013,7 +5546,7 @@ void mandelbrotgui::requestRender(bool force, bool syncControls) {
     }
     _state.zoom = clampGUIZoom(_state.zoom);
     syncStateReadouts();
-    if (!_backend || !_backend.session) return;
+    if (!_backend || !_renderSession) return;
     const auto pickAction = _pendingPickAction;
     _pendingPickAction.reset();
     const uint64_t requestId =
@@ -5025,20 +5558,16 @@ void mandelbrotgui::requestRender(bool force, bool syncControls) {
             .state = _state,
             .pointRealText = _pointRealText,
             .pointImagText = _pointImagText,
+            .zoomText = _zoomText,
+            .seedRealText = _seedRealText,
+            .seedImagText = _seedImagText,
             .pickAction = pickAction,
             .id = requestId
         };
     }
 
     const bool wasInFlight = _renderInFlight;
-    const bool previewFallbackLatched =
-        _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
-    if (!wasInFlight &&
-        previewFallbackLatched &&
-        !_previewImage.isNull()) {
-        _previewImage = _previewImage.copy();
-        _previewUsesBackendMemory = false;
-    }
+    prepareInteractionPreview(false);
     _renderInFlight = true;
     if (!wasInFlight) {
         _progressActive = true;
@@ -5058,7 +5587,9 @@ void mandelbrotgui::applyHomeView() {
     _state.point = QPointF(0.0, 0.0);
     _state.seed = QPointF(0.0, 0.0);
     _state.light = QPointF(1.0, 1.0);
+    syncZoomTextFromState();
     syncPointTextFromState();
+    syncSeedTextFromState();
     syncControlsFromState();
     requestRender(true);
 }
@@ -5067,32 +5598,29 @@ void mandelbrotgui::scaleAtPixel(
     const QPoint &pixel,
     double scaleMultiplier,
     bool realtimeStep) {
-    (void)realtimeStep;
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
-    const QPoint clampedPixel = clampPixelToOutput(pixel);
-    const QPointF basePoint = _state.point;
-    const double baseZoom = _state.zoom;
-    const QSize baseSize = outputSize();
-    const double nextZoom = clampGUIZoom(baseZoom - std::log10(scaleMultiplier));
-    if (nextZoom == baseZoom) return;
+    ViewTextState nextView;
+    QString error;
+    if (!backendZoomViewAtPixel(clampPixelToOutput(pixel),
+        scaleMultiplier, nextView, error)) {
+        setStatusMessage(error);
+        updateStatusLabels();
+        return;
+    }
+    if (NumberUtil::equalParsedDoubleText(
+        _zoomText.toStdString(), nextView.zoomText.toStdString()) &&
+        _pointRealText == nextView.pointReal &&
+        _pointImagText == nextView.pointImag) {
+        return;
+    }
 
-    const QPointF targetPoint = outputPixelToComplexForView(
-        clampedPixel,
-        basePoint,
-        baseZoom,
-        baseSize);
-    const QPointF offsetAtTargetZoom = outputPixelToComplexForView(
-        clampedPixel,
-        QPointF(0.0, 0.0),
-        nextZoom,
-        baseSize);
-
-    _state.point = QPointF(
-        targetPoint.x() - offsetAtTargetZoom.x(),
-        offsetAtTargetZoom.y() - targetPoint.y());
-    syncPointTextFromState();
-    _state.zoom = nextZoom;
+    _pointRealText = nextView.pointReal;
+    _pointImagText = nextView.pointImag;
+    _zoomText = nextView.zoomText;
+    syncStatePointFromText();
+    syncStateZoomFromText();
+    prepareInteractionPreview(realtimeStep);
     if (_pendingPickAction &&
         _pendingPickAction->target == SelectionTarget::zoomPoint) {
         _pendingPickAction.reset();
@@ -5116,23 +5644,20 @@ void mandelbrotgui::boxZoom(const QRect &selectionRect) {
         return;
     }
 
-    const QSize size = outputSize();
-    const double xScale = static_cast<double>(size.width()) / rect.width();
-    const double yScale = static_cast<double>(size.height()) / rect.height();
-    const double factor = std::max(1.01, std::min(xScale, yScale));
-    const QPoint center = clampPixelToOutput(rect.center());
-    const QPointF basePoint = _state.point;
-    const double baseZoom = _state.zoom;
-    const QSize baseSize = outputSize();
-    const double nextZoom = clampGUIZoom(baseZoom + std::log10(factor));
-    const QPointF centerPoint = outputPixelToComplexForView(
-        center,
-        basePoint,
-        baseZoom,
-        baseSize);
-    _state.zoom = nextZoom;
-    _state.point = QPointF(centerPoint.x(), -centerPoint.y());
-    syncPointTextFromState();
+    ViewTextState nextView;
+    QString error;
+    if (!backendBoxZoomView(rect, nextView, error)) {
+        setStatusMessage(error);
+        updateStatusLabels();
+        return;
+    }
+
+    _pointRealText = nextView.pointReal;
+    _pointImagText = nextView.pointImag;
+    _zoomText = nextView.zoomText;
+    syncStatePointFromText();
+    syncStateZoomFromText();
+    prepareInteractionPreview(true);
     syncStateReadouts();
     requestViewportRepaint();
     requestRender(false, false);
@@ -5141,19 +5666,18 @@ void mandelbrotgui::boxZoom(const QRect &selectionRect) {
 void mandelbrotgui::panByPixels(const QPoint &delta) {
     if (delta.isNull()) return;
 
-    const QPointF basePoint = _state.point;
-    const double baseZoom = _state.zoom;
-    const QSize size = outputSize();
-    const double realScale = 1.0 / std::pow(10.0, baseZoom);
-    const double aspect = static_cast<double>(size.width()) /
-        std::max(1, size.height());
-    const double imagScale = realScale / aspect;
-    _state.point = basePoint;
-    _state.point.rx() -= static_cast<double>(delta.x()) /
-        std::max(1, size.width()) * realScale;
-    _state.point.ry() += static_cast<double>(delta.y()) /
-        std::max(1, size.height()) * imagScale;
-    syncPointTextFromState();
+    QString pointReal;
+    QString pointImag;
+    QString error;
+    if (!backendPanPointByDelta(delta, pointReal, pointImag, error)) {
+        setStatusMessage(error);
+        updateStatusLabels();
+        return;
+    }
+
+    _pointRealText = pointReal;
+    _pointImagText = pointImag;
+    syncStatePointFromText();
     syncStateReadouts();
     requestViewportRepaint();
     requestRender(false, false);
@@ -5164,18 +5688,52 @@ void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
     switch (_selectionTarget) {
         case SelectionTarget::zoomPoint:
         {
-            const QPointF point = outputPixelToComplex(clampedPixel);
-            _pointRealText = stateToString(point.x());
-            _pointImagText = stateToString(point.y());
+            QString real;
+            QString imag;
+            QString error;
+            if (!backendPointAtPixel(clampedPixel, real, imag, error)) {
+                setStatusMessage(error);
+                updateStatusLabels();
+                return;
+            }
+            _pointRealText = real;
+            _pointImagText = imag;
             syncStatePointFromText();
             break;
         }
         case SelectionTarget::seedPoint:
-            _state.seed = outputPixelToComplex(clampedPixel);
+        {
+            QString real;
+            QString imag;
+            QString error;
+            if (!backendPointAtPixel(clampedPixel, real, imag, error)) {
+                setStatusMessage(error);
+                updateStatusLabels();
+                return;
+            }
+            _seedRealText = real;
+            _seedImagText = imag;
+            syncStateSeedFromText();
             break;
+        }
         case SelectionTarget::lightPoint:
-            _state.light = outputPixelToComplex(clampedPixel);
+        {
+            QString real;
+            QString imag;
+            QString error;
+            if (!backendPointAtPixel(clampedPixel, real, imag, error)) {
+                setStatusMessage(error);
+                updateStatusLabels();
+                return;
+            }
+
+            bool okReal = false, okImag = false;
+            const double lightReal = real.toDouble(&okReal);
+            const double lightImag = imag.toDouble(&okImag);
+            if (okReal) _state.light.setX(lightReal);
+            if (okImag) _state.light.setY(lightImag);
             break;
+        }
     }
 
     if (_selectionTarget == SelectionTarget::zoomPoint) {
@@ -5189,12 +5747,22 @@ void mandelbrotgui::pickAtPixel(const QPoint &pixel) {
 
 void mandelbrotgui::updateMouseCoords(const QPoint &pixel) {
     _lastMousePixel = clampPixelToOutput(pixel);
-    const QPointF point = outputPixelToComplex(_lastMousePixel);
+    QString real;
+    QString imag;
+    QString error;
+    if (!backendPointAtPixel(_lastMousePixel, real, imag, error)) {
+        _mouseText = QString("Mouse: %1, %2  |  -")
+            .arg(_lastMousePixel.x())
+            .arg(_lastMousePixel.y());
+        requestViewportRepaint();
+        return;
+    }
+
     _mouseText = QString("Mouse: %1, %2  |  %3  %4")
         .arg(_lastMousePixel.x())
         .arg(_lastMousePixel.y())
-        .arg(stateToString(point.x(), 12))
-        .arg(stateToString(point.y(), 12));
+        .arg(real)
+        .arg(imag);
     requestViewportRepaint();
 }
 
@@ -5204,8 +5772,7 @@ void mandelbrotgui::clearMouseCoords() {
 }
 
 void mandelbrotgui::onViewportClosed() {
-    if (_closing) return;
-    close();
+    requestApplicationShutdown(false);
 }
 
 void mandelbrotgui::adjustIterationsBy(int delta) {
@@ -5218,56 +5785,227 @@ void mandelbrotgui::cycleNavMode() {
     _navModeCombo->setCurrentIndex((_navModeCombo->currentIndex() + 1) % 3);
 }
 
+void mandelbrotgui::cycleViewportGrid() {
+    if (!_viewport) return;
+    static_cast<ViewportWindow *>(_viewport)->cycleGridMode();
+}
+
+void mandelbrotgui::toggleViewportMinimalUI() {
+    if (!_viewport) return;
+    static_cast<ViewportWindow *>(_viewport)->toggleMinimalUI();
+}
+
+void mandelbrotgui::toggleViewportFullscreen() {
+    auto *viewport = _viewport ? static_cast<ViewportWindow *>(_viewport) : nullptr;
+    if (!viewport) return;
+
+    // Detach from any backend-owned preview before changing viewport size/state.
+    freezeViewportPreview(false, true);
+    prepareInteractionPreview(true);
+
+    if (!viewport->isFullScreen()) {
+        viewport->_restoreGeometry = viewport->geometry();
+        viewport->_restoreMaximized = viewport->isMaximized();
+        viewport->_restoreOutputSize = outputSize();
+        viewport->_fullscreenManaged = true;
+        viewport->_fullscreenTransitionPending = true;
+        viewport->setMinimumSize(1, 1);
+        viewport->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        viewport->showFullScreen();
+        viewport->raise();
+        viewport->activateWindow();
+        viewport->setFocus(Qt::ActiveWindowFocusReason);
+        viewport->_fullscreenResizeTimer.start();
+        return;
+    }
+
+    viewport->_fullscreenManaged = false;
+    viewport->_fullscreenTransitionPending = true;
+    if (viewport->_restoreMaximized) {
+        viewport->showMaximized();
+    } else {
+        viewport->showNormal();
+        if (viewport->_restoreGeometry.isValid()) {
+            viewport->setGeometry(viewport->_restoreGeometry);
+        }
+    }
+    viewport->_fullscreenResizeTimer.start();
+}
+
+void mandelbrotgui::finalizeViewportFullscreenTransition() {
+    auto *viewport = _viewport ? static_cast<ViewportWindow *>(_viewport) : nullptr;
+    if (!viewport || !viewport->_fullscreenTransitionPending) return;
+
+    viewport->_fullscreenTransitionPending = false;
+    if (viewport->isFullScreen()) {
+        const double dpr = effectiveDevicePixelRatio(viewport);
+        const QSize logicalSize = viewport->size();
+        _state.outputWidth = std::max(1,
+            static_cast<int>(std::lround(logicalSize.width() * dpr)));
+        _state.outputHeight = std::max(1,
+            static_cast<int>(std::lround(logicalSize.height() * dpr)));
+        syncControlsFromState();
+        requestRender(true, false);
+        return;
+    }
+
+    if (viewport->_restoreOutputSize.isValid()) {
+        _state.outputWidth = viewport->_restoreOutputSize.width();
+        _state.outputHeight = viewport->_restoreOutputSize.height();
+    }
+    syncControlsFromState();
+    resizeViewportWindowToImageSize();
+    requestRender(true, false);
+}
+
+mandelbrotgui::NavMode mandelbrotgui::displayedNavMode() const {
+    return _displayedNavModeOverride.value_or(_navMode);
+}
+
+void mandelbrotgui::setDisplayedNavModeOverride(std::optional<NavMode> mode) {
+    if (_displayedNavModeOverride == mode) return;
+
+    _displayedNavModeOverride = mode;
+    syncControlsFromState();
+}
+
 void mandelbrotgui::cancelQueuedRenders() {
     const int cancelledProgressValue = _progressValue;
     _pendingPickAction.reset();
-    if (!_previewImage.isNull()) {
-        _previewImage = _previewImage.copy();
-        _previewUsesBackendMemory = false;
-        updateViewport();
-    }
+    freezeViewportPreview(true, true);
 
-    _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
+    const uint64_t cancelledRequestBoundary =
+        _latestRenderRequestId.fetch_add(1, std::memory_order_acq_rel) + 1;
+    _lastPresentedRenderId = std::max(_lastPresentedRenderId, cancelledRequestBoundary);
     _callbackRenderRequestId.store(0, std::memory_order_release);
-    if (_backend && _backend.session) {
-        _backend.session->setCallbacks({});
+    {
+        const std::scoped_lock lock(_renderMutex);
+        _queuedRenderRequest.reset();
     }
-    finishRenderThread(true, kForceKillDelayMs);
+    _renderCv.notify_all();
+    if (_backend) {
+        _backend.forceKill();
+    }
     _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
-
-    if (!_closing) {
-        _backend.reset();
-        if (!_state.backend.isEmpty()) {
-            std::string error;
-            _backend = loadBackendModule(
-                executableDir(),
-                _state.backend.toStdString(),
-                error);
-            if (_backend && _backend.session) {
-                bindBackendCallbacks();
-            } else {
-                const QString message = QString::fromStdString(error.empty() ?
-                    "Failed to reload backend after cancel." :
-                    error);
-                QMessageBox::warning(this, "Backend", message);
-            }
-        }
-    }
-
-    if (!_closing && _backend && _backend.session) {
-        startRenderWorker();
-    }
+    _interactionPreviewForced.store(false, std::memory_order_release);
     _lastRenderFailureMessage.clear();
+    _renderInFlight = false;
     _progressValue = std::clamp(cancelledProgressValue, 0, 100);
     _progressActive = false;
     _progressCancelled = true;
+    _progressText.clear();
     _pixelsPerSecondText = "0 pixels/s";
     setStatusMessage("Render cancelled");
     updateStatusLabels();
+    if (!_closing) {
+        setViewportInteractive(true);
+        requestViewportRepaint();
+    }
 }
 
 QSize mandelbrotgui::outputSize() const {
     return { _state.outputWidth, _state.outputHeight };
+}
+
+mandelbrotgui::ViewTextState mandelbrotgui::currentViewTextState() const {
+    const QSize size = outputSize();
+    return {
+        .pointReal = _pointRealText,
+        .pointImag = _pointImagText,
+        .zoomText = _zoomText,
+        .outputSize = size,
+        .valid = size.width() > 0 && size.height() > 0
+    };
+}
+
+mandelbrotgui::ViewTextState mandelbrotgui::displayedViewTextState() const {
+    if (!_hasDisplayedViewState) {
+        return {};
+    }
+
+    return {
+        .pointReal = _displayedPointRealText,
+        .pointImag = _displayedPointImagText,
+        .zoomText = _displayedZoomText,
+        .outputSize = _displayedOutputSize,
+        .valid = _displayedOutputSize.width() > 0 && _displayedOutputSize.height() > 0
+    };
+}
+
+bool mandelbrotgui::previewPannedViewState(const QPoint &delta,
+    ViewTextState &view, QString &errorMessage) {
+    view = currentViewTextState();
+    if (!view.valid || delta.isNull()) {
+        return view.valid;
+    }
+
+    QString real;
+    QString imag;
+    if (!backendPanPointByDelta(delta, real, imag, errorMessage)) {
+        view = {};
+        return false;
+    }
+
+    view.pointReal = real;
+    view.pointImag = imag;
+    return true;
+}
+
+bool mandelbrotgui::previewScaledViewState(const QPoint &pixel,
+    double scaleMultiplier, ViewTextState &view, QString &errorMessage) {
+    if (NumberUtil::almostEqual(scaleMultiplier, 1.0)) {
+        view = currentViewTextState();
+        return view.valid;
+    }
+
+    return backendZoomViewAtPixel(clampPixelToOutput(pixel),
+        scaleMultiplier, view, errorMessage);
+}
+
+bool mandelbrotgui::previewBoxZoomViewState(const QRect &selectionRect,
+    ViewTextState &view, QString &errorMessage) {
+    const QRect rect = selectionRect.normalized();
+    if (rect.width() < 2 || rect.height() < 2) {
+        view = currentViewTextState();
+        return view.valid;
+    }
+
+    return backendBoxZoomView(rect, view, errorMessage);
+}
+
+bool mandelbrotgui::mapViewPixelToViewPixel(const ViewTextState &sourceView,
+    const ViewTextState &targetView, const QPoint &pixel,
+    QPointF &mappedPixel, QString &errorMessage) {
+    if (!ensureNavigationSessionReady(errorMessage)) {
+        return false;
+    }
+
+    Backend::ViewportState source{
+        .outputWidth = sourceView.outputSize.width(),
+        .outputHeight = sourceView.outputSize.height(),
+        .pointReal = sourceView.pointReal.toStdString(),
+        .pointImag = sourceView.pointImag.toStdString(),
+        .zoom = sourceView.zoomText.toStdString()
+    };
+    Backend::ViewportState target{
+        .outputWidth = targetView.outputSize.width(),
+        .outputHeight = targetView.outputSize.height(),
+        .pointReal = targetView.pointReal.toStdString(),
+        .pointImag = targetView.pointImag.toStdString(),
+        .zoom = targetView.zoomText.toStdString()
+    };
+
+    double mappedX = 0.0;
+    double mappedY = 0.0;
+    const Backend::Status status = _navigationSession->mapViewPixelToViewPixel(
+        source, target, pixel.x(), pixel.y(), mappedX, mappedY);
+    if (!status) {
+        errorMessage = QString::fromStdString(status.message);
+        return false;
+    }
+
+    mappedPixel = QPointF(mappedX, mappedY);
+    return true;
 }
 
 QString mandelbrotgui::viewportStatusText() const {
@@ -5286,6 +6024,49 @@ QString mandelbrotgui::viewportStatusText() const {
 }
 
 bool mandelbrotgui::eventFilter(QObject *watched, QEvent *event) {
+    if (_viewport &&
+        (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease)) {
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+        const bool routePress =
+            event->type() == QEvent::KeyPress &&
+            (keyEvent->key() == Qt::Key_Escape ||
+                keyEvent->key() == Qt::Key_Z ||
+                keyEvent->key() == Qt::Key_H ||
+                keyEvent->key() == Qt::Key_G ||
+                keyEvent->key() == Qt::Key_F1 ||
+                keyEvent->key() == Qt::Key_F2 ||
+                keyEvent->key() == Qt::Key_F12 ||
+                keyEvent->key() == Qt::Key_Left ||
+                keyEvent->key() == Qt::Key_Right ||
+                keyEvent->key() == Qt::Key_Up ||
+                keyEvent->key() == Qt::Key_Down);
+        const bool routeRelease =
+            event->type() == QEvent::KeyRelease &&
+            (keyEvent->key() == Qt::Key_Left ||
+                keyEvent->key() == Qt::Key_Right ||
+                keyEvent->key() == Qt::Key_Up ||
+                keyEvent->key() == Qt::Key_Down);
+        if (routePress || routeRelease) {
+            QWidget *targetWidget = qobject_cast<QWidget *>(watched);
+            const bool targetIsViewport =
+                targetWidget &&
+                (targetWidget == _viewport || _viewport->isAncestorOf(targetWidget));
+            if (!targetIsViewport) {
+                QKeyEvent forwarded(
+                    keyEvent->type(),
+                    keyEvent->key(),
+                    keyEvent->modifiers(),
+                    keyEvent->text(),
+                    keyEvent->isAutoRepeat(),
+                    keyEvent->count());
+                QApplication::sendEvent(_viewport, &forwarded);
+                if (forwarded.isAccepted()) {
+                    return true;
+                }
+            }
+        }
+    }
+
     QLineEdit *iterationsEdit = _iterationsSpin ?
         _iterationsSpin->findChild<QLineEdit *>() : nullptr;
     if (iterationsEdit && watched == iterationsEdit &&
@@ -5316,14 +6097,8 @@ bool mandelbrotgui::eventFilter(QObject *watched, QEvent *event) {
 }
 
 void mandelbrotgui::closeEvent(QCloseEvent *event) {
-    _closing = true;
-    if (_viewport) {
-        _viewport->close();
-        _viewport = nullptr;
-    }
-
-    finishRenderThread();
-    QWidget::closeEvent(event);
+    event->accept();
+    requestApplicationShutdown(true);
 }
 
 void mandelbrotgui::showEvent(QShowEvent *event) {
@@ -5342,6 +6117,74 @@ void mandelbrotgui::showEvent(QShowEvent *event) {
         });
 }
 
+void mandelbrotgui::requestApplicationShutdown(bool closeViewportWindow) {
+    if (_shutdownQueued || _closing) return;
+    _shutdownQueued = true;
+
+    setEnabled(false);
+    hide();
+    if (_viewport) {
+        _viewport->setEnabled(false);
+        _viewport->hide();
+    }
+
+    QTimer::singleShot(0, this, [this, closeViewportWindow]() {
+        shutdownForExit(closeViewportWindow);
+        QApplication::quit();
+    });
+}
+
+void mandelbrotgui::shutdownForExit(bool closeViewportWindow) {
+    if (_closing) return;
+    _closing = true;
+    _shutdownQueued = false;
+    _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
+    _callbackRenderRequestId.store(0, std::memory_order_release);
+
+    freezeViewportPreview(true, true);
+    _pendingPickAction.reset();
+    if (_backend && _renderSession) {
+        _renderSession->setCallbacks({});
+    }
+    if (_backend) {
+        _backend.forceKill();
+    }
+
+    if (closeViewportWindow && _viewport) {
+        QWidget *viewport = _viewport;
+        _viewport = nullptr;
+        viewport->hide();
+        viewport->deleteLater();
+    }
+
+    finishRenderThread(true, kForceKillDelayMs);
+}
+
+void mandelbrotgui::freezeViewportPreview(bool disableViewport,
+    bool clearInteractionPreview) {
+    if (disableViewport) {
+        setViewportInteractive(false);
+    }
+
+    _previewImage = makeBlankViewportImage();
+    _previewUsesBackendMemory = false;
+    const QWidget *dprSource = _viewport ? _viewport : this;
+    _previewImage.setDevicePixelRatio(effectiveDevicePixelRatio(dprSource));
+
+    if (clearInteractionPreview) {
+        _interactionPreviewForced.store(false, std::memory_order_release);
+    }
+    if (_viewport && clearInteractionPreview) {
+        static_cast<ViewportWindow *>(_viewport)->clearPreviewOffset();
+    }
+    requestViewportRepaint();
+}
+
+void mandelbrotgui::setViewportInteractive(bool enabled) {
+    if (!_viewport) return;
+    _viewport->setEnabled(enabled);
+}
+
 void mandelbrotgui::updatePreview(const QImage &image,
     bool clearInteractionPreview,
     bool usesBackendMemory) {
@@ -5351,10 +6194,26 @@ void mandelbrotgui::updatePreview(const QImage &image,
     _previewUsesBackendMemory = usesBackendMemory;
     const QWidget *dprSource = _viewport ? _viewport : this;
     _previewImage.setDevicePixelRatio(effectiveDevicePixelRatio(dprSource));
+    if (clearInteractionPreview) {
+        _interactionPreviewForced.store(false, std::memory_order_release);
+    }
     if (_viewport && clearInteractionPreview) {
         static_cast<ViewportWindow *>(_viewport)->clearPreviewOffset();
     }
     updateViewport();
+}
+
+void mandelbrotgui::prepareInteractionPreview(bool forceFallbackPreview) {
+    if (!_previewImage.isNull() && _previewUsesBackendMemory) {
+        _previewImage = _previewImage.copy();
+        _previewUsesBackendMemory = false;
+        const QWidget *dprSource = _viewport ? _viewport : this;
+        _previewImage.setDevicePixelRatio(effectiveDevicePixelRatio(dprSource));
+    }
+
+    if (forceFallbackPreview && !_previewImage.isNull()) {
+        _interactionPreviewForced.store(true, std::memory_order_release);
+    }
 }
 
 void mandelbrotgui::updateStatusRightEdgeAlignment() {
@@ -5540,14 +6399,14 @@ void mandelbrotgui::updateSinePreview() {
     const QSize widgetSize = preview->size();
     if (!widgetSize.isValid()) return;
 
-    if (!_backend || !_backend.session) {
+    if (!_backend || !_previewSession) {
         preview->setPreviewImage({});
         return;
     }
 
     const auto [rangeMin, rangeMax] = preview->range();
     const Backend::Status colorStatus =
-        _backend.session->setSinePalette(_state.sinePalette);
+        _previewSession->setSinePalette(_state.sinePalette);
     if (!colorStatus) {
         preview->setPreviewImage({});
         return;
@@ -5555,7 +6414,7 @@ void mandelbrotgui::updateSinePreview() {
 
     const int previewWidth = std::max(1, widgetSize.width() - 12);
     const int previewHeight = std::max(1, widgetSize.height() - 28);
-    const QImage image = imageViewToImage(_backend.session->renderSinePreview(
+    const QImage image = imageViewToImage(_previewSession->renderSinePreview(
         previewWidth,
         previewHeight,
         static_cast<float>(rangeMin),
@@ -5759,21 +6618,28 @@ void mandelbrotgui::showHelpDialog() {
         "\n"
         "Mouse\n"
         "Left click: use the current navigation mode\n"
-        "Right click: realtime zoom out\n"
+        "Right click: zoom out in zoom modes, or pan in Pan mode\n"
         "Mouse wheel: zoom\n"
-        "Middle click: pick the current target point\n"
+        "Middle drag: temporarily pan in any mode while held\n"
         "\n"
         "Navigation modes\n"
-        "Realtime Zoom: hold left click to zoom in\n"
-        "Box Zoom: drag a box to zoom into it\n"
-        "Pan: drag to move around\n"
+        "Realtime Zoom: hold left or right click for continuous zoom\n"
+        "Box Zoom: drag a box with left click\n"
+        "Pan: drag with left, right, or middle click\n"
         "\n"
         "Keyboard\n"
-        "Esc: cancel the current render\n"
+        "Most keys work from either window.\n"
+        "Esc: cancel queued or active renders\n"
         "Z: cycle navigation mode\n"
-        "Space: hold for pan\n"
-        "H: go to the home view\n"
+        "H: return to the home view\n"
         "G: cycle viewport grid\n"
+        "Arrow keys: pan in Pan mode\n"
+        "Space: temporary pan while held in the viewport only\n"
+        "Shift: precision mode for mouse pan, arrow pan, and realtime zoom\n"
+        "Ctrl: double arrow-pan speed and realtime zoom auto-pan speed\n"
+        "F1: toggle viewport overlays and cursor\n"
+        "F2: quick-save to the default save folder with date suffix enabled\n"
+        "F12: toggle true fullscreen for the viewport\n"
         "\n"
         "Buttons\n"
         "Calculate: render with the current settings\n"
@@ -5885,6 +6751,7 @@ void mandelbrotgui::showAboutDialog() {
 void mandelbrotgui::handleRenderFailure(const QString &message) {
     if (message.isEmpty()) return;
 
+    _interactionPreviewForced.store(false, std::memory_order_release);
     setStatusMessage(message);
     if (_lastRenderFailureMessage == message) {
         return;
@@ -5943,20 +6810,20 @@ void mandelbrotgui::syncStateFromControls() {
     syncStatePointFromText();
 
     if (_infoZoomEdit) {
-        bool ok = false;
-        const double zoom = _infoZoomEdit->text().trimmed().toDouble(&ok);
-        if (ok) _state.zoom = clampGUIZoom(zoom);
+        const QString text = _infoZoomEdit->text().trimmed();
+        if (!text.isEmpty()) _zoomText = text;
     }
+    syncStateZoomFromText();
+
     if (_infoSeedRealEdit) {
-        bool ok = false;
-        const double seedReal = _infoSeedRealEdit->text().trimmed().toDouble(&ok);
-        if (ok) _state.seed.setX(seedReal);
+        const QString text = _infoSeedRealEdit->text().trimmed();
+        if (!text.isEmpty()) _seedRealText = text;
     }
     if (_infoSeedImagEdit) {
-        bool ok = false;
-        const double seedImag = _infoSeedImagEdit->text().trimmed().toDouble(&ok);
-        if (ok) _state.seed.setY(seedImag);
+        const QString text = _infoSeedImagEdit->text().trimmed();
+        if (!text.isEmpty()) _seedImagText = text;
     }
+    syncStateSeedFromText();
 
     switch (_colorMethodCombo->currentIndex()) {
         case 0: _state.colorMethod = Backend::ColorMethod::iterations; break;
@@ -5998,6 +6865,7 @@ void mandelbrotgui::syncControlsFromState() {
     const QSignalBlocker heightBlocker(_outputHeightSpin);
     const QSignalBlocker colorBlocker(_colorMethodCombo);
     const QSignalBlocker fractalBlocker(_fractalCombo);
+    const QSignalBlocker navModeBlocker(_navModeCombo);
 
     _backendCombo->setCurrentText(_state.backend);
     _iterationsSpin->setValue(_state.iterations);
@@ -6039,6 +6907,7 @@ void mandelbrotgui::syncControlsFromState() {
     _outputHeightSpin->setValue(_state.outputHeight);
     _colorMethodCombo->setCurrentIndex(static_cast<int>(_state.colorMethod));
     _fractalCombo->setCurrentIndex(static_cast<int>(_state.fractalType));
+    _navModeCombo->setCurrentIndex(static_cast<int>(displayedNavMode()));
 
     updateLightColorButton();
     syncStateReadouts();
@@ -6047,11 +6916,11 @@ void mandelbrotgui::syncControlsFromState() {
 }
 
 void mandelbrotgui::syncStateReadouts() {
-    if (_infoRealEdit) _infoRealEdit->setText(_pointRealText);
-    if (_infoImagEdit) _infoImagEdit->setText(_pointImagText);
-    if (_infoZoomEdit) _infoZoomEdit->setText(stateToString(_state.zoom, 12));
-    if (_infoSeedRealEdit) _infoSeedRealEdit->setText(stateToString(_state.seed.x(), 12));
-    if (_infoSeedImagEdit) _infoSeedImagEdit->setText(stateToString(_state.seed.y(), 12));
+    setCommittedLineEditText(_infoRealEdit, _pointRealText);
+    setCommittedLineEditText(_infoImagEdit, _pointImagText);
+    setCommittedLineEditText(_infoZoomEdit, _zoomText);
+    setCommittedLineEditText(_infoSeedRealEdit, _seedRealText);
+    setCommittedLineEditText(_infoSeedImagEdit, _seedImagText);
     if (_lightRealEdit) _lightRealEdit->setText(stateToString(_state.light.x(), 12));
     if (_lightImagEdit) _lightImagEdit->setText(stateToString(_state.light.y(), 12));
 }
@@ -6277,9 +7146,9 @@ void mandelbrotgui::savePointView() {
         .iterations = _state.iterations,
         .real = _pointRealText.toStdString(),
         .imag = _pointImagText.toStdString(),
-        .zoom = _state.zoom,
-        .seedReal = stateToString(_state.seed.x()).toStdString(),
-        .seedImag = stateToString(_state.seed.y()).toStdString()
+        .zoom = _zoomText.toStdString(),
+        .seedReal = _seedRealText.toStdString(),
+        .seedImag = _seedImagText.toStdString()
     };
 
     const QString outputPathWithExtension = QString::fromStdString(
@@ -6321,17 +7190,14 @@ void mandelbrotgui::loadPointView() {
     _state.inverse = point.inverse;
     _state.julia = point.julia;
     _state.iterations = std::max(0, point.iterations);
-    _state.zoom = clampGUIZoom(point.zoom);
+    _zoomText = QString::fromStdString(point.zoom);
     _pointRealText = QString::fromStdString(point.real);
     _pointImagText = QString::fromStdString(point.imag);
-    {
-        bool okSeedReal = false, okSeedImag = false;
-        const double seedReal = QString::fromStdString(point.seedReal).toDouble(&okSeedReal);
-        const double seedImag = QString::fromStdString(point.seedImag).toDouble(&okSeedImag);
-        if (okSeedReal) _state.seed.setX(seedReal);
-        if (okSeedImag) _state.seed.setY(seedImag);
-    }
+    _seedRealText = QString::fromStdString(point.seedReal);
+    _seedImagText = QString::fromStdString(point.seedImag);
+    syncStateZoomFromText();
     syncStatePointFromText();
+    syncStateSeedFromText();
     markPointViewSavedState();
     syncControlsFromState();
     requestRender();
@@ -6474,29 +7340,48 @@ void mandelbrotgui::openPaletteEditor() {
     }
 }
 
-void mandelbrotgui::saveImage() {
+bool mandelbrotgui::commitImageSave(
+    const QString &path, bool appendDate, const QString &type) {
     QString error;
     if (!ensureBackendReady(error)) {
         QMessageBox::warning(this, "Save", error);
-        return;
+        return false;
     }
 
     if (_previewImage.isNull()) {
         QMessageBox::warning(this, "Save", "No image is available.");
-        return;
+        return false;
     }
 
-    auto result = runSaveDialog(this, "mandelbrot.png");
-    if (!result) return;
-
-    const Backend::Status status = _backend.session->saveImage(
-        result->path.toStdString(),
-        result->appendDate,
-        result->type.toStdString());
+    Backend::Status status;
+    {
+        status = _renderSession->saveImage(
+            path.toStdString(),
+            appendDate,
+            type.toStdString());
+    }
     if (!status) {
         QMessageBox::warning(this, "Save",
             QString::fromStdString(status.message));
+        return false;
     }
+
+    return true;
+}
+
+void mandelbrotgui::saveImage() {
+    auto result = runSaveDialog(this, "mandelbrot.png");
+    if (!result) return;
+
+    (void)commitImageSave(result->path, result->appendDate, result->type);
+}
+
+void mandelbrotgui::quickSaveImage() {
+    std::error_code ec;
+    std::filesystem::create_directories(savesDirectoryPath(), ec);
+    const QString path = QString::fromStdWString(
+        (savesDirectoryPath() / "mandelbrot.png").wstring());
+    (void)commitImageSave(path, true, "png");
 }
 
 void mandelbrotgui::resizeViewportImage() {
@@ -6560,9 +7445,9 @@ mandelbrotgui::SavedPointViewState mandelbrotgui::capturePointViewState() const 
         .iterations = _state.iterations,
         .real = _pointRealText,
         .imag = _pointImagText,
-        .zoom = _state.zoom,
-        .seedReal = _state.seed.x(),
-        .seedImag = _state.seed.y()
+        .zoom = _zoomText,
+        .seedReal = _seedRealText,
+        .seedImag = _seedImagText
     };
 }
 
@@ -6606,9 +7491,12 @@ bool mandelbrotgui::isPointViewDirty() const {
             current.real.toStdString(), saved.real.toStdString()) ||
         !NumberUtil::equalParsedDoubleText(
             current.imag.toStdString(), saved.imag.toStdString()) ||
-        !NumberUtil::almostEqual(current.zoom, saved.zoom) ||
-        !NumberUtil::almostEqual(current.seedReal, saved.seedReal) ||
-        !NumberUtil::almostEqual(current.seedImag, saved.seedImag)) {
+        !NumberUtil::equalParsedDoubleText(
+            current.zoom.toStdString(), saved.zoom.toStdString()) ||
+        !NumberUtil::equalParsedDoubleText(
+            current.seedReal.toStdString(), saved.seedReal.toStdString()) ||
+        !NumberUtil::equalParsedDoubleText(
+            current.seedImag.toStdString(), saved.seedImag.toStdString())) {
         return true;
     }
 
@@ -6647,6 +7535,21 @@ QString mandelbrotgui::stateToString(double value, int precision) const {
     return QString::number(value, 'g', precision);
 }
 
+void mandelbrotgui::syncZoomTextFromState() {
+    _zoomText = stateToString(_state.zoom, 17);
+}
+
+void mandelbrotgui::syncStateZoomFromText() {
+    bool ok = false;
+    const double zoom = _zoomText.toDouble(&ok);
+    if (ok) {
+        _state.zoom = clampGUIZoom(zoom);
+        if (!NumberUtil::almostEqual(_state.zoom, zoom)) {
+            _zoomText = stateToString(_state.zoom, 17);
+        }
+    }
+}
+
 void mandelbrotgui::syncPointTextFromState() {
     _pointRealText = stateToString(_state.point.x());
     _pointImagText = stateToString(_state.point.y());
@@ -6660,6 +7563,19 @@ void mandelbrotgui::syncStatePointFromText() {
     if (okImag) _state.point.setY(imag);
 }
 
+void mandelbrotgui::syncSeedTextFromState() {
+    _seedRealText = stateToString(_state.seed.x(), 17);
+    _seedImagText = stateToString(_state.seed.y(), 17);
+}
+
+void mandelbrotgui::syncStateSeedFromText() {
+    bool okReal = false, okImag = false;
+    const double real = _seedRealText.toDouble(&okReal);
+    const double imag = _seedImagText.toDouble(&okImag);
+    if (okReal) _state.seed.setX(real);
+    if (okImag) _state.seed.setY(imag);
+}
+
 QPoint mandelbrotgui::clampPixelToOutput(const QPoint &pixel) const {
     const QSize size = outputSize();
     return {
@@ -6668,61 +7584,20 @@ QPoint mandelbrotgui::clampPixelToOutput(const QPoint &pixel) const {
     };
 }
 
-QPointF mandelbrotgui::outputPixelToComplexForView(const QPoint &pixel,
-    const QPointF &viewPoint, double viewZoom, const QSize &viewSize) const {
-    const QPoint clampedPixel = {
-        std::clamp(pixel.x(), 0, std::max(0, viewSize.width() - 1)),
-        std::clamp(pixel.y(), 0, std::max(0, viewSize.height() - 1))
-    };
-    const QSize size = viewSize;
-    const double dx = (clampedPixel.x() - size.width() / 2.0) /
-        std::max(1, size.width());
-    const double dy = (clampedPixel.y() - size.height() / 2.0) /
-        std::max(1, size.height());
-    const double realScale = 1.0 / std::pow(10.0, viewZoom);
-    const double aspect = static_cast<double>(size.width()) /
-        std::max(1, size.height());
-    const double imagScale = realScale / aspect;
-
-    return {
-        dx * realScale + viewPoint.x(),
-        dy * imagScale - viewPoint.y()
-    };
-}
-
-QPointF mandelbrotgui::outputPixelToComplexVisible(const QPoint &pixel) const {
-    if (_hasDisplayedViewState) {
-        return outputPixelToComplexForView(
-            pixel, _displayedPoint, _displayedZoom, _displayedOutputSize);
-    }
-
-    return outputPixelToComplex(pixel);
-}
-
-QPointF mandelbrotgui::outputPixelToComplex(const QPoint &pixel) const {
-    return outputPixelToComplexForView(pixel, _state.point, _state.zoom, outputSize());
-}
-
-double mandelbrotgui::currentRealScale() const {
-    return 1.0 / std::pow(10.0, _state.zoom);
-}
-
-double mandelbrotgui::currentImagScale() const {
-    const QSize size = outputSize();
-    const double aspect = static_cast<double>(size.width()) /
-        std::max(1, size.height());
-    return currentRealScale() / aspect;
-}
-
 int mandelbrotgui::resolveCurrentIterationCount() const {
-    if (_backend && _backend.session) {
-        return std::max(1, _backend.session->currentIterationCount());
+    if (_backend && _renderSession) {
+        return std::max(1, _renderSession->currentIterationCount());
     }
 
     return std::max(1, _state.iterations);
 }
 
 void mandelbrotgui::resizeViewportWindowToImageSize() {
+    auto *viewport = _viewport ? static_cast<ViewportWindow *>(_viewport) : nullptr;
+    if (viewport && viewport->isFullScreen()) {
+        return;
+    }
+
     resizeViewportToImageSize(_viewport, outputSize());
 }
 
@@ -6740,7 +7615,9 @@ bool mandelbrotgui::canRenderAtTargetFPS() const {
 }
 
 bool mandelbrotgui::shouldUseInteractionPreviewFallback() const {
-    return _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+    return
+        _interactionPreviewForced.load(std::memory_order_acquire) ||
+        _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
 }
 
 double mandelbrotgui::zoomRateFactor() const {

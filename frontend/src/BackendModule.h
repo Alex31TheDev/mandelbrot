@@ -1,8 +1,9 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
+#include <filesystem>
 
 #include "util/IncludeWin32.h"
 
@@ -21,12 +22,11 @@ struct SessionDeleter {
 
 typedef std::unique_ptr<Backend::Session, SessionDeleter> SessionPtr;
 
-struct BackendModule {
-    HMODULE module = nullptr;
-    SessionPtr session;
-
+class BackendModule {
+public:
     BackendModule() = default;
-    BackendModule(HMODULE module, SessionPtr session);
+    BackendModule(HMODULE module,
+        CreateBackendFunc createSession, DestroyBackendFunc destroySession);
 
     BackendModule(const BackendModule &) = delete;
     BackendModule &operator=(const BackendModule &) = delete;
@@ -34,14 +34,21 @@ struct BackendModule {
     BackendModule(BackendModule &&other) noexcept;
     BackendModule &operator=(BackendModule &&other) noexcept;
 
+    explicit operator bool() const { return _module; }
+
     ~BackendModule() { reset(); }
 
-    explicit operator bool() const { return module && session; }
-
+    Backend::Session *makeSession();
     void reset();
     void forceKill() const;
+
+private:
+    HMODULE _module = nullptr;
+    std::vector<SessionPtr> _sessions;
+
+    CreateBackendFunc _createSession = nullptr;
+    DestroyBackendFunc _destroySession = nullptr;
 };
 
-std::filesystem::path executableDir();
 BackendModule loadBackendModule(const std::filesystem::path &exeDir,
     const std::string &configName, std::string &err);

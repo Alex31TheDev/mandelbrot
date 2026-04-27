@@ -102,10 +102,7 @@ private:
     int32_t _outputStrideW = 0;
     size_t _outputSize = 0;
 
-    std::unique_ptr<
-        uint8_t[],
-        BufferUtil::AlignedDeleter<ALIGNMENT>
-    > _pixels;
+    BufferUtil::AlignedBuffer<ALIGNMENT> _pixels;
     std::unique_ptr<uint8_t[]> _outputPixels;
 
     [[nodiscard]] int32_t _getOutputStrideW() const {

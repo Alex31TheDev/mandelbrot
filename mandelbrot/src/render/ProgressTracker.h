@@ -69,7 +69,6 @@ private:
     struct _AtomicState {
         std::atomic<WU> completedWork{ 0 };
         std::atomic_int lastEmitted{ -1 };
-
         std::atomic<HTP> lastUpdateTime;
 
         mutable std::mutex opsMutex;

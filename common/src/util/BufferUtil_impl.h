@@ -60,4 +60,12 @@ namespace BufferUtil {
         (uint8_t *ptr) noexcept {
         bufferFree<ALIGNMENT>(ptr);
     }
+
+    template <size_t ALIGNMENT>
+    AlignedBuffer<ALIGNMENT> bufferAllocPtr(size_t bufferSize,
+        std::optional<std::reference_wrapper<size_t>> alignedSize) {
+        return AlignedBuffer<ALIGNMENT>(
+            bufferAlloc<ALIGNMENT>(bufferSize, alignedSize)
+        );
+    }
 }

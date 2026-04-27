@@ -3,14 +3,30 @@
 #include <cstdint>
 
 #include <memory>
-#include <numeric>
+#include <utility>
+#include <optional>
 
 #include "../image/Image.h"
 #include "ProgressTracker.h"
-#include "ThreadPool.h"
 
 #include "RenderGlobals.h"
 using namespace RenderGlobals;
+
+#if defined(USE_KF2)
+
+#include "../kf2/KF2Renderer.h"
+
+void renderImage(
+    Image *image,
+    const Backend::Callbacks *callbacks,
+    bool trackProgress, bool trackIterations,
+    OptionalIterationStats iterStats
+) {
+    KF2Renderer::renderImageKF2(
+        image, callbacks, trackProgress, trackIterations, iterStats);
+}
+
+#else
 
 #if defined(USE_SCALAR)
 
@@ -24,7 +40,7 @@ struct RowRenderer {
         ) const {
         const auto ci = getCenterImag(y);
 
-        for (unsigned x = xstart; x <= xend; ++x) {
+        for (unsigned x = xstart; x <= xend; x++) {
             ScalarRenderer::renderPixelScalar(
                 image->pixels(), pos,
                 static_cast<int>(x), ci,
@@ -72,25 +88,31 @@ struct RowRenderer {
 
 #elif defined(USE_MPFR)
 
+#include "../mpfr/MPFRCoords.h"
 #include "../mpfr/MPFRRenderer.h"
 
 struct RowRenderer {
-    std::shared_ptr<const MPFRRenderer::PerturbationReference> reference;
+    mpfr_t ci;
 
     RowRenderer() {
-        reference = MPFRRenderer::preparePerturbationReference();
+        MPFRTypes::initRaw(ci);
+    }
+
+    ~RowRenderer() {
+        mpfr_clear(ci);
     }
 
     void operator()(
         Image *image, size_t &pos, unsigned xstart, unsigned xend,
         unsigned y, OptionalIterationStats iterStats
         ) {
-        for (unsigned x = xstart; x <= xend; ++x) {
+        getCenterImag_mp(ci, static_cast<int>(y));
+
+        for (unsigned x = xstart; x <= xend; x++) {
             MPFRRenderer::renderPixelMPFR(
                 image->pixels(), pos,
-                static_cast<int>(x),
-                static_cast<int>(y), iterStats,
-                reference.get()
+                static_cast<int>(x), ci,
+                iterStats, static_cast<int>(y)
             );
         }
     }
@@ -110,7 +132,7 @@ struct RowRenderer {
         ) {
         getCenterImag_qd(ci, static_cast<int>(y));
 
-        for (unsigned x = xstart; x <= xend; ++x) {
+        for (unsigned x = xstart; x <= xend; x++) {
             QDRenderer::renderPixelQD(
                 image->pixels(), pos,
                 static_cast<int>(x), ci,
@@ -121,7 +143,7 @@ struct RowRenderer {
 };
 
 #else
-#error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, USE_MPFR, or USE_QD)"
+#error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, USE_MPFR, USE_KF2, USE_QD)"
 #endif
 
 constexpr int MIN_THREADING_HEIGHT = 50;
@@ -137,21 +159,6 @@ createProgressTracker(bool trackProgress,
         return std::make_unique<ProgressTracker>(width * height,
             useThreads, options);
     } else return nullptr;
-}
-
-static std::unique_ptr<ThreadPool<>> &getThreadPool(bool create = true) {
-    static std::unique_ptr<ThreadPool<>> pool = std::make_unique<ThreadPool<>>();
-    if (create && !pool) {
-        pool = std::make_unique<ThreadPool<>>();
-    }
-    return pool;
-}
-
-void forceKillRenderThreads() {
-    auto &pool = getThreadPool(false);
-    if (!pool) return;
-    pool->forceTerminate();
-    pool.reset();
 }
 
 static void renderStrip(
@@ -183,10 +190,10 @@ static void emitIterations(const Backend::Callbacks *callbacks,
     uint64_t iter, ProgressTracker::SU time) {
     if (!callbacks || !callbacks->onInfo) return;
 
-    const double gigaIter = static_cast<double>(iter) / 1.0e9;
-    const double timeSec = static_cast<double>(time.count()) /
-        ProgressTracker::SHORT_UNIT_SCALE;
-    const double iterSec = timeSec > 0.0 ? gigaIter / timeSec : 0.0;
+    const double gigaIter = static_cast<double>(iter) / 1.0e9,
+        timeSec = static_cast<double>(time.count()) /
+        ProgressTracker::SHORT_UNIT_SCALE,
+        iterSec = timeSec > 0.0 ? gigaIter / timeSec : 0.0;
 
     const Backend::InfoEvent event = {
         .kind = Backend::InfoEventKind::iterations,
@@ -225,10 +232,8 @@ static void renderImageParallel(
     bool trackProgress, bool trackIterations,
     OptionalIterationStats iterStats
 ) {
-    auto &pool = *getThreadPool();
-
-    if (height < MIN_THREADING_HEIGHT ||
-        pool.size() <= 1) {
+    auto &pool = getRenderPool(false);
+    if (height < MIN_THREADING_HEIGHT || pool.size() <= 1) {
         renderImageSequential(image, callbacks, trackProgress,
             trackIterations, iterStats);
         return;
@@ -238,8 +243,8 @@ static void renderImageParallel(
     const int taskCount = (height < MAX_TASK_COUNT)
         ? height : MAX_TASK_COUNT;
 
-    const int rowsPerTask = height / taskCount;
-    const int extraRows = height % taskCount;
+    const int rowsPerTask = height / taskCount,
+        extraRows = height % taskCount;
 
     auto stats = trackIterations
         ? std::make_unique<RenderIterationStats[]>(taskCount)
@@ -248,8 +253,8 @@ static void renderImageParallel(
     int startY = 0;
 
     for (int i = 0; i < taskCount; ++i) {
-        const int chunkRows = rowsPerTask + (i < extraRows ? 1 : 0);
-        const int endY = startY + chunkRows;
+        const int chunkRows = rowsPerTask + (i < extraRows ? 1 : 0),
+            endY = startY + chunkRows;
 
         OptionalIterationStats taskStats =
             stats ? OptionalIterationStats(std::ref(stats[i])) :
@@ -264,7 +269,6 @@ static void renderImageParallel(
 
         startY = endY;
     }
-
     pool.waitForTasks();
 
     if (trackProgress) progress->complete();
@@ -290,3 +294,4 @@ void renderImage(
 
     render(image, callbacks, trackProgress, trackIterations, iterStats);
 }
+#endif

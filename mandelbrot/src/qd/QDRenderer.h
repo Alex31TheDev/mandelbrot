@@ -14,7 +14,6 @@ namespace QDRenderer {
     void initCoordsQD(qd_number_t &cr, qd_number_t &ci,
         qd_number_t &zr, qd_number_t &zi,
         qd_number_t &dr, qd_number_t &di);
-
     int iterateFractalQD(qd_param_t cr, qd_param_t ci,
         qd_number_t &zr, qd_number_t &zi,
         qd_number_t &dr, qd_number_t &di,

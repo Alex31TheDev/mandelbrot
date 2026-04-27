@@ -153,8 +153,12 @@ typedef mpfr_param_t number_param_t;
 #define NUM_ADDXX(a, b, c, d) MPFRTypes::addxx((a), (b), (c), (d))
 #define NUM_SUBXX(a, b, c, d) MPFRTypes::subxx((a), (b), (c), (d))
 
-#define NUM_ADDSQ(a, b) MPFRTypes::add(MPFRTypes::mul((a), (a)), MPFRTypes::mul((b), (b)))
-#define NUM_SUBSQ(a, b) MPFRTypes::sub(MPFRTypes::mul((a), (a)), MPFRTypes::mul((b), (b)))
+#define NUM_ADDSQ(a, b) MPFRTypes::add( \
+    MPFRTypes::mul((a), (a)), MPFRTypes::mul((b), (b)) \
+)
+#define NUM_SUBSQ(a, b) MPFRTypes::sub( \
+    MPFRTypes::mul((a), (a)), MPFRTypes::mul((b), (b)) \
+)
 
 #define NUM_NEG(x) MPFRTypes::neg((x))
 #define NUM_ABS(x) MPFRTypes::abs((x))
@@ -166,7 +170,7 @@ typedef mpfr_param_t number_param_t;
 #define NUM_SIN(x) MPFRTypes::sin((x))
 #define NUM_COS(x) MPFRTypes::cos((x))
 #define NUM_ATAN2(a, b) MPFRTypes::atan2((a), (b))
-#define NUM_SINCOS sincos_mp
+#define NUM_SINCOS MPFRTypes::sincos(x)
 
 #ifndef MPFR_FORMULA_SHARED_HELPERS
 #define MPFR_FORMULA_SHARED_HELPERS

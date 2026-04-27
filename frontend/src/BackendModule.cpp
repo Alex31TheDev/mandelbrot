@@ -6,50 +6,68 @@
 
 #include "BackendAPI.h"
 
-BackendModule::BackendModule(HMODULE moduleHandle, SessionPtr sessionPtr)
-    : module(moduleHandle), session(std::move(sessionPtr)) {}
+BackendModule::BackendModule(HMODULE module,
+    CreateBackendFunc createSession, DestroyBackendFunc destroySession)
+    : _module(module),
+    _createSession(createSession), _destroySession(destroySession) {}
 
 BackendModule::BackendModule(BackendModule &&other) noexcept
-    : module(other.module), session(std::move(other.session)) {
-    other.module = nullptr;
+    : _module(other._module), _sessions(std::move(other._sessions)),
+    _createSession(other._createSession), _destroySession(other._destroySession) {
+    other._module = nullptr;
+    other._createSession = nullptr;
+    other._destroySession = nullptr;
 }
 
 BackendModule &BackendModule::operator=(BackendModule &&other) noexcept {
     if (this != &other) {
         reset();
-        module = other.module;
-        session = std::move(other.session);
-        other.module = nullptr;
+
+        _module = other._module;
+        _sessions = std::move(other._sessions);
+        _createSession = other._createSession;
+        _destroySession = other._destroySession;
+        
+        other._module = nullptr;
+        other._createSession = nullptr;
+        other._destroySession = nullptr;
     }
 
     return *this;
 }
 
-void BackendModule::reset() {
-    session.reset();
+Backend::Session *BackendModule::makeSession() {
+    if (!_createSession || !_destroySession) return nullptr;
 
-    if (module) {
-        FreeLibrary(module);
-        module = nullptr;
+    SessionPtr session(_createSession(), SessionDeleter{ _destroySession });
+    if (!session) return nullptr;
+
+    Backend::Session *rawSession = session.get();
+    _sessions.push_back(std::move(session));
+    return rawSession;
+}
+
+void BackendModule::reset() {
+    _sessions.clear();
+    _createSession = nullptr;
+    _destroySession = nullptr;
+
+    if (_module) {
+        FreeLibrary(_module);
+        _module = nullptr;
     }
 }
 
 void BackendModule::forceKill() const {
-    if (session) session->forceKill();
-}
-
-std::filesystem::path executableDir() {
-    std::wstring path(MAX_PATH, L'\0');
-    const DWORD length = GetModuleFileNameW(nullptr, path.data(),
-        static_cast<DWORD>(path.size()));
-
-    path.resize(length);
-    return std::filesystem::path(path).parent_path();
+    for (const SessionPtr &session : _sessions) {
+        if (session) session->forceKill();
+    }
 }
 
 BackendModule loadBackendModule(const std::filesystem::path &exeDir,
     const std::string &configName, std::string &err) {
-    const std::filesystem::path dllPath = (exeDir / "backends") / (configName + ".dll");
+    const std::filesystem::path dllPath =
+        (exeDir / "backends") / (configName + ".dll");
     HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr,
         LOAD_WITH_ALTERED_SEARCH_PATH);
 
@@ -59,9 +77,11 @@ BackendModule loadBackendModule(const std::filesystem::path &exeDir,
     }
 
     const auto createSession = reinterpret_cast<CreateBackendFunc>(
-        GetProcAddress(module, "mandelbrot_backend_create"));
+        GetProcAddress(module, "mandelbrot_backend_create")
+    );
     const auto destroySession = reinterpret_cast<DestroyBackendFunc>(
-        GetProcAddress(module, "mandelbrot_backend_destroy"));
+        GetProcAddress(module, "mandelbrot_backend_destroy")
+    );
 
     if (!createSession || !destroySession) {
         err = "Backend DLL is missing backend factory exports.";
@@ -69,13 +89,6 @@ BackendModule loadBackendModule(const std::filesystem::path &exeDir,
         return {};
     }
 
-    SessionPtr session(createSession(), SessionDeleter{ destroySession });
-    if (!session) {
-        err = "Failed to create backend session.";
-        FreeLibrary(module);
-        return {};
-    }
-
     err.clear();
-    return BackendModule(module, std::move(session));
+    return BackendModule(module, createSession, destroySession);
 }

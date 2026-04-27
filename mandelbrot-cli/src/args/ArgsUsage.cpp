@@ -24,6 +24,20 @@ namespace ArgsUsage {
         "Mode-specific trailing args: "
         "help iterations | help smooth_iterations | help palette | help light";
 
+    const std::unordered_map<std::string, std::string>
+        backendAliases = {
+        { "floatscalar", "FloatScalar" },
+        { "float-scalar", "FloatScalar" },
+        { "doublescalar", "DoubleScalar" },
+        { "double-scalar", "DoubleScalar" },
+        { "floatavx2", "FloatAVX2" },
+        { "float-avx2", "FloatAVX2" },
+        { "doubleavx2", "DoubleAVX2" },
+        { "double-avx2", "DoubleAVX2" },
+        { "mpfr", "MPFR" },
+        { "kf2", "KF2" }
+    };
+
     static std::string makeConfigName(const std::string &suffix) {
         return currentPrefix() + " - " + suffix;
     }
@@ -38,17 +52,19 @@ namespace ArgsUsage {
 
         fprintf(stderr,
             "Usage:\n"
-            "  %s <variant> [render args...]\n\n"
-            "Bundled variants for this build:\n"
+            "  %s <backend> [render args...]\n\n"
+            "Bundled backends for this build:\n"
             "  %s - FloatScalar\n"
             "  %s - DoubleScalar\n"
             "  %s - FloatAVX2\n"
             "  %s - DoubleAVX2\n"
             "  %s - MPFR\n"
+            "  %s - KF2\n"
             "\n"
             "Short aliases:\n"
-            "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr\n",
+            "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr, kf2\n",
             progName ? progName : "mandelbrot-cli",
+            prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),
@@ -107,30 +123,16 @@ namespace ArgsUsage {
         return false;
     }
 
-    std::string resolveVariant(std::string_view input) {
-        static const std::unordered_map<std::string, std::string> aliases = {
-            { "floatscalar", "FloatScalar" },
-            { "float-scalar", "FloatScalar" },
-            { "doublescalar", "DoubleScalar" },
-            { "double-scalar", "DoubleScalar" },
-            { "floatavx2", "FloatAVX2" },
-            { "float-avx2", "FloatAVX2" },
-            { "doubleavx2", "DoubleAVX2" },
-            { "double-avx2", "DoubleAVX2" },
-            { "mpfr", "MPFR" }
-        };
-
+    std::string resolveBackend(std::string_view input) {
         const std::string lower = StringUtil::toLower(input);
-        if (const auto it = aliases.find(lower); it != aliases.end()) {
-            return makeConfigName(it->second);
-        }
+        if (const auto it = backendAliases.find(lower);
+            it != backendAliases.end()) return makeConfigName(it->second);
 
         const std::string prefixLower = StringUtil::toLower(currentPrefix());
         if (StringUtil::startsWith(lower, prefixLower + " - ")) {
             const std::string suffix = lower.substr(prefixLower.size() + 3);
-            if (const auto it = aliases.find(suffix); it != aliases.end()) {
-                return makeConfigName(it->second);
-            }
+            if (const auto it = backendAliases.find(suffix);
+                it != backendAliases.end()) return makeConfigName(it->second);
         }
 
         return {};

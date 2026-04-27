@@ -6,7 +6,6 @@
 
 #include "QDTypes.h"
 #include "QDGlobals.h"
-#include "../render/RenderGlobals.h"
 
 #include "util/InlineUtil.h"
 
@@ -30,40 +29,19 @@ FORCE_INLINE void getCenterImag_qd(qd_number_t &out, int y) {
     out = getCenterImag_qd(y);
 }
 
-FORCE_INLINE int clampCoordToImage_qd(int coord, int size) {
-    return std::clamp(coord, 0, std::max(0, size - 1));
-}
+qd_number_t getOutputCenterReal_qd(int x);
+qd_number_t getOutputCenterImag_qd(int y);
 
-FORCE_INLINE qd_number_t getOutputCenterReal_qd(int x) {
-    using namespace QDGlobals;
-    using namespace RenderGlobals;
+qd_number_t getOutputPixelX_qd(qd_param_t real);
+qd_number_t getOutputPixelY_qd(qd_param_t imag);
 
-    const qd_number_t outputWidth_qd = static_cast<qd_number_t>(outputWidth);
-    const qd_number_t x_qd = static_cast<qd_number_t>(x);
-    const qd_number_t halfOutputWidth = outputWidth_qd * qd_number_t(0.5);
-    const qd_number_t invOutputWidth = qd_number_t(1.0) / outputWidth_qd;
-
-    return (x_qd - halfOutputWidth) * invOutputWidth * realScale_qd + point_r_qd;
-}
-
-FORCE_INLINE qd_number_t getOutputCenterImag_qd(int y) {
-    using namespace QDGlobals;
-    using namespace RenderGlobals;
-
-    const qd_number_t outputHeight_qd = static_cast<qd_number_t>(outputHeight);
-    const qd_number_t y_qd = static_cast<qd_number_t>(y);
-    const qd_number_t halfOutputHeight = outputHeight_qd * qd_number_t(0.5);
-    const qd_number_t invOutputHeight = qd_number_t(1.0) / outputHeight_qd;
-
-    return (y_qd - halfOutputHeight) * invOutputHeight * imagScale_qd - point_i_qd;
-}
-
-FORCE_INLINE void getOutputCenterReal_qd(qd_number_t &out, int x) {
-    out = getOutputCenterReal_qd(x);
-}
-
-FORCE_INLINE void getOutputCenterImag_qd(qd_number_t &out, int y) {
-    out = getOutputCenterImag_qd(y);
-}
+void getOutputCenterPoint_qd(qd_number_t &realOut, qd_number_t &imagOut,
+    int x, int y);
+void getOutputPixelPoint_qd(qd_number_t &xOut, qd_number_t &yOut,
+    qd_param_t real, qd_param_t imag);
+void getPanCenterPoint_qd(qd_number_t &realOut,
+    qd_number_t &imagOut, int deltaX, int deltaY);
+void getBoxCenterPoint_qd(qd_number_t &realOut,
+    qd_number_t &imagOut, int left, int top, int right, int bottom);
 
 #endif

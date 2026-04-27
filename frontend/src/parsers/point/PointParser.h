@@ -11,7 +11,7 @@ struct PointConfig {
     int iterations = 0;
     std::string real;
     std::string imag;
-    double zoom = 0.0;
+    std::string zoom = "0";
     std::string seedReal = "0";
     std::string seedImag = "0";
 };

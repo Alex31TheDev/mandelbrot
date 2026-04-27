@@ -6,6 +6,7 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <semaphore>
 #include <thread>
 #include <type_traits>
@@ -85,6 +86,9 @@ private:
     std::deque<_TaskItem> _tasks;
 
     ThreadSafeQueue<size_t> _priorityQueue;
+
+    mutable std::mutex _enqueueMutex;
+    std::atomic_bool _acceptingTasks{ true };
 
     std::atomic_int_fast64_t _unassigned{ 0 }, _inFlight{ 0 };
     std::atomic_bool _threadsComplete{ false };

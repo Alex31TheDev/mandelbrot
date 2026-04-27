@@ -295,10 +295,8 @@ bool Image::_allocate(int32_t width, int32_t height) {
         _outputSize = _calcBufferSize(_outputW, _outputH, _outputStrideW, 0);
     }
 
-    uint8_t *ptr = BufferUtil::bufferAlloc<ALIGNMENT>
-        (originalSize, _bufferSize);
-    if (!ptr) return false;
-    _pixels.reset(ptr);
+    _pixels = BufferUtil::bufferAllocPtr<ALIGNMENT>(originalSize, _bufferSize);
+    if (!_pixels) return false;
 
     if (_downscaling) {
         _outputPixels = std::make_unique<uint8_t[]>(_outputSize);

@@ -1,8 +1,13 @@
 #include <exception>
 #include <stop_token>
+#include <numeric>
+#include <stdexcept>
 #include <tuple>
 
 #include "util/IncludeWin32.h"
+#if defined(__linux__)
+#include <pthread.h>
+#endif
 
 #define _CLASS_TEMPLATE \
 template <typename FunctionType, typename ThreadType> \
@@ -33,12 +38,17 @@ _CLASS_NAME::ThreadPool(
 
 _CLASS_TEMPLATE
 _CLASS_NAME::~ThreadPool() {
+    {
+        std::scoped_lock lock(_enqueueMutex);
+        _acceptingTasks.store(false, std::memory_order_release);
+    }
+
     waitForTasks();
 
     for (size_t i = 0; i < _threads.size(); i++) {
         _threads[i].request_stop();
         _tasks[i].signal.release();
-        _threads[i].join();
+        if (_threads[i].joinable()) _threads[i].join();
     }
 }
 
@@ -51,9 +61,13 @@ _CLASS_NAME::enqueue(Function f, Args... args) {
 
     auto task = _makeTaskWithPromise(std::move(f),
         std::move(args)..., sharedPromise);
-
     auto future = sharedPromise->get_future();
-    _enqueueTask(std::move(task));
+
+    try {
+        _enqueueTask(std::move(task));
+    } catch (...) {
+        sharedPromise->set_exception(std::current_exception());
+    }
 
     return future;
 }
@@ -65,7 +79,9 @@ void _CLASS_NAME::enqueueDetach(Function &&func, Args &&...args) {
     auto task = _makeDetachedTask(std::forward<Function>(func),
         std::forward<Args>(args)...);
 
-    _enqueueTask(std::move(task));
+    try {
+        _enqueueTask(std::move(task));
+    } catch (...) {}
 }
 
 _CLASS_TEMPLATE
@@ -77,36 +93,45 @@ void _CLASS_NAME::waitForTasks() {
 
 _CLASS_TEMPLATE
 void _CLASS_NAME::forceTerminate() {
+    {
+        std::scoped_lock lock(_enqueueMutex);
+        if (!_acceptingTasks.exchange(false, std::memory_order_acq_rel))
+            return;
+    }
+
     clearTasks();
+    _priorityQueue.clear();
+
+    for (size_t i = 0; i < _threads.size(); i++) {
+        _threads[i].request_stop();
+        _tasks[i].signal.release();
+    }
 
 #ifdef _WIN32
     for (size_t i = 0; i < _threads.size(); i++) {
         if (!_threads[i].joinable()) continue;
-
         HANDLE thread = static_cast<HANDLE>(_threads[i].native_handle());
-        if (thread) {
-            TerminateThread(thread, 1);
-            WaitForSingleObject(thread, INFINITE);
-        }
-
+        TerminateThread(thread, 1);
         _threads[i].join();
     }
-    _threads.clear();
+#elif defined(__linux__)
+    for (size_t i = 0; i < _threads.size(); i++) {
+        if (!_threads[i].joinable()) continue;
+        pthread_cancel(_threads[i].native_handle());
+        _threads[i].join();
+    }
 #else
     for (size_t i = 0; i < _threads.size(); i++) {
-        if (_threads[i].joinable()) {
-            _threads[i].request_stop();
-            _tasks[i].signal.release();
-            _threads[i].join();
-        }
+        if (_threads[i].joinable()) _threads[i].join();
     }
-    _threads.clear();
 #endif
 
     _unassigned.store(0, std::memory_order_release);
     _inFlight.store(0, std::memory_order_release);
     _threadsComplete.store(true, std::memory_order_release);
     _threadsComplete.notify_all();
+
+    _threads.clear();
 }
 
 _CLASS_TEMPLATE
@@ -125,6 +150,10 @@ template <typename InitFunction>
 auto _CLASS_NAME::
 _threadMain(InitFunction init, size_t id) {
     return [this, id, init](const std::stop_token &stopToken) {
+#if defined(__linux__)
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+#endif
         try {
             std::invoke(init, id);
         } catch (...) {}
@@ -203,8 +232,15 @@ auto _CLASS_NAME::_makeDetachedTask(
 _CLASS_TEMPLATE
 template <typename Function>
 void _CLASS_NAME::_enqueueTask(Function &&f) {
+    std::scoped_lock lock(_enqueueMutex);
+    if (!_acceptingTasks.load(std::memory_order_acquire)) {
+        throw std::runtime_error("ThreadPool is terminating");
+    }
+
     auto i_opt = _priorityQueue.copyFrontRotToBack();
-    if (!i_opt.has_value()) return;
+    if (!i_opt.has_value()) {
+        throw std::runtime_error("ThreadPool has no workers");
+    }
 
     _unassigned.fetch_add(1, std::memory_order_release);
     const auto prevInFlight = _inFlight.fetch_add(1,

@@ -4,13 +4,13 @@
 
 #include <cstdint>
 
-#include "MPFRGlobals.h"
-#include "MPFRScratch.h"
 #include "MPFRTypes.h"
+#include "MPFRGlobals.h"
+using namespace MPFRGlobals;
+#include "MPFRScratch.h"
 
 #include "../scalar/ScalarGlobals.h"
 #include "../scalar/ScalarRenderer.h"
-using namespace MPFRGlobals;
 using namespace ScalarGlobals;
 
 #define FORMULA_MPFR
@@ -32,8 +32,9 @@ using namespace ScalarGlobals;
 
 #include "util/InlineUtil.h"
 
+static thread_local MPFRScratch scratch;
+
 static FORCE_INLINE MPFRScratch &getScratch() {
-    thread_local MPFRScratch scratch;
     scratch.ensureReady();
     return scratch;
 }
@@ -185,7 +186,8 @@ namespace MPFRRenderer {
 
     void renderPixelMPFR(
         uint8_t *pixels, size_t &pos,
-        int x, mpfr_srcptr ci, uint64_t *totalIterCount
+        int x, mpfr_srcptr ci,
+        OptionalIterationStats iterStats, std::optional<int> y
     ) {
         MPFRScratch &s = getScratch();
 
@@ -221,9 +223,7 @@ namespace MPFRRenderer {
             s.dr, s.di
         );
 
-        if (totalIterCount) {
-            *totalIterCount = static_cast<uint64_t>(i) + 1;
-        }
+        if (iterStats) iterStats->get().record(i, x, y);
     }
 }
 
