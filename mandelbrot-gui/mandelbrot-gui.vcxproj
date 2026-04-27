@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -117,9 +117,51 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <QtRcc Include="mandelbrotgui.qrc" />
-    <ClInclude Include="mandelbrotgui.h" />
-    <ClCompile Include="mandelbrotgui.cpp" />
+    <ClInclude Include="AppSettings.h" />
+    <ClInclude Include="services\NativeFileDialog.h" />
+    <ClInclude Include="services\PaletteStore.h" />
+    <ClInclude Include="services\BackendCatalog.h" />
+    <ClInclude Include="services\PointStore.h" />
+    <ClInclude Include="services\SineStore.h" />
+    <ClInclude Include="util\GUIUtil.h" />
+    <ClInclude Include="GUITypes.h" />
+    <ClInclude Include="windows\viewport\ViewportHost.h" />
+    <QtMoc Include="windows\viewport\ViewportWindow.h" />
+    <QtMoc Include="windows\control\ControlWindow.h" />
+    <QtMoc Include="dialogs\about\AboutDialog.h" />
+    <QtMoc Include="dialogs\help\HelpDialog.h" />
+    <QtMoc Include="dialogs\palette\PaletteDialog.h" />
+    <QtMoc Include="GUILocale.h" />
+    <QtMoc Include="dialogs\settings\SettingsDialog.h" />
+    <ClInclude Include="Shortcuts.h" />
+    <QtMoc Include="widgets\AdaptiveDoubleSpinBox.h" />
+    <QtMoc Include="widgets\CollapsibleGroupBox.h" />
+    <QtMoc Include="widgets\IterationSpinBox.h" />
+    <ClInclude Include="widgets\PaletteTypes.h" />
+    <QtMoc Include="widgets\PalettePreviewWidget.h" />
+    <QtMoc Include="widgets\PaletteTimelineWidget.h" />
+    <QtMoc Include="widgets\SinePreviewWidget.h" />
+    <ClCompile Include="AppSettings.cpp" />
+    <ClCompile Include="services\NativeFileDialog.cpp" />
+    <ClCompile Include="services\PaletteStore.cpp" />
+    <ClCompile Include="services\BackendCatalog.cpp" />
+    <ClCompile Include="services\PointStore.cpp" />
+    <ClCompile Include="services\SineStore.cpp" />
+    <ClCompile Include="util\GUIUtil.cpp" />
+    <ClCompile Include="GUILocale.cpp" />
+    <ClCompile Include="windows\control\ControlWindow.cpp" />
+    <ClCompile Include="dialogs\about\AboutDialog.cpp" />
+    <ClCompile Include="dialogs\help\HelpDialog.cpp" />
+    <ClCompile Include="dialogs\palette\PaletteDialog.cpp" />
+    <ClCompile Include="windows\viewport\ViewportWindow.cpp" />
+    <ClCompile Include="dialogs\settings\SettingsDialog.cpp" />
+    <ClCompile Include="Shortcuts.cpp" />
+    <ClCompile Include="widgets\AdaptiveDoubleSpinBox.cpp" />
+    <ClCompile Include="widgets\CollapsibleGroupBox.cpp" />
+    <ClCompile Include="widgets\IterationSpinBox.cpp" />
+    <ClCompile Include="widgets\PalettePreviewWidget.cpp" />
+    <ClCompile Include="widgets\PaletteTimelineWidget.cpp" />
+    <ClCompile Include="widgets\SinePreviewWidget.cpp" />
     <ClCompile Include="main.cpp" />
     <ResourceCompile Include="mandelbrot-gui.rc" />
   </ItemGroup>
@@ -149,6 +191,27 @@
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='x64'">
     <CoreBuildInput Include="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj;$(MSBuildThisFileDirectory)..\mandelbrot\src\**\*;$(MSBuildThisFileDirectory)..\common\src\**\*" Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\**\*;$(MSBuildThisFileDirectory)..\mandelbrot\obj\**\*;$(MSBuildThisFileDirectory)..\common\bin\**\*;$(MSBuildThisFileDirectory)..\common\obj\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtTranslation Include="translations\mandelbrot_en.ts" />
+    <QtTranslation Include="translations\mandelbrot_ro.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="windows\control\ControlWindow.ui" />
+    <QtUic Include="windows\viewport\ViewportWindow.ui" />
+    <QtUic Include="dialogs\about\AboutDialog.ui" />
+    <QtUic Include="dialogs\help\HelpDialog.ui" />
+    <QtUic Include="dialogs\palette\PaletteDialog.ui" />
+    <QtUic Include="dialogs\settings\SettingsDialog.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="mandelbrotgui.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mandelbrot-gui.aps" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="mandelbrot.ico" />
   </ItemGroup>
   <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
     <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
@@ -185,6 +248,16 @@
   <Target Name="BundleSineFiles" AfterTargets="Build">
     <MakeDir Directories="$(OutDir)sines" />
     <Copy SourceFiles="@(SineAsset)" DestinationFiles="@(SineAsset->'$(OutDir)sines\%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(SineAsset)'!=''" />
+  </Target>
+  <Target Name="BuildGUITranslations" BeforeTargets="QtDeployCustom" Condition="'@(QtTranslation)'!=''">
+    <PropertyGroup>
+      <_GUILRelease>$(QtToolsPath)\lrelease.exe</_GUILRelease>
+      <_GUILRelease Condition="!Exists('$(_GUILRelease)') and Exists('C:\Qt\6.11.0\msvc2022_64\bin\lrelease.exe')">C:\Qt\6.11.0\msvc2022_64\bin\lrelease.exe</_GUILRelease>
+      <_GUILRelease Condition="!Exists('$(_GUILRelease)') and Exists('C:\Qt\6.11.0\mingw_64\bin\lrelease.exe')">C:\Qt\6.11.0\mingw_64\bin\lrelease.exe</_GUILRelease>
+    </PropertyGroup>
+    <MakeDir Directories="$(OutDir)translations" />
+    <Message Importance="high" Condition="!Exists('$(_GUILRelease)')" Text="Qt lrelease was not found; GUI .qm translations were not generated." />
+    <Exec Condition="Exists('$(_GUILRelease)')" Command="&quot;$(_GUILRelease)&quot; &quot;%(QtTranslation.Identity)&quot; -qm &quot;$(OutDir)translations\%(Filename).qm&quot;" />
   </Target>
   <Target Name="QtDeployCustom" AfterTargets="IntelVcpkgAppLocal" Condition="Exists('$(TargetPath)')">
     <PropertyGroup>

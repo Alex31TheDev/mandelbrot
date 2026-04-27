@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<ui version="4.0">
- <class>mandelbrotgui</class>
- <widget class="QWidget" name="mandelbrotgui"/>
- <resources>
-  <include location="mandelbrotgui.qrc"/>
- </resources>
- <connections/>
-</ui>

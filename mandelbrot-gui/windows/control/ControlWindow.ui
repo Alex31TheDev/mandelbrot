@@ -1,0 +1,961 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ControlWindow</class>
+ <widget class="QMainWindow" name="ControlWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>337</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Control</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="outerLayout">
+    <property name="spacing">
+     <number>4</number>
+    </property>
+    <property name="leftMargin">
+     <number>8</number>
+    </property>
+    <property name="topMargin">
+     <number>8</number>
+    </property>
+    <property name="rightMargin">
+     <number>8</number>
+    </property>
+    <property name="bottomMargin">
+     <number>8</number>
+    </property>
+    <item>
+     <widget class="QScrollArea" name="controlScrollArea">
+      <property name="frameShape">
+       <enum>QFrame::Shape::NoFrame</enum>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="controlScrollContent">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>311</width>
+         <height>1004</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="controlLayout">
+        <property name="spacing">
+         <number>3</number>
+        </property>
+        <property name="leftMargin">
+         <number>8</number>
+        </property>
+        <property name="topMargin">
+         <number>8</number>
+        </property>
+        <property name="rightMargin">
+         <number>8</number>
+        </property>
+        <property name="bottomMargin">
+         <number>8</number>
+        </property>
+        <item>
+         <widget class="CollapsibleGroupBox" name="cpuGroup">
+          <property name="title">
+           <string>CPU</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <layout class="QGridLayout" name="cpuLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="cpuNameLabel">
+             <property name="text">
+              <string>Name</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="5">
+            <widget class="QLineEdit" name="cpuNameEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="cpuCoresLabel">
+             <property name="text">
+              <string>Cores</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="cpuCoresEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="cpuThreadsLabel">
+             <property name="text">
+              <string>Threads</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="QLineEdit" name="cpuThreadsEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="4" colspan="2">
+            <widget class="QCheckBox" name="useThreadsCheckBox">
+             <property name="text">
+              <string>Use Threads</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="renderGroup">
+          <property name="title">
+           <string>Render</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <layout class="QGridLayout" name="renderLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="backendLabel">
+             <property name="text">
+              <string>Backend</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="3">
+            <widget class="QComboBox" name="backendCombo"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="iterationsLabel">
+             <property name="text">
+              <string>Iterations</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="3">
+            <widget class="IterationSpinBox" name="iterationsSpin"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="colorMethodLabel">
+             <property name="text">
+              <string>Color</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="3">
+            <widget class="QComboBox" name="colorMethodCombo"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="fractalLabel">
+             <property name="text">
+              <string>Fractal</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="3">
+            <widget class="QComboBox" name="fractalCombo"/>
+           </item>
+           <item row="4" column="1">
+            <widget class="QCheckBox" name="juliaCheck">
+             <property name="text">
+              <string>Julia</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2">
+            <widget class="QCheckBox" name="inverseCheck">
+             <property name="text">
+              <string>Inverse</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="infoGroup">
+          <property name="title">
+           <string>Info</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <layout class="QFormLayout" name="infoLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="realLabel">
+             <property name="text">
+              <string>Real</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="infoRealEdit"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="imagLabel">
+             <property name="text">
+              <string>Imag</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="infoImagEdit"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="zoomLabel">
+             <property name="text">
+              <string>Zoom</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="infoZoomEdit"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="seedRealLabel">
+             <property name="text">
+              <string>Seed Real</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="infoSeedRealEdit"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="seedImagLabel">
+             <property name="text">
+              <string>Seed Imag</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="infoSeedImagEdit"/>
+           </item>
+           <item row="5" column="1">
+            <layout class="QHBoxLayout" name="pointButtonsLayout">
+             <item>
+              <widget class="QPushButton" name="savePointButton">
+               <property name="text">
+                <string>Save View</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="loadPointButton">
+               <property name="text">
+                <string>Load View</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="viewportGroup">
+          <property name="title">
+           <string>Viewport</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <layout class="QGridLayout" name="viewportLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="navModeLabel">
+             <property name="text">
+              <string>Mode</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="2">
+            <widget class="QComboBox" name="navModeCombo"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="pickTargetLabel">
+             <property name="text">
+              <string>Pick</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="2">
+            <widget class="QComboBox" name="pickTargetCombo"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="panRateLabel">
+             <property name="text">
+              <string>Pan Rate</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSlider" name="panRateSlider">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QSpinBox" name="panRateSpin"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="zoomRateLabel">
+             <property name="text">
+              <string>Zoom Rate</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QSlider" name="zoomRateSlider">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QSpinBox" name="zoomRateSpin"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="exponentLabel">
+             <property name="text">
+              <string>Exponent</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QSlider" name="exponentSlider">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2">
+            <widget class="AdaptiveDoubleSpinBox" name="exponentSpin"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="sineGroup">
+          <property name="title">
+           <string>Sine Color</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+          <layout class="QGridLayout" name="sineLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="sineNameLabel">
+             <property name="text">
+              <string>Name</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="3">
+            <widget class="QComboBox" name="sineCombo"/>
+           </item>
+           <item row="0" column="5">
+            <widget class="QPushButton" name="randomizeSineButton">
+             <property name="text">
+              <string>Randomize RGB</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="freqRLabel">
+             <property name="text">
+              <string>R</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="AdaptiveDoubleSpinBox" name="freqRSpin"/>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="freqGLabel">
+             <property name="text">
+              <string>G</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="AdaptiveDoubleSpinBox" name="freqGSpin"/>
+           </item>
+           <item row="1" column="5">
+            <widget class="QPushButton" name="importSineButton">
+             <property name="text">
+              <string>Import</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="freqBLabel">
+             <property name="text">
+              <string>B</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="AdaptiveDoubleSpinBox" name="freqBSpin"/>
+           </item>
+           <item row="2" column="2">
+            <widget class="QLabel" name="freqMultLabel">
+             <property name="text">
+              <string>Mult</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="3">
+            <widget class="AdaptiveDoubleSpinBox" name="freqMultSpin"/>
+           </item>
+           <item row="2" column="5">
+            <widget class="QPushButton" name="saveSineButton">
+             <property name="text">
+              <string>Save</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0" colspan="6">
+            <widget class="SinePreviewWidget" name="sinePreview" native="true"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="paletteGroup">
+          <property name="title">
+           <string>Palette</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+          <layout class="QGridLayout" name="paletteLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="paletteNameLabel">
+             <property name="text">
+              <string>Name</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="3">
+            <widget class="QComboBox" name="paletteCombo"/>
+           </item>
+           <item row="0" column="5">
+            <widget class="QPushButton" name="paletteEditorButton">
+             <property name="text">
+              <string>Edit</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="paletteLengthLabel">
+             <property name="text">
+              <string>Length</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="AdaptiveDoubleSpinBox" name="paletteLengthSpin"/>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="paletteOffsetLabel">
+             <property name="text">
+              <string>Offset</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="AdaptiveDoubleSpinBox" name="paletteOffsetSpin"/>
+           </item>
+           <item row="2" column="0" colspan="6">
+            <widget class="PalettePreviewWidget" name="palettePreviewLabel" native="true"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="lightGroup">
+          <property name="title">
+           <string>Light</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+          <layout class="QFormLayout" name="lightLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="lightRealLabel">
+             <property name="text">
+              <string>Real</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lightRealEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="lightImagLabel">
+             <property name="text">
+              <string>Imag</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="lightImagEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="lightColorLabel">
+             <property name="text">
+              <string>Color</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QPushButton" name="lightColorButton"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="CollapsibleGroupBox" name="imageGroup">
+          <property name="title">
+           <string>Image</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <layout class="QGridLayout" name="imageLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="outputWidthLabel">
+             <property name="text">
+              <string>W</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="outputWidthSpin"/>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="outputTimesLabel">
+             <property name="text">
+              <string>x</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QLabel" name="outputHeightLabel">
+             <property name="text">
+              <string>H</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="4">
+            <widget class="QSpinBox" name="outputHeightSpin"/>
+           </item>
+           <item row="0" column="5">
+            <widget class="QPushButton" name="resizeButton">
+             <property name="text">
+              <string>Resize</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="aaLabel">
+             <property name="text">
+              <string>AA</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="2">
+            <widget class="QSpinBox" name="aaSpin"/>
+           </item>
+           <item row="1" column="3" colspan="3" alignment="Qt::AlignmentFlag::AlignHCenter">
+            <widget class="QCheckBox" name="preserveRatioCheck">
+             <property name="text">
+              <string>Keep Aspect Ratio</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0" colspan="7">
+            <widget class="QLabel" name="imageMemoryLabel">
+             <property name="text">
+              <string>Render: -  Output: -</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <spacer name="controlSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <layout class="QGridLayout" name="buttonLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QPushButton" name="calculateButton">
+        <property name="text">
+         <string>Calculate</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QPushButton" name="homeButton">
+        <property name="text">
+         <string>Home</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QPushButton" name="zoomButton">
+        <property name="text">
+         <string>Zoom</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QPushButton" name="saveButton">
+        <property name="text">
+         <string>Save</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QFrame" name="statusDivider">
+      <property name="frameShape">
+       <enum>QFrame::Shape::HLine</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Sunken</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="statusLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="progressLabel">
+        <property name="text">
+         <string>0%</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="value">
+         <number>0</number>
+        </property>
+        <property name="textVisible">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="pixelsPerSecondLabel">
+        <property name="text">
+         <string>0 pixels/s</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="statusSpacing">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>4</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="statusRightLabel">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>337</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionHome"/>
+    <addaction name="actionOpenView"/>
+    <addaction name="actionSaveView"/>
+    <addaction name="separatorFileView"/>
+    <addaction name="actionSaveImage"/>
+    <addaction name="actionQuickSave"/>
+    <addaction name="separatorFileSave"/>
+    <addaction name="actionSettings"/>
+    <addaction name="separatorFileExit"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionCycleMode"/>
+    <addaction name="actionCycleGrid"/>
+    <addaction name="actionMinimalUi"/>
+    <addaction name="actionFullscreen"/>
+   </widget>
+   <widget class="QMenu" name="menuRender">
+    <property name="title">
+     <string>Render</string>
+    </property>
+    <addaction name="actionCalculate"/>
+    <addaction name="actionCancelRender"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionHelp"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuView"/>
+   <addaction name="menuRender"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <action name="actionHome">
+   <property name="text">
+    <string>New / Home</string>
+   </property>
+  </action>
+  <action name="actionOpenView">
+   <property name="text">
+    <string>Open View</string>
+   </property>
+  </action>
+  <action name="actionSaveView">
+   <property name="text">
+    <string>Save View</string>
+   </property>
+  </action>
+  <action name="separatorFileView">
+   <property name="separator" stdset="0">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionSaveImage">
+   <property name="text">
+    <string>Save Image</string>
+   </property>
+  </action>
+  <action name="actionQuickSave">
+   <property name="text">
+    <string>Quick Save</string>
+   </property>
+  </action>
+  <action name="separatorFileSave">
+   <property name="separator" stdset="0">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="separatorFileExit">
+   <property name="separator" stdset="0">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionCycleMode">
+   <property name="text">
+    <string>Cycle Navigation Mode</string>
+   </property>
+  </action>
+  <action name="actionCycleGrid">
+   <property name="text">
+    <string>Cycle Grid</string>
+   </property>
+  </action>
+  <action name="actionMinimalUi">
+   <property name="text">
+    <string>Toggle Viewport Overlay</string>
+   </property>
+  </action>
+  <action name="actionFullscreen">
+   <property name="text">
+    <string>Toggle Fullscreen</string>
+   </property>
+  </action>
+  <action name="actionCalculate">
+   <property name="text">
+    <string>Calculate</string>
+   </property>
+  </action>
+  <action name="actionCancelRender">
+   <property name="text">
+    <string>Cancel Render</string>
+   </property>
+  </action>
+  <action name="actionHelp">
+   <property name="text">
+    <string>Help</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>widgets/CollapsibleGroupBox.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>IterationSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>widgets/IterationSpinBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>AdaptiveDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>widgets/AdaptiveDoubleSpinBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SinePreviewWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/SinePreviewWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PalettePreviewWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/PalettePreviewWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../../mandelbrotgui.qrc"/>
+ </resources>
+ <connections/>
+</ui>
