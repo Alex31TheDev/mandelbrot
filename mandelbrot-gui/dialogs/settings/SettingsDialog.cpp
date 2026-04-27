@@ -5,6 +5,7 @@
 #include <QKeySequenceEdit>
 
 #include "AppSettings.h"
+#include "GUITypes.h"
 #include "ui_SettingsDialog.h"
 
 SettingsDialog::SettingsDialog(const QString& language, int previewFallbackFPS,
@@ -33,7 +34,8 @@ QString SettingsDialog::language() const {
 }
 
 int SettingsDialog::previewFallbackFPS() const {
-    return _ui ? _ui->previewFallbackSpin->value() : 60;
+    return _ui ? _ui->previewFallbackSpin->value()
+               : kDefaultInteractionTargetFPS;
 }
 
 Shortcuts SettingsDialog::shortcuts(AppSettings& settings) const {

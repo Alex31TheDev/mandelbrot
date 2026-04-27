@@ -27,11 +27,6 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
     QObject::connect(&_panRedrawTimer, &QTimer::timeout, this, [this]() {
         if (!_panning) return;
 
-        if (_host && _host->renderInFlight()) {
-            _panRedrawTimer.start();
-            return;
-        }
-
         _commitPanOffset();
         if (_panning) {
             _syncPanRedrawTimerInterval();
@@ -44,11 +39,6 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
     _zoomOutRedrawTimer.setInterval(interactionTickIntervalMs);
     QObject::connect(&_zoomOutRedrawTimer, &QTimer::timeout, this, [this]() {
         if (!_zoomOutDragActive) return;
-
-        if (_host && _host->renderInFlight()) {
-            _zoomOutRedrawTimer.start();
-            return;
-        }
 
         _commitZoomOutPreview();
         if (_zoomOutDragActive && _zoomOutPendingCommit) {
@@ -254,20 +244,17 @@ void ViewportWindow::paintEvent(QPaintEvent*) {
 
     const QImage& image = _host->previewImage();
     if (!image.isNull()) {
+        const bool usePreviewFallback
+            = _host && _host->shouldUseInteractionPreviewFallback();
         const std::optional<PreviewTransform> transform
-            = _usePreviewFallback() ? previewTransform() : std::nullopt;
-        const bool transformedPreview = transform.has_value();
-        const QImage drawImage
-            = (transformedPreview && _host->previewUsesBackendMemory())
-            ? image.copy()
-            : image;
+            = usePreviewFallback ? previewTransform() : std::nullopt;
         if (transform) {
             painter.save();
             painter.translate(transform->translation);
             painter.translate(transform->center);
             painter.scale(transform->scaleX, transform->scaleY);
             painter.translate(-transform->center);
-            painter.drawImage(rect(), drawImage);
+            painter.drawImage(rect(), image);
             painter.restore();
         } else {
             painter.drawImage(rect(), image);
@@ -576,11 +563,7 @@ void ViewportWindow::keyPressEvent(QKeyEvent* event) {
         if (_host) {
             _host->setDisplayedNavModeOverride(NavMode::pan);
         }
-        if (_canBeginPanInteraction()) {
-            _beginPanInteraction(Qt::NoButton);
-        } else {
-            _updateCursor();
-        }
+        _updateCursor();
         return;
     }
 
@@ -670,10 +653,12 @@ void ViewportWindow::closeEvent(QCloseEvent* event) {
     if (mouseGrabber() == this) {
         releaseMouse();
     }
-    event->accept();
     if (_host) {
-        _host->requestApplicationShutdown(false);
+        event->ignore();
+        _host->requestApplicationShutdown(true);
+        return;
     }
+    event->accept();
 }
 
 void ViewportWindow::cycleGridMode() {
@@ -855,7 +840,7 @@ bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent* event) {
     if (!_host || _effectiveMode() != NavMode::pan) {
         return false;
     }
-    if (_panning || _zoomOutDragActive || !_selectionRect.isNull()
+    if (_zoomOutDragActive || !_selectionRect.isNull()
         || _rtZoomTimer.isActive()) {
         return false;
     }
@@ -878,13 +863,18 @@ bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent* event) {
         return false;
     }
 
+    if (event->isAutoRepeat()) {
+        return true;
+    }
+
     const bool alreadyPressed = *pressed;
     *pressed = true;
     _syncArrowPanTimerInterval();
     if (!_arrowPanTimer.isActive()) {
         _arrowPanTimer.start();
     }
-    if (!event->isAutoRepeat() && !alreadyPressed) {
+    const bool precisionMode = event->modifiers().testFlag(Qt::ShiftModifier);
+    if (!event->isAutoRepeat() && !alreadyPressed && !precisionMode) {
         _applyArrowPanStep();
     }
     return true;
@@ -909,6 +899,10 @@ bool ViewportWindow::_handleArrowPanKeyRelease(QKeyEvent* event) {
         return false;
     }
 
+    if (event->isAutoRepeat()) {
+        return true;
+    }
+
     *pressed = false;
     if (!_arrowPanLeft && !_arrowPanRight && !_arrowPanUp && !_arrowPanDown) {
         _arrowPanTimer.stop();
@@ -923,8 +917,7 @@ void ViewportWindow::_applyArrowPanStep() {
         _arrowPanTimer.stop();
         return;
     }
-    if (_panning || _zoomOutDragActive || !_selectionRect.isNull()
-        || _rtZoomTimer.isActive()) {
+    if (_zoomOutDragActive || !_selectionRect.isNull() || _rtZoomTimer.isActive()) {
         return;
     }
 
@@ -1093,8 +1086,7 @@ void ViewportWindow::_commitZoomOutPreview() {
     const double scaleMultiplier = _zoomOutPreviewScale;
     _zoomOutPreviewScale = 1.0;
     _zoomOutPendingCommit = false;
-    _host->scaleAtPixel(
-        _mapToOutputPixel(viewportCenter), scaleMultiplier, true);
+    _host->scaleAtPixel(_mapToOutputPixel(viewportCenter), scaleMultiplier);
     update();
 }
 
@@ -1129,7 +1121,7 @@ void ViewportWindow::_applyRealtimeZoomStep(bool firstStep) {
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     _host->scaleAtPixel(
-        _clampToOutputPixel(*_rtZoomAnchorPixel), scaleMultiplier, true);
+        _clampToOutputPixel(*_rtZoomAnchorPixel), scaleMultiplier);
 }
 
 void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {
@@ -1175,6 +1167,5 @@ void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {
 }
 
 bool ViewportWindow::_usePreviewFallback() const {
-    return _host && _host->shouldUseInteractionPreviewFallback()
-        && previewTransform().has_value();
+    return _host && _host->shouldUseInteractionPreviewFallback();
 }

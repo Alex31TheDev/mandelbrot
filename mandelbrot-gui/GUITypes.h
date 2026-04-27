@@ -12,7 +12,8 @@
 #include "BackendAPI.h"
 
 inline constexpr auto kDefaultBackendType = "FloatAVX2";
-inline constexpr int kDefaultInteractionTargetFPS = 60;
+inline constexpr int kDefaultInteractionTargetFPS = 30;
+inline constexpr int kPreviewStillMs = 5000;
 inline constexpr int kPrecisionInteractionDelayMs = 200;
 inline constexpr double kBoostedPanSpeedFactor = 2.0;
 inline constexpr std::array<double, 21> kZoomStepTable

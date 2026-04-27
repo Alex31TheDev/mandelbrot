@@ -55,12 +55,10 @@ public:
     ControlWindow(GUILocale& locale, QWidget* parent = nullptr);
     ~ControlWindow() override;
 
-    void requestRender(bool force = false, bool syncControls = true);
+    void requestRender(bool syncControls = true);
     void applyHomeView() override;
-    void scaleAtPixel(const QPoint& pixel, double scaleMultiplier,
-        bool realtimeStep = false) override;
-    void zoomAtPixel(
-        const QPoint& pixel, bool zoomIn, bool realtimeStep = false) override;
+    void scaleAtPixel(const QPoint& pixel, double scaleMultiplier) override;
+    void zoomAtPixel(const QPoint& pixel, bool zoomIn) override;
     void boxZoom(const QRect& selectionRect) override;
     void panByPixels(const QPoint& delta) override;
     void pickAtPixel(const QPoint& pixel) override;
@@ -92,9 +90,6 @@ public:
     [[nodiscard]] const QImage& previewImage() const override {
         return _previewImage;
     }
-    [[nodiscard]] bool previewUsesBackendMemory() const override {
-        return _previewUsesBackendMemory;
-    }
     [[nodiscard]] bool hasDisplayedViewState() const override {
         return _hasDisplayedViewState;
     }
@@ -111,7 +106,6 @@ public:
         QPointF& mappedPixel, QString& errorMessage) override;
     [[nodiscard]] QString viewportStatusText() const override;
     [[nodiscard]] int interactionFrameIntervalMs() const override;
-    [[nodiscard]] bool canRenderAtTargetFPS() const;
     [[nodiscard]] bool shouldUseInteractionPreviewFallback() const override;
     [[nodiscard]] bool matchesShortcut(
         const QString& id, const QKeyEvent* event) const override;
@@ -141,8 +135,8 @@ private:
 
     QImage _previewImage;
     bool _previewUsesBackendMemory = false;
+    bool _directFrameDetachedForRender = false;
     std::atomic_bool _interactionPreviewFallbackLatched { false };
-    std::atomic_bool _interactionPreviewForced { false };
     QPixmap _palettePreviewPixmap;
     std::optional<PendingPickAction> _pendingPickAction;
     QPoint _lastMousePixel;
@@ -157,7 +151,7 @@ private:
     QString _zoomText = "-0.65";
     QString _seedRealText = "0";
     QString _seedImagText = "0";
-    QString _viewportFPSText = "FPS -";
+    QString _viewportFPSText = "- FPS";
     QString _viewportRenderTimeText;
     QString _imageMemoryText;
     QString _pixelsPerSecondText = "0 pixels/s";
@@ -196,6 +190,9 @@ private:
     QString _displayedZoomText = "-0.65";
     QSize _displayedOutputSize { 1920, 1080 };
     bool _hasDisplayedViewState = false;
+    bool _presentingCopiedPreview = false;
+    std::chrono::steady_clock::time_point _lastPreviewMotionAt {};
+    QTimer _previewStillTimer;
     QTimer _statusMarqueeTimer;
     int _statusMarqueeOffset = 0;
 
@@ -312,8 +309,6 @@ private:
         bool forceKillOnTimeout = false, int timeoutMs = 0);
     void _refreshPalettePreview();
     void _updateSinePreview();
-    void _updatePreview(const QImage& image,
-        bool clearInteractionPreview = true, bool usesBackendMemory = false);
     void _updateStatusLabels(const QString& rightText = QString());
     void _setStatusMessage(const QString& message);
     void _setStatusSavedPath(const QString& path);
@@ -355,7 +350,8 @@ private:
     void _updateSelectionTarget(int index);
     void _updateNavMode(int index);
     void _updateAspectLinkedSizes(bool widthChanged);
-    void _prepareInteractionPreview(bool forceFallbackPreview);
+    void _markPreviewMotion();
+    void _tryResumeDirectPreview();
     void _cycleViewportGrid();
     void _toggleViewportMinimalUI();
     bool _commitImageSave(

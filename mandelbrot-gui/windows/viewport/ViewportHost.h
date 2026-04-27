@@ -17,12 +17,8 @@ public:
     virtual ~ViewportHost() = default;
 
     virtual void applyHomeView() = 0;
-    virtual void scaleAtPixel(
-        const QPoint& pixel, double scaleMultiplier, bool realtimeStep = false)
-        = 0;
-    virtual void zoomAtPixel(
-        const QPoint& pixel, bool zoomIn, bool realtimeStep = false)
-        = 0;
+    virtual void scaleAtPixel(const QPoint& pixel, double scaleMultiplier) = 0;
+    virtual void zoomAtPixel(const QPoint& pixel, bool zoomIn) = 0;
     virtual void boxZoom(const QRect& selectionRect) = 0;
     virtual void panByPixels(const QPoint& delta) = 0;
     virtual void pickAtPixel(const QPoint& pixel) = 0;
@@ -42,7 +38,6 @@ public:
     [[nodiscard]] virtual bool renderInFlight() const = 0;
     [[nodiscard]] virtual QSize outputSize() const = 0;
     [[nodiscard]] virtual const QImage& previewImage() const = 0;
-    [[nodiscard]] virtual bool previewUsesBackendMemory() const = 0;
     [[nodiscard]] virtual bool hasDisplayedViewState() const = 0;
     [[nodiscard]] virtual ViewTextState currentViewTextState() const = 0;
     [[nodiscard]] virtual ViewTextState displayedViewTextState() const = 0;

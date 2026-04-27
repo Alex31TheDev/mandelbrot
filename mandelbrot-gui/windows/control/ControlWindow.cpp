@@ -331,13 +331,11 @@ void ControlWindow::_buildUI() {
         &::SinePreviewWidget::rangeChanged, this,
         [this](double, double) { _updateSinePreview(); });
 
-    _progressLabel->setFixedWidth(40);
+    _progressLabel->setFixedWidth(25);
     _progressBar->setRange(0, 100);
     _progressBar->setFixedWidth(100);
     _pixelsPerSecondLabel->setSizePolicy(
         QSizePolicy::Minimum, QSizePolicy::Preferred);
-    _statusRightLabel->setSizePolicy(
-        QSizePolicy::Ignored, QSizePolicy::Preferred);
     _ui->statusLayout->setStretch(
         _ui->statusLayout->indexOf(_statusRightLabel), 1);
     _statusRightLabel->setTextFormat(Qt::RichText);
@@ -360,6 +358,12 @@ void ControlWindow::_buildUI() {
     QObject::connect(&_statusMarqueeTimer, &QTimer::timeout, this, [this]() {
         ++_statusMarqueeOffset;
         _updateStatusLabels();
+    });
+
+    _previewStillTimer.setSingleShot(true);
+    _previewStillTimer.setInterval(kPreviewStillMs);
+    QObject::connect(&_previewStillTimer, &QTimer::timeout, this, [this]() {
+        _tryResumeDirectPreview();
     });
 
     _applyShortcutSettings();
@@ -424,6 +428,8 @@ void ControlWindow::_initializeState() {
     _state.backend = _backendCombo->itemText(defaultIndex);
     _state.iterations = 0;
     _state.interactionTargetFPS = _settings.previewFallbackFPS();
+    _state.outputWidth = _settings.selectedOutputWidth();
+    _state.outputHeight = _settings.selectedOutputHeight();
     _state.sineName = GUI::SineStore::kDefaultName;
     _refreshSineList(_state.sineName);
     QString sineError;
@@ -462,6 +468,7 @@ void ControlWindow::_initializeState() {
     _mouseText = tr("Mouse: -");
     _viewportRenderTimeText.clear();
     _imageMemoryText = tr("Render: -  Output: -");
+    _lastPreviewMotionAt = std::chrono::steady_clock::now();
     _syncZoomTextFromState();
     _syncPointTextFromState();
     _syncSeedTextFromState();
@@ -819,7 +826,6 @@ void ControlWindow::_loadSelectedBackend() {
     _freezeViewportPreview(true, true);
     _finishRenderThread();
     _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
-    _interactionPreviewForced.store(false, std::memory_order_release);
     _renderSession = nullptr;
     _navigationSession = nullptr;
     _previewSession = nullptr;
@@ -927,7 +933,7 @@ void ControlWindow::_switchBackend(int rank, uint64_t requestId,
     }
     _loadSelectedBackend();
     _pendingPickAction = pick;
-    requestRender(true, false);
+    requestRender(false);
 }
 
 void ControlWindow::_bindBackendCallbacks() {
@@ -1200,8 +1206,6 @@ void ControlWindow::_startRenderWorker() {
                             return;
 
                         _renderInFlight = false;
-                        _interactionPreviewForced.store(
-                            false, std::memory_order_release);
                         _progressActive = false;
                         _progressCancelled = false;
                         _progressValue = 0;
@@ -1255,13 +1259,6 @@ void ControlWindow::_startRenderWorker() {
             _interactionPreviewFallbackLatched.store(
                 previewFallbackLatched, std::memory_order_release);
 
-            bool hasQueuedRender = false;
-            {
-                const std::scoped_lock lock(_renderMutex);
-                hasQueuedRender = _queuedRenderRequest.has_value();
-            }
-            const bool canUseDirectPreview
-                = !hasQueuedRender && !previewFallbackLatched;
             const GUIState renderedState = request.state;
             const QString renderedPointReal = request.pointRealText;
             const QString renderedPointImag = request.pointImagText;
@@ -1272,7 +1269,7 @@ void ControlWindow::_startRenderWorker() {
             }
             QMetaObject::invokeMethod(
                 this,
-                [this, view, canUseDirectPreview, renderFPS, renderMs,
+                [this, view, previewFallbackLatched, renderFPS, renderMs,
                     renderedState, renderedPointReal, renderedPointImag,
                     renderedZoomText, requestId = request.id,
                     backendGeneration]() {
@@ -1296,25 +1293,37 @@ void ControlWindow::_startRenderWorker() {
                         _progressText.clear();
                     }
                     _lastRenderFailureMessage.clear();
-                    _viewportFPSText = QString("FPS %1").arg(
+                    _viewportFPSText = QString("%1 FPS").arg(
                         QString::number(renderFPS, 'f', 1));
                     _viewportRenderTimeText = QString::fromStdString(
                         FormatUtil::formatDuration(renderMs));
-                    const bool presentDirect = canUseDirectPreview
-                        && latestRender
-                        && !_interactionPreviewForced.load(
-                            std::memory_order_acquire);
-                    _previewImage = presentDirect
-                        ? GUI::Util::wrapImageViewToImage(view)
-                        : GUI::Util::imageViewToImage(view);
-                    _previewUsesBackendMemory = presentDirect;
+                    const bool presentDirect
+                        = !previewFallbackLatched && latestRender;
+                    const bool presentPreview
+                        = previewFallbackLatched || _presentingCopiedPreview;
+                    if (presentDirect && _presentingCopiedPreview) {
+                        QImage releasedImage;
+                        _previewImage.swap(releasedImage);
+                        _previewUsesBackendMemory = false;
+                    }
+                    if (presentDirect) {
+                        _previewImage = GUI::Util::wrapImageViewToImage(view);
+                        _previewUsesBackendMemory = true;
+                        _directFrameDetachedForRender = false;
+                        _presentingCopiedPreview = false;
+                    } else if (presentPreview) {
+                        _previewImage = GUI::Util::imageViewToImage(view);
+                        _previewUsesBackendMemory = false;
+                        _directFrameDetachedForRender = false;
+                        _presentingCopiedPreview = true;
+                    } else {
+                        return;
+                    }
                     const QWidget* dprSource = _viewport
                         ? static_cast<QWidget*>(_viewport)
                         : static_cast<QWidget*>(this);
                     _previewImage.setDevicePixelRatio(
                         GUI::Util::effectiveDevicePixelRatio(dprSource));
-                    _interactionPreviewForced.store(
-                        false, std::memory_order_release);
                     _displayedPointRealText = renderedPointReal;
                     _displayedPointImagText = renderedPointImag;
                     _displayedZoomText = renderedZoomText;
@@ -1323,6 +1332,11 @@ void ControlWindow::_startRenderWorker() {
                     _hasDisplayedViewState = true;
                     _updateViewport();
                     _updateStatusLabels();
+                    if (_presentingCopiedPreview) {
+                        _previewStillTimer.start();
+                    } else {
+                        _previewStillTimer.stop();
+                    }
                 },
                 Qt::BlockingQueuedConnection);
         }
@@ -1581,14 +1595,24 @@ void ControlWindow::_finishRenderThread(
     _lastRenderDurationMs.store(0, std::memory_order_release);
 }
 
-void ControlWindow::requestRender(bool force, bool syncControls) {
-    (void)force;
+void ControlWindow::requestRender(bool syncControls) {
     if (syncControls) {
         _syncStateFromControls();
     }
     _state.zoom = GUI::Util::clampGUIZoom(_state.zoom);
     _syncStateReadouts();
     if (!_backend || !_renderSession) return;
+    if (_previewUsesBackendMemory && !_previewImage.isNull()
+        && !_directFrameDetachedForRender) {
+        _previewImage = _previewImage.copy();
+        _previewUsesBackendMemory = false;
+        _directFrameDetachedForRender = true;
+        const QWidget* dprSource = _viewport ? static_cast<QWidget*>(_viewport)
+                                             : static_cast<QWidget*>(this);
+        _previewImage.setDevicePixelRatio(
+            GUI::Util::effectiveDevicePixelRatio(dprSource));
+    }
+
     const auto pickAction = _pendingPickAction;
     _pendingPickAction.reset();
     const uint64_t requestId
@@ -1607,7 +1631,6 @@ void ControlWindow::requestRender(bool force, bool syncControls) {
     }
 
     const bool wasInFlight = _renderInFlight;
-    _prepareInteractionPreview(false);
     _renderInFlight = true;
     if (!wasInFlight) {
         _progressActive = true;
@@ -1622,6 +1645,7 @@ void ControlWindow::requestRender(bool force, bool syncControls) {
 }
 
 void ControlWindow::applyHomeView() {
+    _markPreviewMotion();
     _state.iterations = 0;
     _state.zoom = -0.65;
     _state.point = QPointF(0.0, 0.0);
@@ -1635,7 +1659,7 @@ void ControlWindow::applyHomeView() {
 }
 
 void ControlWindow::scaleAtPixel(
-    const QPoint& pixel, double scaleMultiplier, bool realtimeStep) {
+    const QPoint& pixel, double scaleMultiplier) {
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     ViewTextState nextView;
@@ -1658,22 +1682,22 @@ void ControlWindow::scaleAtPixel(
     _zoomText = nextView.zoomText;
     _syncStatePointFromText();
     _syncStateZoomFromText();
-    _prepareInteractionPreview(realtimeStep);
+    _markPreviewMotion();
     if (_pendingPickAction
         && _pendingPickAction->target == SelectionTarget::zoomPoint) {
         _pendingPickAction.reset();
     }
     _syncStateReadouts();
+    requestRender(false);
     _requestViewportRepaint();
-    requestRender(false, false);
 }
 
 void ControlWindow::zoomAtPixel(
-    const QPoint& pixel, bool zoomIn, bool realtimeStep) {
+    const QPoint& pixel, bool zoomIn) {
     const QPoint clampedPixel = _clampPixelToOutput(pixel);
     const double factor = _currentZoomFactor(_state.zoomRate);
     const double scaleMultiplier = zoomIn ? (1.0 / factor) : factor;
-    scaleAtPixel(clampedPixel, scaleMultiplier, realtimeStep);
+    scaleAtPixel(clampedPixel, scaleMultiplier);
 }
 
 void ControlWindow::boxZoom(const QRect& selectionRect) {
@@ -1696,10 +1720,10 @@ void ControlWindow::boxZoom(const QRect& selectionRect) {
     _zoomText = nextView.zoomText;
     _syncStatePointFromText();
     _syncStateZoomFromText();
-    _prepareInteractionPreview(true);
+    _markPreviewMotion();
     _syncStateReadouts();
+    requestRender(false);
     _requestViewportRepaint();
-    requestRender(false, false);
 }
 
 void ControlWindow::panByPixels(const QPoint& delta) {
@@ -1717,9 +1741,10 @@ void ControlWindow::panByPixels(const QPoint& delta) {
     _pointRealText = pointReal;
     _pointImagText = pointImag;
     _syncStatePointFromText();
+    _markPreviewMotion();
     _syncStateReadouts();
+    requestRender(false);
     _requestViewportRepaint();
-    requestRender(false, false);
 }
 
 void ControlWindow::pickAtPixel(const QPoint& pixel) {
@@ -1779,7 +1804,7 @@ void ControlWindow::pickAtPixel(const QPoint& pixel) {
             = PendingPickAction { _selectionTarget, clampedPixel };
     }
     _syncStateReadouts();
-    requestRender(false, false);
+    requestRender(false);
 }
 
 void ControlWindow::updateMouseCoords(const QPoint& pixel) {
@@ -1838,19 +1863,19 @@ void ControlWindow::toggleViewportFullscreen() {
 
 void ControlWindow::prepareViewportFullscreenTransition() {
     _freezeViewportPreview(false, true);
-    _prepareInteractionPreview(true);
 }
 
 void ControlWindow::applyViewportOutputSize(const QSize& outputSize) {
     if (!outputSize.isValid()) return;
 
+    _markPreviewMotion();
     _state.outputWidth = outputSize.width();
     _state.outputHeight = outputSize.height();
     _syncControlsFromState();
     if (_viewport && !_viewport->isFullScreen()) {
         _resizeViewportWindowToImageSize();
     }
-    requestRender(true, false);
+    requestRender(false);
 }
 
 NavMode ControlWindow::displayedNavMode() const {
@@ -1883,7 +1908,6 @@ void ControlWindow::cancelQueuedRenders() {
         _backend.forceKill();
     }
     _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
-    _interactionPreviewForced.store(false, std::memory_order_release);
     _lastRenderFailureMessage.clear();
     _renderInFlight = false;
     _progressValue = std::clamp(cancelledProgressValue, 0, 100);
@@ -2027,12 +2051,18 @@ bool ControlWindow::eventFilter(QObject* watched, QEvent* event) {
                 || matchesShortcut("overlay", keyEvent)
                 || matchesShortcut("quickSave", keyEvent)
                 || matchesShortcut("fullscreen", keyEvent)
+                || keyEvent->key() == Qt::Key_Space
+                || keyEvent->key() == Qt::Key_Shift
+                || keyEvent->key() == Qt::Key_Control
                 || keyEvent->key() == Qt::Key_Left
                 || keyEvent->key() == Qt::Key_Right
                 || keyEvent->key() == Qt::Key_Up
                 || keyEvent->key() == Qt::Key_Down);
         const bool routeRelease = event->type() == QEvent::KeyRelease
-            && (keyEvent->key() == Qt::Key_Left
+            && (keyEvent->key() == Qt::Key_Space
+                || keyEvent->key() == Qt::Key_Shift
+                || keyEvent->key() == Qt::Key_Control
+                || keyEvent->key() == Qt::Key_Left
                 || keyEvent->key() == Qt::Key_Right
                 || keyEvent->key() == Qt::Key_Up
                 || keyEvent->key() == Qt::Key_Down);
@@ -2095,18 +2125,17 @@ void ControlWindow::changeEvent(QEvent* event) {
 
 void ControlWindow::closeEvent(QCloseEvent* event) {
     event->accept();
-    _saveGUISettings();
     requestApplicationShutdown(true);
 }
 
 void ControlWindow::showEvent(QShowEvent* event) {
     QMainWindow::showEvent(event);
 
-    if (_controlWindowSized) return;
-
-    _updateControlWindowSize();
-    _positionWindowsForInitialShow();
-    _controlWindowSized = true;
+    if (!_controlWindowSized) {
+        _updateControlWindowSize();
+        _positionWindowsForInitialShow();
+        _controlWindowSized = true;
+    }
     QTimer::singleShot(0, this, [this]() {
         if (!_viewport || !_viewport->isVisible()) return;
         _viewport->raise();
@@ -2118,6 +2147,7 @@ void ControlWindow::showEvent(QShowEvent* event) {
 void ControlWindow::requestApplicationShutdown(bool closeViewportWindow) {
     if (_shutdownQueued || _closing) return;
     _shutdownQueued = true;
+    _saveGUISettings();
 
     setEnabled(false);
     hide();
@@ -2166,14 +2196,14 @@ void ControlWindow::_freezeViewportPreview(
 
     _previewImage = GUI::Util::makeBlankViewportImage();
     _previewUsesBackendMemory = false;
+    _directFrameDetachedForRender = false;
+    _presentingCopiedPreview = false;
+    _previewStillTimer.stop();
     const QWidget* dprSource = _viewport ? static_cast<QWidget*>(_viewport)
                                          : static_cast<QWidget*>(this);
     _previewImage.setDevicePixelRatio(
         GUI::Util::effectiveDevicePixelRatio(dprSource));
 
-    if (clearInteractionPreview) {
-        _interactionPreviewForced.store(false, std::memory_order_release);
-    }
     if (_viewport && clearInteractionPreview) {
         _viewport->clearPreviewOffset();
     }
@@ -2183,40 +2213,6 @@ void ControlWindow::_freezeViewportPreview(
 void ControlWindow::_setViewportInteractive(bool enabled) {
     if (!_viewport) return;
     _viewport->setEnabled(enabled);
-}
-
-void ControlWindow::_updatePreview(
-    const QImage& image, bool clearInteractionPreview, bool usesBackendMemory) {
-    if (image.isNull()) return;
-
-    _previewImage = image;
-    _previewUsesBackendMemory = usesBackendMemory;
-    const QWidget* dprSource = _viewport ? static_cast<QWidget*>(_viewport)
-                                         : static_cast<QWidget*>(this);
-    _previewImage.setDevicePixelRatio(
-        GUI::Util::effectiveDevicePixelRatio(dprSource));
-    if (clearInteractionPreview) {
-        _interactionPreviewForced.store(false, std::memory_order_release);
-    }
-    if (_viewport && clearInteractionPreview) {
-        _viewport->clearPreviewOffset();
-    }
-    _updateViewport();
-}
-
-void ControlWindow::_prepareInteractionPreview(bool forceFallbackPreview) {
-    if (!_previewImage.isNull() && _previewUsesBackendMemory) {
-        _previewImage = _previewImage.copy();
-        _previewUsesBackendMemory = false;
-        const QWidget* dprSource = _viewport ? static_cast<QWidget*>(_viewport)
-                                             : static_cast<QWidget*>(this);
-        _previewImage.setDevicePixelRatio(
-            GUI::Util::effectiveDevicePixelRatio(dprSource));
-    }
-
-    if (forceFallbackPreview && !_previewImage.isNull()) {
-        _interactionPreviewForced.store(true, std::memory_order_release);
-    }
 }
 
 void ControlWindow::_updateStatusRightEdgeAlignment() {
@@ -2699,6 +2695,8 @@ void ControlWindow::_saveGUISettings() {
         _settings.setPreferredBackend(_state.backend);
     }
     _settings.setPreviewFallbackFPS(_state.interactionTargetFPS);
+    _settings.setSelectedOutputWidth(_state.outputWidth);
+    _settings.setSelectedOutputHeight(_state.outputHeight);
     _settings.sync();
 }
 
@@ -2740,7 +2738,6 @@ void ControlWindow::_showAboutDialog() {
 void ControlWindow::_handleRenderFailure(const QString& message) {
     if (message.isEmpty()) return;
 
-    _interactionPreviewForced.store(false, std::memory_order_release);
     _setStatusMessage(message);
     if (_lastRenderFailureMessage == message) {
         return;
@@ -3374,7 +3371,7 @@ void ControlWindow::_saveImage() {
     auto result = GUI::runSaveImageDialog(this, "mandelbrot.png");
     if (!result) return;
 
-    (void)_commitImageSave(result->path, result->appendDate, result->type);
+    _commitImageSave(result->path, result->appendDate, result->type);
 }
 
 void ControlWindow::quickSaveImage() {
@@ -3382,7 +3379,7 @@ void ControlWindow::quickSaveImage() {
     std::filesystem::create_directories(GUI::Util::savesDirectoryPath(), ec);
     const QString path = QString::fromStdWString(
         (GUI::Util::savesDirectoryPath() / "mandelbrot.png").wstring());
-    (void)_commitImageSave(path, true, "png");
+    _commitImageSave(path, true, "png");
 }
 
 void ControlWindow::_resizeViewportImage() {
@@ -3605,17 +3602,63 @@ int ControlWindow::interactionFrameIntervalMs() const {
         1, static_cast<int>(std::lround(1000.0 / static_cast<double>(fps))));
 }
 
-bool ControlWindow::canRenderAtTargetFPS() const {
-    const int renderMs = _lastRenderDurationMs.load(std::memory_order_acquire);
-    if (renderMs <= 0) return false;
-    return !_interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+bool ControlWindow::shouldUseInteractionPreviewFallback() const {
+    return _presentingCopiedPreview;
 }
 
-bool ControlWindow::shouldUseInteractionPreviewFallback() const {
-    if (_state.interactionTargetFPS <= 0) return false;
+void ControlWindow::_markPreviewMotion() {
+    _lastPreviewMotionAt = std::chrono::steady_clock::now();
+    if (_presentingCopiedPreview) {
+        _previewStillTimer.start();
+    }
+}
 
-    return _interactionPreviewForced.load(std::memory_order_acquire)
-        || _interactionPreviewFallbackLatched.load(std::memory_order_acquire);
+void ControlWindow::_tryResumeDirectPreview() {
+    if (!_presentingCopiedPreview) {
+        return;
+    }
+    if (_renderInFlight) {
+        _previewStillTimer.start();
+        return;
+    }
+
+    bool hasQueuedRender = false;
+    {
+        const std::scoped_lock lock(_renderMutex);
+        hasQueuedRender = _queuedRenderRequest.has_value();
+    }
+    if (hasQueuedRender) {
+        _previewStillTimer.start();
+        return;
+    }
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - _lastPreviewMotionAt);
+    if (elapsed.count() < kPreviewStillMs) {
+        _previewStillTimer.start();
+        return;
+    }
+
+    if (_previewImage.isNull() || !_renderSession) {
+        return;
+    }
+
+    const Backend::ImageView view = _renderSession->imageView();
+    if (!view.outputPixels || view.outputWidth <= 0 || view.outputHeight <= 0) {
+        return;
+    }
+
+    QImage releasedImage;
+    _previewImage.swap(releasedImage);
+    _previewImage = GUI::Util::wrapImageViewToImage(view);
+    _previewUsesBackendMemory = true;
+    _directFrameDetachedForRender = false;
+    _presentingCopiedPreview = false;
+    _interactionPreviewFallbackLatched.store(false, std::memory_order_release);
+    const QWidget* dprSource = _viewport ? static_cast<QWidget*>(_viewport)
+                                         : static_cast<QWidget*>(this);
+    _previewImage.setDevicePixelRatio(
+        GUI::Util::effectiveDevicePixelRatio(dprSource));
+    _updateViewport();
 }
 
 bool ControlWindow::matchesShortcut(
