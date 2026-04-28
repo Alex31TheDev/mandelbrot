@@ -137,6 +137,7 @@
     <QtMoc Include="widgets\AdaptiveDoubleSpinBox.h" />
     <QtMoc Include="widgets\CollapsibleGroupBox.h" />
     <QtMoc Include="widgets\IterationSpinBox.h" />
+    <QtMoc Include="widgets\MarqueeLabel.h" />
     <ClInclude Include="widgets\PaletteTypes.h" />
     <QtMoc Include="widgets\PalettePreviewWidget.h" />
     <QtMoc Include="widgets\PaletteTimelineWidget.h" />
@@ -159,6 +160,7 @@
     <ClCompile Include="widgets\AdaptiveDoubleSpinBox.cpp" />
     <ClCompile Include="widgets\CollapsibleGroupBox.cpp" />
     <ClCompile Include="widgets\IterationSpinBox.cpp" />
+    <ClCompile Include="widgets\MarqueeLabel.cpp" />
     <ClCompile Include="widgets\PalettePreviewWidget.cpp" />
     <ClCompile Include="widgets\PaletteTimelineWidget.cpp" />
     <ClCompile Include="widgets\SinePreviewWidget.cpp" />

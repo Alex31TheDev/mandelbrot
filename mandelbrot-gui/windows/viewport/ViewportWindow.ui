@@ -10,8 +10,14 @@
     <height>540</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>Mandelbrot Viewport</string>
+ <property name="windowTitle">
+  <string>Viewport</string>
+ </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::FocusPolicy::StrongFocus</enum>
   </property>
  </widget>
  <resources/>

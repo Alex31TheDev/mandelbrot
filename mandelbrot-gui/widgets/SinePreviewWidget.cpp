@@ -8,11 +8,7 @@
 
 SinePreviewWidget::SinePreviewWidget(QWidget *parent)
     : QWidget(parent) {
-    setFixedHeight(48);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     setMouseTracking(true);
-    setToolTip(
-        tr("Drag the middle to pan the range. Drag the edges to resize it."));
 }
 
 std::pair<double, double> SinePreviewWidget::range() const {

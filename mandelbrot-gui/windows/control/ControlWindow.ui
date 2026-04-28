@@ -90,6 +90,12 @@
            </item>
            <item row="0" column="1" colspan="5">
             <widget class="QLineEdit" name="cpuNameEdit">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="readOnly">
               <bool>true</bool>
              </property>
@@ -104,6 +110,18 @@
            </item>
            <item row="1" column="1">
             <widget class="QLineEdit" name="cpuCoresEdit">
+             <property name="minimumSize">
+              <size>
+               <width>48</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>48</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="readOnly">
               <bool>true</bool>
              </property>
@@ -118,6 +136,18 @@
            </item>
            <item row="1" column="3">
             <widget class="QLineEdit" name="cpuThreadsEdit">
+             <property name="minimumSize">
+              <size>
+               <width>48</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>48</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="readOnly">
               <bool>true</bool>
              </property>
@@ -153,7 +183,20 @@
             </widget>
            </item>
            <item row="0" column="1" colspan="3">
-            <widget class="QComboBox" name="backendCombo"/>
+            <widget class="QComboBox" name="backendCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>14</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="iterationsLabel">
@@ -163,7 +206,14 @@
             </widget>
            </item>
            <item row="1" column="1" colspan="3">
-            <widget class="IterationSpinBox" name="iterationsSpin"/>
+            <widget class="IterationSpinBox" name="iterationsSpin">
+             <property name="specialValueText">
+              <string>Auto</string>
+             </property>
+             <property name="maximum">
+              <number>1000000000</number>
+             </property>
+            </widget>
            </item>
            <item row="2" column="0">
             <widget class="QLabel" name="colorMethodLabel">
@@ -173,7 +223,20 @@
             </widget>
            </item>
            <item row="2" column="1" colspan="3">
-            <widget class="QComboBox" name="colorMethodCombo"/>
+            <widget class="QComboBox" name="colorMethodCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>12</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="3" column="0">
             <widget class="QLabel" name="fractalLabel">
@@ -183,7 +246,20 @@
             </widget>
            </item>
            <item row="3" column="1" colspan="3">
-            <widget class="QComboBox" name="fractalCombo"/>
+            <widget class="QComboBox" name="fractalCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>12</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="4" column="1">
             <widget class="QCheckBox" name="juliaCheck">
@@ -305,7 +381,20 @@
             </widget>
            </item>
            <item row="0" column="1" colspan="2">
-            <widget class="QComboBox" name="navModeCombo"/>
+            <widget class="QComboBox" name="navModeCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>10</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="pickTargetLabel">
@@ -315,7 +404,20 @@
             </widget>
            </item>
            <item row="1" column="1" colspan="2">
-            <widget class="QComboBox" name="pickTargetCombo"/>
+            <widget class="QComboBox" name="pickTargetCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>10</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="2" column="0">
             <widget class="QLabel" name="panRateLabel">
@@ -326,13 +428,32 @@
            </item>
            <item row="2" column="1">
             <widget class="QSlider" name="panRateSlider">
+             <property name="maximum">
+              <number>20</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
            <item row="2" column="2">
-            <widget class="QSpinBox" name="panRateSpin"/>
+            <widget class="QSpinBox" name="panRateSpin">
+             <property name="minimumSize">
+              <size>
+               <width>72</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>72</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="maximum">
+              <number>1000000000</number>
+             </property>
+            </widget>
            </item>
            <item row="3" column="0">
             <widget class="QLabel" name="zoomRateLabel">
@@ -343,13 +464,32 @@
            </item>
            <item row="3" column="1">
             <widget class="QSlider" name="zoomRateSlider">
+             <property name="maximum">
+              <number>20</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
            <item row="3" column="2">
-            <widget class="QSpinBox" name="zoomRateSpin"/>
+            <widget class="QSpinBox" name="zoomRateSpin">
+             <property name="minimumSize">
+              <size>
+               <width>72</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>72</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="maximum">
+              <number>1000000000</number>
+             </property>
+            </widget>
            </item>
            <item row="4" column="0">
             <widget class="QLabel" name="exponentLabel">
@@ -360,13 +500,41 @@
            </item>
            <item row="4" column="1">
             <widget class="QSlider" name="exponentSlider">
+             <property name="minimum">
+              <number>101</number>
+             </property>
+             <property name="maximum">
+              <number>1600</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
            <item row="4" column="2">
-            <widget class="AdaptiveDoubleSpinBox" name="exponentSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="exponentSpin">
+             <property name="minimumSize">
+              <size>
+               <width>72</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>72</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <double>1.010000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>1000000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -391,7 +559,20 @@
             </widget>
            </item>
            <item row="0" column="1" colspan="3">
-            <widget class="QComboBox" name="sineCombo"/>
+            <widget class="QComboBox" name="sineCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>7</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="0" column="5">
             <widget class="QPushButton" name="randomizeSineButton">
@@ -408,7 +589,17 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="AdaptiveDoubleSpinBox" name="freqRSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="freqRSpin">
+             <property name="decimals">
+              <number>17</number>
+             </property>
+             <property name="maximum">
+              <double>1000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="1" column="2">
             <widget class="QLabel" name="freqGLabel">
@@ -418,7 +609,17 @@
             </widget>
            </item>
            <item row="1" column="3">
-            <widget class="AdaptiveDoubleSpinBox" name="freqGSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="freqGSpin">
+             <property name="decimals">
+              <number>17</number>
+             </property>
+             <property name="maximum">
+              <double>1000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="1" column="5">
             <widget class="QPushButton" name="importSineButton">
@@ -435,7 +636,17 @@
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="AdaptiveDoubleSpinBox" name="freqBSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="freqBSpin">
+             <property name="decimals">
+              <number>17</number>
+             </property>
+             <property name="maximum">
+              <double>1000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="2" column="2">
             <widget class="QLabel" name="freqMultLabel">
@@ -445,7 +656,20 @@
             </widget>
            </item>
            <item row="2" column="3">
-            <widget class="AdaptiveDoubleSpinBox" name="freqMultSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="freqMultSpin">
+             <property name="decimals">
+              <number>17</number>
+             </property>
+             <property name="minimum">
+              <double>0.000100000000000</double>
+             </property>
+             <property name="maximum">
+              <double>1000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="2" column="5">
             <widget class="QPushButton" name="saveSineButton">
@@ -455,7 +679,29 @@
             </widget>
            </item>
            <item row="3" column="0" colspan="6">
-            <widget class="SinePreviewWidget" name="sinePreview" native="true"/>
+            <widget class="SinePreviewWidget" name="sinePreview" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>48</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>48</height>
+              </size>
+             </property>
+             <property name="toolTip">
+              <string>Drag the middle to pan the range. Drag the edges to resize it.</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -480,7 +726,20 @@
             </widget>
            </item>
            <item row="0" column="1" colspan="2">
-            <widget class="QComboBox" name="paletteCombo"/>
+            <widget class="QComboBox" name="paletteCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength">
+              <number>7</number>
+             </property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
            </item>
            <item row="0" column="3">
             <widget class="QPushButton" name="paletteLoadButton">
@@ -511,7 +770,20 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="AdaptiveDoubleSpinBox" name="paletteLengthSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="paletteLengthSpin">
+             <property name="decimals">
+              <number>17</number>
+             </property>
+             <property name="minimum">
+              <double>0.000100000000000</double>
+             </property>
+             <property name="maximum">
+              <double>1000000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>1.000000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="1" column="2">
             <widget class="QLabel" name="paletteOffsetLabel">
@@ -521,10 +793,39 @@
             </widget>
            </item>
            <item row="1" column="3">
-            <widget class="AdaptiveDoubleSpinBox" name="paletteOffsetSpin"/>
+            <widget class="AdaptiveDoubleSpinBox" name="paletteOffsetSpin">
+             <property name="decimals">
+              <number>17</number>
+             </property>
+             <property name="maximum">
+              <double>1000000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+            </widget>
            </item>
            <item row="2" column="0" colspan="6">
-            <widget class="PalettePreviewWidget" name="palettePreviewLabel" native="true"/>
+            <widget class="PalettePreviewWidget" name="palettePreviewLabel" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -602,7 +903,26 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QSpinBox" name="outputWidthSpin"/>
+            <widget class="QSpinBox" name="outputWidthSpin">
+             <property name="minimumSize">
+              <size>
+               <width>96</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>96</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>32768</number>
+             </property>
+            </widget>
            </item>
            <item row="0" column="2">
             <widget class="QLabel" name="outputTimesLabel">
@@ -622,7 +942,26 @@
             </widget>
            </item>
            <item row="0" column="4">
-            <widget class="QSpinBox" name="outputHeightSpin"/>
+            <widget class="QSpinBox" name="outputHeightSpin">
+             <property name="minimumSize">
+              <size>
+               <width>96</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>96</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>32768</number>
+             </property>
+            </widget>
            </item>
            <item row="0" column="5">
             <widget class="QPushButton" name="resizeButton">
@@ -639,7 +978,14 @@
             </widget>
            </item>
            <item row="1" column="1" colspan="2">
-            <widget class="QSpinBox" name="aaSpin"/>
+            <widget class="QSpinBox" name="aaSpin">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>16</number>
+             </property>
+            </widget>
            </item>
            <item row="1" column="3" colspan="3" alignment="Qt::AlignmentFlag::AlignHCenter">
             <widget class="QCheckBox" name="preserveRatioCheck">
@@ -745,9 +1091,21 @@
       </property>
       <item>
        <widget class="QLabel" name="progressLabel">
-        <property name="text">
-         <string>0%</string>
-        </property>
+         <property name="minimumSize">
+          <size>
+           <width>25</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>25</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>0%</string>
+         </property>
         <property name="alignment">
          <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
         </property>
@@ -755,9 +1113,24 @@
       </item>
       <item>
        <widget class="QProgressBar" name="progressBar">
-        <property name="value">
-         <number>0</number>
-        </property>
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
         <property name="textVisible">
          <bool>false</bool>
         </property>
@@ -765,9 +1138,15 @@
       </item>
       <item>
        <widget class="QLabel" name="pixelsPerSecondLabel">
-        <property name="text">
-         <string>0 pixels/s</string>
-        </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>0 pixels/s</string>
+         </property>
        </widget>
       </item>
       <item>
@@ -784,29 +1163,60 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="statusRightLabel">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-        </property>
-       </widget>
+       <widget class="MarqueeLabel" name="statusRightLabel">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::TextFormat::RichText</enum>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::TextInteractionFlag::LinksAccessibleByMouse</set>
+         </property>
+         <property name="openExternalLinks">
+          <bool>false</bool>
+         </property>
+         <property name="marqueeEnabled">
+          <bool>true</bool>
+         </property>
+         <property name="marqueeIntervalMs">
+          <number>125</number>
+         </property>
+         <property name="marqueeSeparator">
+          <string>     </string>
+         </property>
+         <property name="emphasisEnabled">
+          <bool>false</bool>
+         </property>
+         <property name="emphasisColor">
+          <color>
+           <red>215</red>
+           <green>80</green>
+           <blue>80</blue>
+          </color>
+         </property>
+        </widget>
       </item>
      </layout>
     </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>337</width>
-     <height>17</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuFile">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>337</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="nativeMenuBar">
+     <bool>false</bool>
+    </property>
+    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
@@ -966,6 +1376,11 @@
    <class>PalettePreviewWidget</class>
    <extends>QWidget</extends>
    <header>widgets/PalettePreviewWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MarqueeLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/MarqueeLabel.h</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -3,10 +3,7 @@
 #include <QPainter>
 
 PalettePreviewWidget::PalettePreviewWidget(QWidget *parent)
-    : QWidget(parent) {
-    setFixedHeight(30);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-}
+    : QWidget(parent) {}
 
 void PalettePreviewWidget::setPreviewPixmap(const QPixmap &pixmap) {
     _previewPixmap = pixmap;

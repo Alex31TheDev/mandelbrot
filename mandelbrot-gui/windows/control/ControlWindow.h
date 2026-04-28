@@ -48,6 +48,8 @@ namespace Ui {
 class ControlWindow;
 }
 
+class MarqueeLabel;
+
 class ControlWindow final : public QMainWindow, public ViewportHost {
     Q_OBJECT
 
@@ -143,7 +145,6 @@ private:
     QString _progressText;
     QString _statusText;
     QString _statusLinkPath;
-    QString _statusMarqueeSourceText;
     QString _lastRenderFailureMessage;
     QString _mouseText;
     QString _pointRealText = "0";
@@ -193,13 +194,10 @@ private:
     bool _presentingCopiedPreview = false;
     std::chrono::steady_clock::time_point _lastPreviewMotionAt {};
     QTimer _previewStillTimer;
-    QTimer _statusMarqueeTimer;
-    int _statusMarqueeOffset = 0;
-
     QLabel* _progressLabel = nullptr;
     QProgressBar* _progressBar = nullptr;
     QLabel* _pixelsPerSecondLabel = nullptr;
-    QLabel* _statusRightLabel = nullptr;
+    MarqueeLabel* _statusRightLabel = nullptr;
     QScrollArea* _controlScrollArea = nullptr;
     QWidget* _controlScrollContent = nullptr;
     QGroupBox* _cpuGroup = nullptr;

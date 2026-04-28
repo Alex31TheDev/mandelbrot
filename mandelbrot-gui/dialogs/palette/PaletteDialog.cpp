@@ -29,12 +29,10 @@ PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig& palette,
     , _savedPaletteName(GUI::PaletteStore::normalizeName(paletteName))
     , _savedPathCallback(std::move(savedPathCallback)) {
     _ui->setupUi(this);
-    resize(420, 200);
 
     _ui->nameEdit->setText(_savedPaletteName.isEmpty()
             ? QString::fromLatin1(GUI::PaletteStore::kDefaultName)
             : _savedPaletteName);
-    _ui->nameEdit->setMaxLength(64);
     _ui->nameEdit->setValidator(new QRegularExpressionValidator(
         QRegularExpression("[A-Za-z0-9 _.\\-]*"), _ui->nameEdit));
 

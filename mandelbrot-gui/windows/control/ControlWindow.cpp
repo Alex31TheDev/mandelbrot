@@ -88,6 +88,7 @@
 #include "widgets/AdaptiveDoubleSpinBox.h"
 #include "widgets/CollapsibleGroupBox.h"
 #include "widgets/IterationSpinBox.h"
+#include "widgets/MarqueeLabel.h"
 #include "widgets/PalettePreviewWidget.h"
 #include "widgets/SinePreviewWidget.h"
 #include "CPUInfo.h"
@@ -238,7 +239,6 @@ void ControlWindow::_buildUI() {
     _pixelsPerSecondLabel = _ui->pixelsPerSecondLabel;
     _statusRightLabel = _ui->statusRightLabel;
 
-    _menuBar->setNativeMenuBar(false);
     const auto onSectionToggled = [this](bool) { _updateControlWindowSize(); };
     const std::array<QGroupBox*, 8> groups = { _cpuGroup, _renderGroup,
         _infoGroup, _viewportGroup, _sineGroup, _paletteGroup, _lightGroup,
@@ -251,25 +251,6 @@ void ControlWindow::_buildUI() {
         collapsible->applyExpandedState(collapsible->isChecked());
     }
 
-    _cpuNameEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-    _cpuCoresEdit->setFixedWidth(48);
-    _cpuThreadsEdit->setFixedWidth(48);
-
-    for (QComboBox* combo : { _backendCombo, _colorMethodCombo, _fractalCombo,
-             _navModeCombo, _pickTargetCombo, _sineCombo, _paletteCombo }) {
-        combo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-        combo->setSizeAdjustPolicy(
-            QComboBox::AdjustToMinimumContentsLengthWithIcon);
-        combo->setMinimumContentsLength(10);
-    }
-    _backendCombo->setMinimumContentsLength(14);
-    _colorMethodCombo->setMinimumContentsLength(12);
-    _fractalCombo->setMinimumContentsLength(12);
-    _sineCombo->setMinimumContentsLength(7);
-    _paletteCombo->setMinimumContentsLength(7);
-
-    _iterationsSpin->setRange(0, 1000000000);
-    _iterationsSpin->setSpecialValueText(tr("Auto"));
     if (auto* spin = qobject_cast<::IterationSpinBox*>(_iterationsSpin)) {
         spin->resolveAutoIterations
             = [this]() { return _resolveCurrentIterationCount(); };
@@ -278,16 +259,6 @@ void ControlWindow::_buildUI() {
         iterationsEdit->installEventFilter(this);
     }
 
-    _panRateSlider->setRange(0, 20);
-    _zoomRateSlider->setRange(0, 20);
-    _panRateSpin->setRange(0, 1000000000);
-    _zoomRateSpin->setRange(0, 1000000000);
-    _panRateSpin->setFixedWidth(72);
-    _zoomRateSpin->setFixedWidth(72);
-    _exponentSlider->setRange(101, 1600);
-    _exponentSpin->setRange(1.01, 1000000.0);
-    _exponentSpin->setSingleStep(0.01);
-    _exponentSpin->setFixedWidth(72);
     if (auto* spin = qobject_cast<::AdaptiveDoubleSpinBox*>(_exponentSpin)) {
         spin->setDefaultDisplayDecimals(2);
     }
@@ -300,25 +271,10 @@ void ControlWindow::_buildUI() {
     for (QDoubleSpinBox* spin : { _freqRSpin, _freqGSpin, _freqBSpin,
              _freqMultSpin, _paletteLengthSpin, _paletteOffsetSpin }) {
         spin->setFixedWidth(compactSpinWidth);
-        spin->setDecimals(17);
-        spin->setSingleStep(0.01);
         if (auto* adaptive = qobject_cast<::AdaptiveDoubleSpinBox*>(spin)) {
             adaptive->setDefaultDisplayDecimals(4);
         }
     }
-    _freqRSpin->setRange(0.0, 1000.0);
-    _freqGSpin->setRange(0.0, 1000.0);
-    _freqBSpin->setRange(0.0, 1000.0);
-    _freqMultSpin->setRange(0.0001, 1000.0);
-    _paletteLengthSpin->setRange(0.0001, 1000000.0);
-    _paletteLengthSpin->setSingleStep(1.0);
-    _paletteOffsetSpin->setRange(0.0, 1000000.0);
-
-    _outputWidthSpin->setRange(1, 32768);
-    _outputHeightSpin->setRange(1, 32768);
-    _outputWidthSpin->setFixedWidth(96);
-    _outputHeightSpin->setFixedWidth(96);
-    _aaSpin->setRange(1, 16);
 
     for (QPushButton* button : { _savePointButton, _loadPointButton,
              _randomizeSineButton, _importSineButton, _saveSineButton,
@@ -332,34 +288,13 @@ void ControlWindow::_buildUI() {
         &::SinePreviewWidget::rangeChanged, this,
         [this](double, double) { _updateSinePreview(); });
 
-    _progressLabel->setFixedWidth(25);
-    _progressBar->setRange(0, 100);
-    _progressBar->setFixedWidth(100);
-    _pixelsPerSecondLabel->setSizePolicy(
-        QSizePolicy::Minimum, QSizePolicy::Preferred);
     _ui->statusLayout->setStretch(
         _ui->statusLayout->indexOf(_statusRightLabel), 1);
-    _statusRightLabel->setTextFormat(Qt::RichText);
-    _statusRightLabel->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
-    _statusRightLabel->setOpenExternalLinks(false);
-    _statusRightLabel->installEventFilter(this);
-    QObject::connect(_statusRightLabel, &QLabel::linkActivated, this,
-        [](const QString& link) { QDesktopServices::openUrl(QUrl(link)); });
-    QObject::connect(_statusRightLabel, &QLabel::linkHovered, this,
-        [this](const QString& link) {
-            if (!_statusRightLabel) return;
-            if (link.isEmpty()) {
-                _statusRightLabel->unsetCursor();
-            } else {
-                _statusRightLabel->setCursor(Qt::PointingHandCursor);
-            }
+    QObject::connect(_statusRightLabel, &MarqueeLabel::layoutWidthChanged, this,
+        [this]() {
+            _updateStatusRightEdgeAlignment();
+            _updateStatusLabels();
         });
-
-    _statusMarqueeTimer.setInterval(125);
-    QObject::connect(&_statusMarqueeTimer, &QTimer::timeout, this, [this]() {
-        ++_statusMarqueeOffset;
-        _updateStatusLabels();
-    });
 
     _previewStillTimer.setSingleShot(true);
     _previewStillTimer.setInterval(kPreviewStillMs);
@@ -2109,12 +2044,6 @@ bool ControlWindow::eventFilter(QObject* watched, QEvent* event) {
         }
     }
 
-    if (_statusRightLabel && watched == _statusRightLabel
-        && event->type() == QEvent::Resize) {
-        _updateStatusRightEdgeAlignment();
-        _updateStatusLabels();
-    }
-
     return QMainWindow::eventFilter(watched, event);
 }
 
@@ -2248,8 +2177,6 @@ void ControlWindow::_updateStatusRightEdgeAlignment() {
 void ControlWindow::_setStatusMessage(const QString& message) {
     _statusText = message;
     _statusLinkPath.clear();
-    _statusMarqueeSourceText.clear();
-    _statusMarqueeOffset = 0;
     _updateStatusLabels();
 }
 
@@ -2258,8 +2185,6 @@ void ControlWindow::_setStatusSavedPath(const QString& path) {
     _statusText
         = QString("Saved: %1").arg(QDir::toNativeSeparators(absolutePath));
     _statusLinkPath = absolutePath;
-    _statusMarqueeSourceText.clear();
-    _statusMarqueeOffset = 0;
     _updateStatusLabels();
 }
 
@@ -2279,8 +2204,7 @@ void ControlWindow::_updateStatusLabels(const QString& rightText) {
                 : QString());
     }
     if (_statusRightLabel) {
-        _statusRightLabel->setStyleSheet(
-            _progressCancelled ? "color: rgb(215, 80, 80);" : QString());
+        _statusRightLabel->setEmphasisEnabled(_progressCancelled);
     }
     const QString fullPixelsPerSecondText
         = ((_progressActive || _pixelsPerSecondText != "0 pixels/s")
@@ -2305,52 +2229,19 @@ void ControlWindow::_updateStatusLabels(const QString& rightText) {
     const QString sourceText = baseText;
     if (_pixelsPerSecondLabel)
         _pixelsPerSecondLabel->setText(pixelsPerSecondText);
-    if (_statusMarqueeSourceText != sourceText) {
-        _statusMarqueeSourceText = sourceText;
-        _statusMarqueeOffset = 0;
-    }
 
-    const auto computeShouldMarquee = [this, &sourceText]() {
-        const int availableWidth
-            = std::max(1, _statusRightLabel->contentsRect().width());
-        const QFontMetrics metrics(_statusRightLabel->font());
-        return metrics.horizontalAdvance(sourceText) > availableWidth;
-    };
-
-    bool shouldMarquee = computeShouldMarquee();
+    bool shouldMarquee = _statusRightLabel->wouldMarquee(sourceText);
     if (shouldMarquee && _progressActive && _pixelsPerSecondLabel) {
         const int separatorIndex = fullPixelsPerSecondText.indexOf(' ');
         if (separatorIndex > 0) {
             pixelsPerSecondText = fullPixelsPerSecondText.left(separatorIndex);
-            shouldMarquee = computeShouldMarquee();
+            if (_ui && _ui->statusLayout) _ui->statusLayout->activate();
+            shouldMarquee = _statusRightLabel->wouldMarquee(sourceText);
         }
     }
     if (_pixelsPerSecondLabel)
         _pixelsPerSecondLabel->setText(pixelsPerSecondText);
-
-    if (shouldMarquee) {
-        if (!_statusMarqueeTimer.isActive()) {
-            _statusMarqueeTimer.start();
-        }
-    } else if (_statusMarqueeTimer.isActive()) {
-        _statusMarqueeTimer.stop();
-        _statusMarqueeOffset = 0;
-    }
-
-    QString shownText = sourceText;
-    if (shouldMarquee && !sourceText.isEmpty()) {
-        const QString padded = sourceText + "     ";
-        const int wrappedOffset = _statusMarqueeOffset % padded.size();
-        shownText = padded.mid(wrappedOffset) + padded.left(wrappedOffset);
-    }
-
-    if (!sourceLink.isEmpty()) {
-        const QString href = QUrl::fromLocalFile(sourceLink).toString();
-        _statusRightLabel->setText(QString("<a href=\"%1\">%2</a>")
-                .arg(href, shownText.toHtmlEscaped()));
-    } else {
-        _statusRightLabel->setText(shownText.toHtmlEscaped());
-    }
+    _statusRightLabel->setSource(sourceText, sourceLink);
 }
 
 void ControlWindow::_updateLightColorButton() {

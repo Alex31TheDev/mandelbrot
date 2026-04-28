@@ -9,8 +9,6 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
     , _host(host) {
     _ui->setupUi(this);
     _updateWindowTitle();
-    setMouseTracking(true);
-    setFocusPolicy(Qt::StrongFocus);
 
     const int interactionTickIntervalMs
         = _host ? _host->interactionFrameIntervalMs() : 16;
@@ -974,8 +972,7 @@ void ViewportWindow::_drawGrid(QPainter& painter) {
 }
 
 void ViewportWindow::_updateWindowTitle() {
-    setWindowTitle(_usePreviewFallback() ? tr("Viewport (Preview)")
-                                         : tr("Viewport (Direct)"));
+    setWindowTitle(tr("Viewport"));
 }
 
 QPoint ViewportWindow::_clampToOutputPixel(const QPointF& pixel) const {
