@@ -1,14 +1,14 @@
 #include "services/PaletteStore.h"
 
 #include <algorithm>
-#include <cmath>
 #include <system_error>
 
 #include <QColor>
+#include <QFileInfo>
 
 #include "parsers/palette/PaletteParser.h"
 #include "parsers/palette/PaletteWriter.h"
-#include "util/FormatUtil.h"
+#include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
 #include "util/PathUtil.h"
 
@@ -16,8 +16,8 @@ Backend::PaletteHexConfig GUI::PaletteStore::makeNewConfig() {
     Backend::PaletteHexConfig palette;
     palette.totalLength = 1.0f;
     palette.offset = 0.0f;
-    palette.blendEnds = false;
-    palette.entries = { { "#000000", 1.0f }, { "#FFFFFF", 0.0f } };
+    palette.blendEnds = true;
+    palette.entries = { { "#000000", 1.0f }, { "#FFFFFF", 1.0f } };
     return palette;
 }
 
@@ -167,6 +167,77 @@ bool GUI::PaletteStore::saveToPath(const std::filesystem::path& path,
     return false;
 }
 
+bool GUI::PaletteStore::loadNamed(const QString& name,
+    Backend::PaletteHexConfig& palette, QString& errorMessage) {
+    const QString normalizedName = normalizeName(name);
+    if (normalizedName.isEmpty()) {
+        errorMessage = "Palette name is empty.";
+        return false;
+    }
+
+    const std::filesystem::path sourcePath = filePath(normalizedName);
+    if (std::filesystem::exists(sourcePath)) {
+        return loadFromPath(sourcePath, palette, errorMessage);
+    }
+
+    errorMessage = QString("Palette not found: %1").arg(normalizedName);
+    return false;
+}
+
+bool GUI::PaletteStore::importFromPath(const std::filesystem::path& sourcePath,
+    float totalLength, float offset, QString& importedName,
+    Backend::PaletteHexConfig& palette, std::filesystem::path& destinationPath,
+    QString& errorMessage) {
+    Backend::PaletteHexConfig loaded;
+    if (!loadFromPath(sourcePath, loaded, errorMessage)) return false;
+
+    loaded.totalLength = totalLength;
+    loaded.offset = offset;
+
+    if (!ensureDirectory(errorMessage)) return false;
+
+    importedName = uniqueName(
+        QFileInfo(QString::fromStdWString(sourcePath.wstring())).completeBaseName(),
+        listNames());
+    destinationPath = filePath(importedName);
+    if (!saveToPath(destinationPath, loaded, errorMessage)) return false;
+
+    palette = loaded;
+    return true;
+}
+
+bool GUI::PaletteStore::saveNamed(const QString& name,
+    const Backend::PaletteHexConfig& palette,
+    std::filesystem::path& destinationPath, QString& errorMessage) {
+    const QString normalizedName = normalizeName(name);
+    if (!isValidName(normalizedName)) {
+        errorMessage =
+            "Use an ASCII name with letters, numbers, spaces, ., _, or -.";
+        return false;
+    }
+
+    if (!ensureDirectory(errorMessage)) return false;
+
+    destinationPath = filePath(normalizedName);
+    return saveToPath(destinationPath, palette, errorMessage);
+}
+
+bool GUI::PaletteStore::saveFromDialogPath(const QString& savePath,
+    const Backend::PaletteHexConfig& palette, QString& savedName,
+    std::filesystem::path& destinationPath, QString& errorMessage) {
+    const QString savePathWithExtension = QString::fromStdString(
+        PathUtil::appendExtension(savePath.toStdString(), "txt"));
+    savedName = normalizeName(
+        QFileInfo(savePathWithExtension).completeBaseName());
+    if (!isValidName(savedName)) {
+        errorMessage =
+            "Use an ASCII name with letters, numbers, spaces, ., _, or -.";
+        return false;
+    }
+
+    return saveNamed(savedName, palette, destinationPath, errorMessage);
+}
+
 static double paletteSegmentLengthSum(
     const Backend::PaletteHexConfig& palette) {
     if (palette.entries.empty()) return 0.0;
@@ -182,105 +253,15 @@ static double paletteSegmentLengthSum(
     return total;
 }
 
-static QColor lerpPreviewColor(const QColor& from, const QColor& to, double t) {
-    const double clamped = std::clamp(t, 0.0, 1.0);
-    return QColor(static_cast<int>(std::lround(
-                      from.red() + (to.red() - from.red()) * clamped)),
-        static_cast<int>(
-            std::lround(from.green() + (to.green() - from.green()) * clamped)),
-        static_cast<int>(
-            std::lround(from.blue() + (to.blue() - from.blue()) * clamped)));
-}
-
-static QColor samplePreviewColor(
-    const Backend::PaletteHexConfig& palette, double x) {
-    if (palette.entries.empty()) return Qt::black;
-
-    const size_t colorCount = palette.entries.size();
-    size_t segmentCount = colorCount;
-    if (!palette.blendEnds) {
-        if (colorCount < 2) {
-            return QColor(
-                QString::fromStdString(palette.entries.front().color));
-        }
-        segmentCount--;
-    }
-
-    if (segmentCount == 0) {
-        return QColor(QString::fromStdString(palette.entries.front().color));
-    }
-
-    std::vector<QColor> colors;
-    colors.reserve(colorCount);
-    for (const auto& entry : palette.entries) {
-        QColor color(QString::fromStdString(entry.color));
-        colors.push_back(color.isValid() ? color : QColor(Qt::black));
-    }
-
-    std::vector<double> accum(segmentCount + 1, 0.0);
-    std::vector<double> spans(segmentCount, 0.0);
-    const double totalLength
-        = std::max(1.0, static_cast<double>(palette.totalLength));
-    const double lengthSum = paletteSegmentLengthSum(palette);
-    const double defaultSpan = totalLength / static_cast<double>(segmentCount);
-
-    for (size_t i = 0; i < segmentCount; ++i) {
-        const double rawLength
-            = std::max(0.0, static_cast<double>(palette.entries[i].length));
-        spans[i] = lengthSum > 0.0 ? rawLength / lengthSum * totalLength
-                                   : defaultSpan;
-        accum[i + 1] = accum[i] + spans[i];
-    }
-
-    const double wrappedTotal
-        = palette.blendEnds ? totalLength : std::max(accum.back(), 1.0e-12);
-    const double offset
-        = std::clamp(static_cast<double>(palette.offset), 0.0, wrappedTotal);
-
-    double t = std::fmod(x + offset, wrappedTotal);
-    if (t < 0.0) t += wrappedTotal;
-    if (t >= wrappedTotal) {
-        t = std::nextafter(wrappedTotal, 0.0);
-    }
-
-    size_t idx = 0;
-    while (idx + 1 < segmentCount && accum[idx + 1] <= t) {
-        idx++;
-    }
-
-    const double span = spans[idx];
-    const double u = span > 0.0 ? (t - accum[idx]) / span : 0.0;
-
-    size_t next = idx + 1;
-    if (palette.blendEnds) {
-        next %= colors.size();
-    } else if (next >= colors.size()) {
-        next = colors.size() - 1;
-    }
-
-    return lerpPreviewColor(colors[idx], colors[next], u);
-}
-
-QImage GUI::PaletteStore::makePreviewImage(
+QImage GUI::PaletteStore::makePreviewImage(Backend::Session* session,
     const Backend::PaletteHexConfig& palette, int width, int height) {
-    if (width <= 0 || height <= 0) return {};
-
-    QImage image(width, height, QImage::Format_RGB32);
-    const double totalLength
-        = std::max(1.0, static_cast<double>(palette.totalLength));
-    const double denom = width > 1 ? static_cast<double>(width - 1) : 1.0;
-
-    for (int x = 0; x < width; ++x) {
-        const QColor color = samplePreviewColor(
-            palette, totalLength * static_cast<double>(x) / denom);
-        const QRgb pixel = color.rgb();
-
-        for (int y = 0; y < height; ++y) {
-            image.setPixel(x, y, pixel);
-        }
+    if (!session || width <= 0 || height <= 0) return {};
+    if (const Backend::Status status = session->setColorPalette(palette); !status) {
+        return {};
     }
 
-    return image;
+    return GUI::Util::imageViewToImage(
+        session->renderPalettePreview(width, height));
 }
 
 std::vector<PaletteStop> GUI::PaletteStore::configToStops(

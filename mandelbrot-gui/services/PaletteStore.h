@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <vector>
 
 #include <QImage>
@@ -34,6 +35,18 @@ inline constexpr auto kUnsavedLabelSuffix = " (unsaved)";
     Backend::PaletteHexConfig& palette, QString& errorMessage);
 [[nodiscard]] bool saveToPath(const std::filesystem::path& path,
     const Backend::PaletteHexConfig& palette, QString& errorMessage);
+[[nodiscard]] bool loadNamed(const QString& name,
+    Backend::PaletteHexConfig& palette, QString& errorMessage);
+[[nodiscard]] bool importFromPath(const std::filesystem::path& sourcePath,
+    float totalLength, float offset, QString& importedName,
+    Backend::PaletteHexConfig& palette, std::filesystem::path& destinationPath,
+    QString& errorMessage);
+[[nodiscard]] bool saveNamed(const QString& name,
+    const Backend::PaletteHexConfig& palette,
+    std::filesystem::path& destinationPath, QString& errorMessage);
+[[nodiscard]] bool saveFromDialogPath(const QString& savePath,
+    const Backend::PaletteHexConfig& palette, QString& savedName,
+    std::filesystem::path& destinationPath, QString& errorMessage);
 
 [[nodiscard]] std::vector<PaletteStop> configToStops(
     const Backend::PaletteHexConfig& palette);
@@ -41,6 +54,6 @@ inline constexpr auto kUnsavedLabelSuffix = " (unsaved)";
     const std::vector<PaletteStop>& stops, float totalLength, float offset,
     bool blendEnds);
 
-[[nodiscard]] QImage makePreviewImage(
+[[nodiscard]] QImage makePreviewImage(Backend::Session* session,
     const Backend::PaletteHexConfig& palette, int width, int height);
 }

@@ -66,6 +66,7 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QStringList>
+#include <QStyle>
 #include <QUrl>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -104,8 +105,15 @@
 static constexpr auto kNewEntryLabel = "+ New";
 static constexpr auto kNewColorPaletteBaseName = "New Palette";
 static constexpr auto kNewSinePaletteBaseName = "New Sine";
-static constexpr int kControlScrollBarWidth = 10;
 static constexpr int kControlWindowScreenPadding = 48;
+
+static int controlScrollBarExtent(const QScrollArea* area) {
+    if (!area) return 0;
+    if (const QScrollBar* scrollBar = area->verticalScrollBar()) {
+        return std::max(0, scrollBar->sizeHint().width());
+    }
+    return 0;
+}
 
 ControlWindow::ControlWindow(GUILocale& locale, QWidget* parent)
     : QMainWindow(parent)
@@ -208,6 +216,8 @@ void ControlWindow::_buildUI() {
     _paletteCombo = _ui->paletteCombo;
     _paletteLengthSpin = _ui->paletteLengthSpin;
     _paletteOffsetSpin = _ui->paletteOffsetSpin;
+    _paletteLoadButton = _ui->paletteLoadButton;
+    _paletteSaveButton = _ui->paletteSaveButton;
     _paletteEditorButton = _ui->paletteEditorButton;
     _palettePreviewLabel = _ui->palettePreviewLabel;
     _lightRealEdit = _ui->lightRealEdit;
@@ -229,18 +239,6 @@ void ControlWindow::_buildUI() {
     _statusRightLabel = _ui->statusRightLabel;
 
     _menuBar->setNativeMenuBar(false);
-    _controlScrollArea->verticalScrollBar()->setFixedWidth(
-        kControlScrollBarWidth);
-    _controlScrollArea->setStyleSheet(
-        QString("QScrollBar:vertical { width: %1px; margin: 0; }"
-                "QScrollBar::handle:vertical { min-height: 24px; background: "
-                "palette(mid); border-radius: 4px; }"
-                "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical "
-                "{ height: 0px; }"
-                "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical "
-                "{ background: transparent; }")
-            .arg(kControlScrollBarWidth));
-
     const auto onSectionToggled = [this](bool) { _updateControlWindowSize(); };
     const std::array<QGroupBox*, 8> groups = { _cpuGroup, _renderGroup,
         _infoGroup, _viewportGroup, _sineGroup, _paletteGroup, _lightGroup,
@@ -267,6 +265,8 @@ void ControlWindow::_buildUI() {
     _backendCombo->setMinimumContentsLength(14);
     _colorMethodCombo->setMinimumContentsLength(12);
     _fractalCombo->setMinimumContentsLength(12);
+    _sineCombo->setMinimumContentsLength(7);
+    _paletteCombo->setMinimumContentsLength(7);
 
     _iterationsSpin->setRange(0, 1000000000);
     _iterationsSpin->setSpecialValueText(tr("Auto"));
@@ -311,8 +311,8 @@ void ControlWindow::_buildUI() {
     _freqBSpin->setRange(0.0, 1000.0);
     _freqMultSpin->setRange(0.0001, 1000.0);
     _paletteLengthSpin->setRange(0.0001, 1000000.0);
+    _paletteLengthSpin->setSingleStep(1.0);
     _paletteOffsetSpin->setRange(0.0, 1000000.0);
-    _paletteCombo->setFixedWidth(_sineCombo->sizeHint().width());
 
     _outputWidthSpin->setRange(1, 32768);
     _outputHeightSpin->setRange(1, 32768);
@@ -322,8 +322,9 @@ void ControlWindow::_buildUI() {
 
     for (QPushButton* button : { _savePointButton, _loadPointButton,
              _randomizeSineButton, _importSineButton, _saveSineButton,
-             _paletteEditorButton, _lightColorButton, _resizeButton,
-             _calculateButton, _homeButton, _zoomButton, _saveButton }) {
+             _paletteLoadButton, _paletteSaveButton, _paletteEditorButton,
+             _lightColorButton, _resizeButton, _calculateButton, _homeButton,
+             _zoomButton, _saveButton }) {
         GUI::Util::stabilizePushButton(button);
     }
 
@@ -738,6 +739,10 @@ void ControlWindow::_connectUI() {
             _updateViewport();
             requestRender();
         });
+    QObject::connect(_paletteLoadButton, &QPushButton::clicked, this,
+        [this]() { _loadPalette(); });
+    QObject::connect(_paletteSaveButton, &QPushButton::clicked, this,
+        [this]() { _savePalette(); });
     QObject::connect(_paletteEditorButton, &QPushButton::clicked, this,
         [this]() { _openPaletteEditor(); });
     QObject::connect(_lightColorButton, &QPushButton::clicked, this, [this]() {
@@ -2436,8 +2441,8 @@ void ControlWindow::_refreshPalettePreview() {
         return;
     }
 
-    const QImage image
-        = GUI::PaletteStore::makePreviewImage(_state.palette, 256, 20);
+    const QImage image = GUI::PaletteStore::makePreviewImage(
+        _previewSession, _state.palette, 256, 20);
     if (image.isNull()) {
         preview->clearPreview();
         return;
@@ -2461,6 +2466,7 @@ void ControlWindow::_updateControlWindowSize() {
     const QSize packedTarget = minimumSizeHint().expandedTo(QSize(1, 1));
     const QMargins outerMargins
         = layout() ? layout()->contentsMargins() : QMargins();
+    const int scrollBarExtent = controlScrollBarExtent(_controlScrollArea);
     int controlContentHeight = 0, defaultVisibleContentHeight = 0;
     int packedWidth = packedTarget.width();
     if (_controlScrollContent) {
@@ -2480,12 +2486,12 @@ void ControlWindow::_updateControlWindowSize() {
         }
         target.setWidth(std::max(target.width(),
             contentWidth + outerMargins.left() + outerMargins.right()
-                + kControlScrollBarWidth));
+                + scrollBarExtent));
         packedWidth = std::max(packedWidth,
             contentMinWidth + outerMargins.left() + outerMargins.right()
-                + kControlScrollBarWidth);
+                + scrollBarExtent);
     } else {
-        target += QSize(kControlScrollBarWidth, 0);
+        target += QSize(scrollBarExtent, 0);
         packedWidth = std::max(packedWidth, target.width());
     }
 
@@ -2508,7 +2514,10 @@ void ControlWindow::_updateControlWindowSize() {
 
     const int minHeight = std::max(1, minimumSizeHint().height());
 
-    setMinimumWidth(std::max(1, packedWidth));
+    const int effectiveMinWidth = _controlWindowSized
+        ? std::min(std::max(1, width()), std::max(1, packedWidth))
+        : std::max(1, packedWidth);
+    setMinimumWidth(effectiveMinWidth);
     setMaximumWidth(QWIDGETSIZE_MAX);
     setMinimumHeight(minHeight);
     setMaximumHeight(QWIDGETSIZE_MAX);
@@ -2552,8 +2561,6 @@ void ControlWindow::_updateControlWindowSize() {
         }
 
         resize(std::max(1, packedWidth), desiredHeight);
-    } else if (width() < packedWidth) {
-        resize(packedWidth, std::max(height(), minHeight));
     }
 
     if (layout()) layout()->activate();
@@ -3244,6 +3251,120 @@ void ControlWindow::_importSine() {
     requestRender();
 }
 
+void ControlWindow::_loadPalette() {
+    const QString sourcePath = GUI::showNativeOpenFileDialog(this, "Load Palette",
+        GUI::PaletteStore::directoryPath(),
+        "Palette Files (*.txt);;All Files (*.*)");
+    if (sourcePath.isEmpty()) return;
+
+    Backend::PaletteHexConfig loaded;
+    QString importedName;
+    std::filesystem::path destinationPath;
+    QString errorMessage;
+    if (!GUI::PaletteStore::importFromPath(sourcePath.toStdString(),
+            _state.palette.totalLength, _state.palette.offset, importedName,
+            loaded, destinationPath, errorMessage)) {
+        QMessageBox::warning(this, "Palette", errorMessage);
+        return;
+    }
+
+    _state.paletteName = importedName;
+    _state.palette = loaded;
+    _markPaletteSavedState(_state.paletteName, _state.palette);
+    _palettePreviewDirty = true;
+    _setStatusSavedPath(QString::fromStdWString(destinationPath.wstring()));
+    _refreshPaletteList(_state.paletteName);
+    _syncControlsFromState();
+    _updateStatusLabels();
+    _updateViewport();
+    requestRender();
+}
+
+void ControlWindow::_savePalette() {
+    _syncStateFromControls();
+
+    QString targetName = GUI::PaletteStore::normalizeName(_state.paletteName);
+    if (!GUI::PaletteStore::isValidName(targetName)
+        || targetName == kNewEntryLabel) {
+        const QString suggested
+            = GUI::PaletteStore::sanitizeName(_state.paletteName);
+        bool accepted = false;
+        const QString enteredName = QInputDialog::getText(this, "Save Palette",
+            "Name", QLineEdit::Normal,
+            suggested.isEmpty() ? "palette" : suggested, &accepted);
+        if (!accepted) return;
+
+        targetName = GUI::PaletteStore::normalizeName(enteredName);
+        if (!GUI::PaletteStore::isValidName(targetName)) {
+            QMessageBox::warning(this, "Save Palette",
+                "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
+            return;
+        }
+    }
+
+    QString errorMessage;
+    if (!GUI::PaletteStore::ensureDirectory(errorMessage)) {
+        QMessageBox::warning(this, "Save Palette", errorMessage);
+        return;
+    }
+
+    std::filesystem::path destinationPath
+        = GUI::PaletteStore::filePath(targetName);
+    std::error_code existsError;
+    const bool destinationExists
+        = std::filesystem::exists(destinationPath, existsError) && !existsError;
+    if (destinationExists) {
+        const QMessageBox::StandardButton choice = QMessageBox::question(this,
+            "Palette",
+            QString("Palette \"%1\" already exists. Overwrite it?")
+                .arg(targetName),
+            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
+            QMessageBox::Yes);
+        if (choice == QMessageBox::Cancel) return;
+        if (choice == QMessageBox::No) {
+            const QString savePath = GUI::showNativeSaveFileDialog(this,
+                "Save Palette As", GUI::PaletteStore::directoryPath(),
+                QFileInfo(GUI::Util::uniqueIndexedPathWithExtension(
+                    GUI::PaletteStore::directoryPath(), targetName, "txt"))
+                    .fileName(),
+                "Palette Files (*.txt);;All Files (*.*)");
+            if (savePath.isEmpty()) return;
+
+            const QString savePathWithExtension = QString::fromStdString(
+                PathUtil::appendExtension(savePath.toStdString(), "txt"));
+            QString saveName;
+            if (!GUI::PaletteStore::saveFromDialogPath(savePathWithExtension,
+                    _state.palette, saveName, destinationPath,
+                    errorMessage)) {
+                QMessageBox::warning(this, "Save Palette",
+                    errorMessage);
+                return;
+            }
+
+            targetName = saveName;
+        } else if (!GUI::PaletteStore::saveNamed(
+                       targetName, _state.palette, destinationPath,
+                       errorMessage)) {
+            QMessageBox::warning(this, "Save Palette", errorMessage);
+            return;
+        }
+    }
+
+    if (!destinationExists
+        && !GUI::PaletteStore::saveNamed(
+            targetName, _state.palette, destinationPath, errorMessage)) {
+        QMessageBox::warning(this, "Save Palette", errorMessage);
+        return;
+    }
+
+    _state.paletteName = targetName;
+    _markPaletteSavedState(_state.paletteName, _state.palette);
+    _setStatusSavedPath(QString::fromStdWString(destinationPath.wstring()));
+    _refreshPaletteList(_state.paletteName);
+    _syncControlsFromState();
+    _updateStatusLabels();
+}
+
 bool ControlWindow::_loadSineByName(
     const QString& name, bool requestRenderOnSuccess, QString* errorMessage) {
     if (errorMessage) errorMessage->clear();
@@ -3285,16 +3406,8 @@ bool ControlWindow::_loadPaletteByName(
     if (normalizedName.isEmpty()) return false;
 
     Backend::PaletteHexConfig loaded;
-    const std::filesystem::path sourcePath
-        = GUI::PaletteStore::filePath(normalizedName);
     QString localError;
-    if (std::filesystem::exists(sourcePath)) {
-        if (!GUI::PaletteStore::loadFromPath(sourcePath, loaded, localError)) {
-            if (errorMessage) *errorMessage = localError;
-            return false;
-        }
-    } else {
-        localError = QString("Palette not found: %1").arg(normalizedName);
+    if (!GUI::PaletteStore::loadNamed(normalizedName, loaded, localError)) {
         if (errorMessage) *errorMessage = localError;
         return false;
     }

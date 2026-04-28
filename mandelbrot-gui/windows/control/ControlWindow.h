@@ -247,6 +247,8 @@ private:
     QComboBox* _paletteCombo = nullptr;
     QDoubleSpinBox* _paletteLengthSpin = nullptr;
     QDoubleSpinBox* _paletteOffsetSpin = nullptr;
+    QPushButton* _paletteLoadButton = nullptr;
+    QPushButton* _paletteSaveButton = nullptr;
     QPushButton* _paletteEditorButton = nullptr;
     QWidget* _palettePreviewLabel = nullptr;
     QLineEdit* _lightRealEdit = nullptr;
@@ -342,6 +344,8 @@ private:
     void _createNewColorPalette(bool requestRenderOnSuccess = true);
     void _importSine();
     void _saveSine();
+    void _loadPalette();
+    void _savePalette();
     void _savePointView();
     void _loadPointView();
     void _openPaletteEditor();

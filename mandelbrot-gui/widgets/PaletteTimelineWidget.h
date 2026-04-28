@@ -49,19 +49,25 @@ private:
     double _dragAnchorPos = 0.0;
     std::unordered_map<int, double> _dragStartPositions;
     QLineEdit *_positionEditor = nullptr;
+    QPoint _lastHitPoint;
+    std::vector<int> _lastHitCandidateIds;
+    int _lastHitChosenId = -1;
 
     [[nodiscard]] QRect _gradientRect() const;
     [[nodiscard]] QPoint _stopPoint(double pos) const;
     [[nodiscard]] double _posFromPixel(double x) const;
     [[nodiscard]] QColor _sample(double pos) const;
-    [[nodiscard]] int _hitTest(const QPoint &point) const;
+    [[nodiscard]] QRect _stopHitRect(double pos) const;
+    [[nodiscard]] int _indexForId(int id) const;
+    [[nodiscard]] std::vector<int> _hitCandidates(const QPoint &point) const;
+    [[nodiscard]] int _hitTest(const QPoint &point);
     void _sortStops();
     [[nodiscard]] bool _isLockedIndex(int index) const;
     [[nodiscard]] bool _isLockedId(int id) const;
     [[nodiscard]] double _minimumStopSpacing() const;
     void _normalizeStopLayout();
     void _updatePositionEditor();
-    void _commitPositionEdit();
+    void _applyPositionEdit(bool finalCommit);
     void _setSingleSelection(int id);
     void _emitChanged();
     void _emitSelectionChanged();

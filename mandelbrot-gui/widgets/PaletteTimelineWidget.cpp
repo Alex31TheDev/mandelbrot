@@ -9,6 +9,15 @@
 #include <QPainterPath>
 #include <QResizeEvent>
 
+namespace {
+constexpr int kHandleWidth = 12;
+constexpr int kHandleHeight = 12;
+constexpr int kHandleHitHalfWidth = 14;
+constexpr int kHandleHitTopPadding = 14;
+constexpr int kHandleHitBottomPadding = 20;
+constexpr int kHitRepeatTolerance = 3;
+}
+
 PaletteTimelineWidget::PaletteTimelineWidget(QWidget *parent)
     : QWidget(parent) {
     setMinimumHeight(0);
@@ -21,8 +30,10 @@ PaletteTimelineWidget::PaletteTimelineWidget(QWidget *parent)
     _positionEditor->setValidator(new QIntValidator(0, 100, _positionEditor));
     _positionEditor->hide();
 
+    QObject::connect(_positionEditor, &QLineEdit::textEdited, this,
+        [this](const QString &) { _applyPositionEdit(false); });
     QObject::connect(_positionEditor, &QLineEdit::editingFinished, this,
-        [this]() { _commitPositionEdit(); });
+        [this]() { _applyPositionEdit(true); });
 }
 
 void PaletteTimelineWidget::setBlendEnds(bool blendEnds) {
@@ -197,8 +208,8 @@ void PaletteTimelineWidget::paintEvent(QPaintEvent *) {
         const QPoint handlePos = _stopPoint(stop.pos);
         QPainterPath path;
         path.moveTo(handlePos.x(), grad.bottom() + 4);
-        path.lineTo(handlePos.x() - 6, grad.bottom() + 16);
-        path.lineTo(handlePos.x() + 6, grad.bottom() + 16);
+        path.lineTo(handlePos.x() - kHandleWidth / 2, grad.bottom() + 4 + kHandleHeight);
+        path.lineTo(handlePos.x() + kHandleWidth / 2, grad.bottom() + 4 + kHandleHeight);
         path.closeSubpath();
 
         painter.fillPath(path, stop.color);
@@ -333,6 +344,14 @@ QPoint PaletteTimelineWidget::_stopPoint(double pos) const {
     return { std::clamp(x, grad.left(), grad.right()), grad.bottom() };
 }
 
+QRect PaletteTimelineWidget::_stopHitRect(double pos) const {
+    const QPoint handle = _stopPoint(pos);
+    return { handle.x() - kHandleHitHalfWidth,
+        handle.y() - kHandleHitTopPadding,
+        kHandleHitHalfWidth * 2 + 1,
+        kHandleHitTopPadding + kHandleHitBottomPadding + 1 };
+}
+
 double PaletteTimelineWidget::_posFromPixel(double x) const {
     const QRect grad = _gradientRect();
     if (grad.width() <= 0) return 0.0;
@@ -387,13 +406,88 @@ QColor PaletteTimelineWidget::_sample(double pos) const {
     return sorted.back().color;
 }
 
-int PaletteTimelineWidget::_hitTest(const QPoint &point) const {
+int PaletteTimelineWidget::_indexForId(int id) const {
     for (int i = 0; i < static_cast<int>(_stops.size()); ++i) {
-        const QRect area(
-            _stopPoint(_stops[i].pos) - QPoint(8, 6), QSize(16, 18));
-        if (area.contains(point)) return i;
+        if (_stops[i].id == id) return i;
     }
     return -1;
+}
+
+std::vector<int> PaletteTimelineWidget::_hitCandidates(const QPoint &point) const {
+    struct Candidate {
+        int index = -1;
+        int distance = 0;
+        bool selected = false;
+        int id = 0;
+    };
+
+    std::vector<Candidate> candidates;
+    candidates.reserve(_stops.size());
+    for (int i = 0; i < static_cast<int>(_stops.size()); ++i) {
+        const QRect area = _stopHitRect(_stops[i].pos);
+        if (!area.contains(point)) continue;
+
+        const QPoint handle = _stopPoint(_stops[i].pos);
+        const int dx = point.x() - handle.x();
+        const int dy = point.y() - (handle.y() + 6);
+        candidates.push_back({ i, dx * dx + dy * dy,
+            _selectedIds.contains(_stops[i].id), _stops[i].id });
+    }
+
+    std::sort(candidates.begin(), candidates.end(),
+        [](const Candidate &a, const Candidate &b) {
+            if (a.selected != b.selected) return a.selected > b.selected;
+            if (a.distance != b.distance) return a.distance < b.distance;
+            return a.id > b.id;
+        });
+
+    std::vector<int> indices;
+    indices.reserve(candidates.size());
+    for (const Candidate &candidate : candidates) {
+        indices.push_back(candidate.index);
+    }
+    return indices;
+}
+
+int PaletteTimelineWidget::_hitTest(const QPoint &point) {
+    const std::vector<int> candidates = _hitCandidates(point);
+    if (candidates.empty()) {
+        _lastHitCandidateIds.clear();
+        _lastHitChosenId = -1;
+        return -1;
+    }
+
+    const bool repeatedHit = !_lastHitCandidateIds.empty()
+        && std::abs(point.x() - _lastHitPoint.x()) <= kHitRepeatTolerance
+        && std::abs(point.y() - _lastHitPoint.y()) <= kHitRepeatTolerance
+        && candidates.size() == _lastHitCandidateIds.size()
+        && std::equal(candidates.begin(), candidates.end(),
+            _lastHitCandidateIds.begin(),
+            [this](int index, int id) { return _stops[index].id == id; });
+
+    int chosenIndex = candidates.front();
+    if (repeatedHit && candidates.size() > 1) {
+        int previousOffset = -1;
+        for (int i = 0; i < static_cast<int>(candidates.size()); ++i) {
+            if (_stops[candidates[i]].id == _lastHitChosenId) {
+                previousOffset = i;
+                break;
+            }
+        }
+        if (previousOffset >= 0) {
+            chosenIndex = candidates[(previousOffset + 1)
+                % static_cast<int>(candidates.size())];
+        }
+    }
+
+    _lastHitPoint = point;
+    _lastHitCandidateIds.clear();
+    _lastHitCandidateIds.reserve(candidates.size());
+    for (const int candidate : candidates) {
+        _lastHitCandidateIds.push_back(_stops[candidate].id);
+    }
+    _lastHitChosenId = _stops[chosenIndex].id;
+    return chosenIndex;
 }
 
 void PaletteTimelineWidget::_sortStops() {
@@ -508,19 +602,19 @@ void PaletteTimelineWidget::_updatePositionEditor() {
     _positionEditor->raise();
 }
 
-void PaletteTimelineWidget::_commitPositionEdit() {
+void PaletteTimelineWidget::_applyPositionEdit(bool finalCommit) {
     if (!_positionEditor || !_positionEditor->isVisible()) return;
     const int index = selectedIndex();
     if (index < 0 || index >= static_cast<int>(_stops.size())) return;
     if (_isLockedIndex(index)) {
-        _updatePositionEditor();
+        if (finalCommit) _updatePositionEditor();
         return;
     }
 
     bool ok = false;
     const int entered = _positionEditor->text().toInt(&ok);
     if (!ok) {
-        _updatePositionEditor();
+        if (finalCommit) _updatePositionEditor();
         return;
     }
 
@@ -537,6 +631,7 @@ void PaletteTimelineWidget::_setSingleSelection(int id) {
     _selectedIds.clear();
     _selectedIds.insert(id);
     _primarySelectedId = id;
+    _lastHitChosenId = id;
 }
 
 void PaletteTimelineWidget::_emitChanged() {

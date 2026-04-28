@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QString>
 
 #include "BackendAPI.h"
@@ -25,6 +26,7 @@ public:
     [[nodiscard]] Backend::PaletteHexConfig palette() const;
     [[nodiscard]] QString savedPaletteName() const;
     [[nodiscard]] bool savedStateDirty() const;
+    void accept() override;
 
 private:
     std::unique_ptr<Ui::PaletteDialog> _ui;
