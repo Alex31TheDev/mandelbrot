@@ -14,8 +14,10 @@ FORCE_INLINE scalar_full_t getImageCenterReal(int x, scalar_full_t halfImgWidth,
     return (x - halfImgWidth) * invImgWidth * realScale + point_r;
 }
 
-FORCE_INLINE scalar_full_t getImageCenterImag(int y, scalar_full_t halfImgHeight,
-    scalar_full_t invImgHeight) {
+FORCE_INLINE scalar_full_t getImageCenterImag(
+    int y, scalar_full_t halfImgHeight,
+    scalar_full_t invImgHeight
+) {
     using namespace ScalarGlobals;
     return (y - halfImgHeight) * invImgHeight * imagScale - point_i;
 }

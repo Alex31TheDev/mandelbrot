@@ -19,8 +19,10 @@ using namespace Backend;
 #include "CallbackFormatter.h"
 #include "fullname.h"
 
-static bool saveImage(Session &session,
-    std::optional<int> num = std::nullopt) {
+static bool saveImage(
+    Session &session,
+    std::optional<int> num = std::nullopt
+) {
     const std::string baseName = fullname;
     const std::string outName = num
         ? PathUtil::appendSeqnum(baseName, *num)

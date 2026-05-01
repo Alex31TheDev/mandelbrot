@@ -30,12 +30,15 @@ public:
 
     static constexpr float MAX_AA_SCALE = 8.0f;
 
-    static size_t calcBufferSize(int32_t width, int32_t height,
-        std::optional<std::reference_wrapper<int32_t>> strideWidth = std::nullopt);
+    static size_t calcBufferSize(
+        int32_t width, int32_t height,
+        std::optional<std::reference_wrapper<int32_t>> strideWidth = std::nullopt
+    );
 
     static float calcAAScale(int32_t aaPixels);
     static std::tuple<int32_t, int32_t> calcRenderDimensions(
-        int32_t width, int32_t height, float aaScale);
+        int32_t width, int32_t height, float aaScale
+    );
 
     static std::unique_ptr<Image> create(int32_t width, int32_t height,
         bool simdSafe = true, int32_t aaPixels = 1);

@@ -19,10 +19,8 @@ class GUIAppController final : public QObject {
     Q_OBJECT
 
 public:
-    GUIAppController(
-        GUILocale &locale, AppSettings &settings,
-        QObject *parent = nullptr
-    );
+    GUIAppController(GUILocale &locale, AppSettings &settings,
+        QObject *parent = nullptr);
     ~GUIAppController() override;
 
     bool initialize();
@@ -83,14 +81,10 @@ private:
     void _openPaletteEditor();
     void _createNewSinePalette(bool requestRenderOnSuccess);
     void _createNewColorPalette(bool requestRenderOnSuccess);
-    bool _loadSineByName(
-        const QString &name, bool requestRenderOnSuccess,
-        QString *errorMessage = nullptr
-    );
-    bool _loadPaletteByName(
-        const QString &name, bool requestRenderOnSuccess,
-        QString *errorMessage = nullptr
-    );
+    bool _loadSineByName(const QString &name, bool requestRenderOnSuccess,
+        QString *errorMessage = nullptr);
+    bool _loadPaletteByName(const QString &name, bool requestRenderOnSuccess,
+        QString *errorMessage = nullptr);
     bool _confirmDiscardDirtySine();
     bool _confirmDiscardDirtyPalette();
     void _savePersistentState();

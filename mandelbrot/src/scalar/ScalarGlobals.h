@@ -79,32 +79,26 @@ namespace ScalarGlobals {
         scalar_full_t pr = DEFAULT_POINT_R, scalar_full_t pi = DEFAULT_POINT_I,
         scalar_full_t sr = DEFAULT_SEED_R, scalar_full_t si = DEFAULT_SEED_I
     );
-    bool setFractalType(
-        int type = FractalTypes::DEFAULT_FRACTAL_TYPE.id,
-        bool julia = false, bool inverse = false
-    );
+    bool setFractalType(int type = FractalTypes::DEFAULT_FRACTAL_TYPE.id,
+        bool julia = false, bool inverse = false);
     bool setColorMethod(int method = ColorMethods::DEFAULT_COLOR_METHOD.id);
     bool setFractalExponent(scalar_full_t pw = DEFAULT_FRACTAL_EXP);
-    bool setSinePaletteGlobals(
-        scalar_half_t freqR = DEFAULT_FREQ_R,
+    bool setSinePaletteGlobals(scalar_half_t freqR = DEFAULT_FREQ_R,
         scalar_half_t freqG = DEFAULT_FREQ_G,
         scalar_half_t freqB = DEFAULT_FREQ_B,
         scalar_half_t totalMult = DEFAULT_FREQ_MULT,
         scalar_half_t phaseR = DEFAULT_PHASE_R,
         scalar_half_t phaseG = DEFAULT_PHASE_G,
         scalar_half_t phaseB = DEFAULT_PHASE_B,
-        scalar_half_t totalPhase = DEFAULT_COS_PHASE
-    );
+        scalar_half_t totalPhase = DEFAULT_COS_PHASE);
     bool setLightGlobals(
         scalar_half_t lr = DEFAULT_LIGHT_R, scalar_half_t li = DEFAULT_LIGHT_I,
         const ScalarColor &color = DEFAULT_LIGHT_COLOR
     );
-    bool setPaletteGlobals(
-        const std::vector<ScalarPaletteColor> &entries,
+    bool setPaletteGlobals(const std::vector<ScalarPaletteColor> &entries,
         scalar_half_t totalLength = SC_SYM_H(10.0),
         scalar_half_t offset = ZERO_H,
-        bool blendEnds = true
-    );
+        bool blendEnds = true);
 
     [[maybe_unused]] static void setAllDefaults() {
         setZoomGlobals(MIN_ITERATIONS);

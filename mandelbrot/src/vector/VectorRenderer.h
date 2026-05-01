@@ -14,12 +14,10 @@ namespace VectorRenderer {
     void VECTOR_CALL initCoordsSIMD(simd_full_t &cr, simd_full_t &ci,
         simd_full_t &zr, simd_full_t &zi,
         simd_full_t &dr, simd_full_t &di);
-    simd_full_t VECTOR_CALL iterateFractalSIMD(
-        simd_full_t cr, simd_full_t ci,
+    simd_full_t VECTOR_CALL iterateFractalSIMD(simd_full_t cr, simd_full_t ci,
         simd_full_t &zr, simd_full_t &zi,
         simd_full_t &dr, simd_full_t &di,
-        simd_full_t &mag, simd_full_mask_t &active
-    );
+        simd_full_t &mag, simd_full_mask_t &active);
 
     simd_half_int_t VECTOR_CALL colorToIntSIMD(simd_half_t val);
     void VECTOR_CALL setPixelsSIMD(uint8_t *pixels, size_t &pos, int width,

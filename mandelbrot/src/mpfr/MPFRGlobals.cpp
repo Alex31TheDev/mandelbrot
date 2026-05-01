@@ -148,8 +148,10 @@ namespace MPFRGlobals {
         mpfr_clear(zoomPow_mp);
     }
 
-    void initMPFRValues(const char *pr_str, const char *pi_str,
-        const char *zoomStr, const char *sr_str, const char *si_str) {
+    void initMPFRValues(
+        const char *pr_str, const char *pi_str,
+        const char *zoomStr, const char *sr_str, const char *si_str
+    ) {
         ensureStorage();
         if (zoomStr && *zoomStr) mpfrZoomString = zoomStr;
         initImageValues();

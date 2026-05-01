@@ -67,8 +67,10 @@ void BackendModule::forceKill() const {
     }
 }
 
-BackendModule loadBackendModule(const std::filesystem::path &exeDir,
-    const std::string &configName, std::string &err) {
+BackendModule loadBackendModule(
+    const std::filesystem::path &exeDir,
+    const std::string &configName, std::string &err
+) {
     const std::filesystem::path dllPath =
         (exeDir / "backends") / (configName + ".dll");
     HMODULE module = LoadLibraryExW(dllPath.c_str(), nullptr,

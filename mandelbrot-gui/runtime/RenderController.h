@@ -69,10 +69,13 @@ public:
 
     bool saveImage(const QString &path, bool appendDate, const QString &type,
         QString &errorMessage);
-    [[nodiscard]] QImage renderSinePreview(const Backend::SinePaletteConfig &palette,
-        const QSize &widgetSize, double rangeMin, double rangeMax) const;
+    [[nodiscard]] QImage renderSinePreview(
+        const Backend::SinePaletteConfig &palette,
+        const QSize &widgetSize, double rangeMin, double rangeMax
+    ) const;
     [[nodiscard]] QImage renderPalettePreview(
-        const Backend::PaletteHexConfig &palette) const;
+        const Backend::PaletteHexConfig &palette
+    ) const;
 
     bool pointAtPixel(const GUIRenderSnapshot &snapshot, const QPoint &pixel,
         QString &realText, QString &imagText, QString &errorMessage);
@@ -150,7 +153,8 @@ private:
     void _bindBackendCallbacks();
     void _startRenderWorker();
     void _finishRenderThread(
-        bool forceKillOnTimeout = false, int timeoutMs = 0);
+        bool forceKillOnTimeout = false, int timeoutMs = 0
+    );
     bool _ensureBackendReady(QString &errorMessage) const;
     bool _ensureNavigationSessionReady(QString &errorMessage) const;
     bool _applyStateToSession(Backend::Session *session,
@@ -158,9 +162,11 @@ private:
         const std::optional<PendingPickAction> &pickAction,
         QString &errorMessage);
     bool _applyNavigationStateToSession(
-        const GUIRenderSnapshot &snapshot, QString &errorMessage);
+        const GUIRenderSnapshot &snapshot, QString &errorMessage
+    );
     [[nodiscard]] QString _backendForRank(
-        int rank, const QString &currentBackend) const;
+        int rank, const QString &currentBackend
+    ) const;
     [[nodiscard]] int _interactionFrameIntervalMs(int fallbackFPS) const;
     void _applyPreviewDevicePixelRatio(QImage &image) const;
     void _tryResumeDirectPreview();

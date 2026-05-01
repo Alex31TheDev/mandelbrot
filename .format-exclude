@@ -1,4 +1,4 @@
-src/args/argparse.h
+src/args/argparse.hpp
 src/image/stb_image_write.h
 src/qd/qdlib/dd_inline.h
 src/qd/qdlib/dd_real.h

@@ -26,7 +26,8 @@ void AppSettings::setLanguage(const QString &language) {
 }
 
 QString AppSettings::shortcut(
-    const QString &id, const QString &fallback) const {
+    const QString &id, const QString &fallback
+) const {
     return _settings.value(QString("shortcuts/%1").arg(id), fallback)
         .toString();
 }

@@ -22,7 +22,9 @@ namespace PathUtil {
         return std::filesystem::path(path).parent_path();
     }
 
-    std::tuple<std::string_view, std::string_view> splitFilename(std::string_view filePath) {
+    std::tuple<std::string_view, std::string_view> splitFilename(
+        std::string_view filePath
+    ) {
         std::string_view name, ext;
 
         const size_t lastDot = filePath.find_last_of('.'),
@@ -79,7 +81,9 @@ namespace PathUtil {
         return appendDate(filePath, "%Y_%m_%d-%H_%M_%S");
     }
 
-    std::string appendDate(std::string_view filePath, const std::string &format) {
+    std::string appendDate(
+        std::string_view filePath, const std::string &format
+    ) {
         const auto [name, ext] = splitFilename(filePath);
 
         const std::string formatted = DateTimeUtil::formatCurrentLocalTime(format);

@@ -54,7 +54,8 @@ void RenderController::setPreviewDevicePixelRatio(double devicePixelRatio) {
 }
 
 bool RenderController::loadBackend(
-    const QString &backendName, QString &errorMessage) {
+    const QString &backendName, QString &errorMessage
+) {
     errorMessage.clear();
     _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
     _callbackRenderRequestId.store(0, std::memory_order_release);
@@ -133,8 +134,10 @@ void RenderController::shutdown(bool forceKillOnTimeout, int timeoutMs) {
     freezePreview();
 }
 
-void RenderController::requestRender(const GUIRenderSnapshot &snapshot,
-    const std::optional<PendingPickAction> &pickAction) {
+void RenderController::requestRender(
+    const GUIRenderSnapshot &snapshot,
+    const std::optional<PendingPickAction> &pickAction
+) {
     if (!_backend || !_renderSession) return;
 
     if (_previewUsesBackendMemory && !_previewImage.isNull()
@@ -238,8 +241,10 @@ int RenderController::currentIterationCount() const {
     return 0;
 }
 
-bool RenderController::saveImage(const QString &path, bool appendDate,
-    const QString &type, QString &errorMessage) {
+bool RenderController::saveImage(
+    const QString &path, bool appendDate,
+    const QString &type, QString &errorMessage
+) {
     if (!_ensureBackendReady(errorMessage)) return false;
     if (_previewImage.isNull()) {
         errorMessage = tr("No image is available.");
@@ -256,7 +261,8 @@ bool RenderController::saveImage(const QString &path, bool appendDate,
 
 QImage RenderController::renderSinePreview(
     const Backend::SinePaletteConfig &palette, const QSize &widgetSize,
-    double rangeMin, double rangeMax) const {
+    double rangeMin, double rangeMax
+) const {
     if (!_backend || !_previewSession || !widgetSize.isValid()) {
         return {};
     }
@@ -272,13 +278,16 @@ QImage RenderController::renderSinePreview(
 }
 
 QImage RenderController::renderPalettePreview(
-    const Backend::PaletteHexConfig &palette) const {
+    const Backend::PaletteHexConfig &palette
+) const {
     return PaletteStore::makePreviewImage(_previewSession, palette, 256, 20);
 }
 
-bool RenderController::pointAtPixel(const GUIRenderSnapshot &snapshot,
+bool RenderController::pointAtPixel(
+    const GUIRenderSnapshot &snapshot,
     const QPoint &pixel, QString &realText, QString &imagText,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     std::string real;
@@ -295,9 +304,11 @@ bool RenderController::pointAtPixel(const GUIRenderSnapshot &snapshot,
     return true;
 }
 
-bool RenderController::panPointByDelta(const GUIRenderSnapshot &snapshot,
+bool RenderController::panPointByDelta(
+    const GUIRenderSnapshot &snapshot,
     const QPoint &delta, QString &realText, QString &imagText,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     std::string real;
@@ -314,9 +325,11 @@ bool RenderController::panPointByDelta(const GUIRenderSnapshot &snapshot,
     return true;
 }
 
-bool RenderController::zoomViewAtPixel(const GUIRenderSnapshot &snapshot,
+bool RenderController::zoomViewAtPixel(
+    const GUIRenderSnapshot &snapshot,
     const QPoint &pixel, double scaleMultiplier, ViewTextState &view,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     std::string zoom;
@@ -338,8 +351,10 @@ bool RenderController::zoomViewAtPixel(const GUIRenderSnapshot &snapshot,
     return true;
 }
 
-bool RenderController::boxZoomView(const GUIRenderSnapshot &snapshot,
-    const QRect &rect, ViewTextState &view, QString &errorMessage) {
+bool RenderController::boxZoomView(
+    const GUIRenderSnapshot &snapshot,
+    const QRect &rect, ViewTextState &view, QString &errorMessage
+) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     const QRect normalized = rect.normalized();
@@ -363,8 +378,10 @@ bool RenderController::boxZoomView(const GUIRenderSnapshot &snapshot,
     return true;
 }
 
-bool RenderController::previewPannedViewState(const GUIRenderSnapshot &snapshot,
-    const QPoint &delta, ViewTextState &view, QString &errorMessage) {
+bool RenderController::previewPannedViewState(
+    const GUIRenderSnapshot &snapshot,
+    const QPoint &delta, ViewTextState &view, QString &errorMessage
+) {
     view = { .pointReal = snapshot.pointRealText,
         .pointImag = snapshot.pointImagText,
         .zoomText = snapshot.zoomText,
@@ -388,9 +405,11 @@ bool RenderController::previewPannedViewState(const GUIRenderSnapshot &snapshot,
     return true;
 }
 
-bool RenderController::previewScaledViewState(const GUIRenderSnapshot &snapshot,
+bool RenderController::previewScaledViewState(
+    const GUIRenderSnapshot &snapshot,
     const QPoint &pixel, double scaleMultiplier, ViewTextState &view,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     if (NumberUtil::almostEqual(scaleMultiplier, 1.0)) {
         view = { .pointReal = snapshot.pointRealText,
             .pointImag = snapshot.pointImagText,
@@ -407,7 +426,8 @@ bool RenderController::previewScaledViewState(const GUIRenderSnapshot &snapshot,
 
 bool RenderController::previewBoxZoomViewState(
     const GUIRenderSnapshot &snapshot, const QRect &rect, ViewTextState &view,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     const QRect normalized = rect.normalized();
     if (normalized.width() < 2 || normalized.height() < 2) {
         view = { .pointReal = snapshot.pointRealText,
@@ -423,9 +443,11 @@ bool RenderController::previewBoxZoomViewState(
     return boxZoomView(snapshot, normalized, view, errorMessage);
 }
 
-bool RenderController::mapViewPixelToViewPixel(const ViewTextState &sourceView,
+bool RenderController::mapViewPixelToViewPixel(
+    const ViewTextState &sourceView,
     const ViewTextState &targetView, const QPoint &pixel, QPointF &mappedPixel,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     if (!_ensureNavigationSessionReady(errorMessage)) return false;
 
     Backend::ViewportState source{ .outputWidth = sourceView.outputSize.width(),
@@ -861,7 +883,8 @@ void RenderController::_startRenderWorker() {
 }
 
 void RenderController::_finishRenderThread(
-    bool forceKillOnTimeout, int timeoutMs) {
+    bool forceKillOnTimeout, int timeoutMs
+) {
     _latestRenderRequestId.fetch_add(1, std::memory_order_acq_rel);
     _lastPresentedRenderId.store(0, std::memory_order_release);
     _callbackRenderRequestId.store(0, std::memory_order_release);
@@ -951,16 +974,20 @@ bool RenderController::_ensureBackendReady(QString &errorMessage) const {
     return false;
 }
 
-bool RenderController::_ensureNavigationSessionReady(QString &errorMessage) const {
+bool RenderController::_ensureNavigationSessionReady(
+    QString &errorMessage
+) const {
     if (_navigationSession) return true;
     errorMessage = tr("Navigation session unavailable.");
     return false;
 }
 
-bool RenderController::_applyStateToSession(Backend::Session *session,
+bool RenderController::_applyStateToSession(
+    Backend::Session *session,
     const GUIRenderSnapshot &snapshot,
     const std::optional<PendingPickAction> &pickAction,
-    QString &errorMessage) {
+    QString &errorMessage
+) {
     if (!session) {
         errorMessage = tr("Backend session unavailable.");
         return false;
@@ -1036,13 +1063,15 @@ bool RenderController::_applyStateToSession(Backend::Session *session,
 }
 
 bool RenderController::_applyNavigationStateToSession(
-    const GUIRenderSnapshot &snapshot, QString &errorMessage) {
+    const GUIRenderSnapshot &snapshot, QString &errorMessage
+) {
     if (!_ensureNavigationSessionReady(errorMessage)) return false;
     return _applyStateToSession(_navigationSession, snapshot, std::nullopt, errorMessage);
 }
 
 QString RenderController::_backendForRank(
-    int rank, const QString &currentBackend) const {
+    int rank, const QString &currentBackend
+) const {
     if (_backendNames.isEmpty()) return QString();
 
     const int targetPrecision = std::clamp(rank, 0, 3);

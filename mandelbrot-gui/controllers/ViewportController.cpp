@@ -59,7 +59,8 @@ void ViewportController::applyHomeView() {
 }
 
 void ViewportController::scaleAtPixel(
-    const QPoint &pixel, double scaleMultiplier) {
+    const QPoint &pixel, double scaleMultiplier
+) {
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     ViewTextState nextView;
@@ -220,7 +221,9 @@ void ViewportController::quickSaveImage() {
     emit quickSaveRequested();
 }
 
-void ViewportController::setDisplayedNavModeOverride(std::optional<NavMode> mode) {
+void ViewportController::setDisplayedNavModeOverride(
+    std::optional<NavMode> mode
+) {
     if (_displayedNavModeOverride == mode) return;
     _displayedNavModeOverride = mode;
     emit sessionStateChanged();

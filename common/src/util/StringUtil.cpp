@@ -55,8 +55,10 @@ namespace StringUtil {
         return value.substr(begin, end - begin);
     }
 
-    std::string appendSuffix(std::string_view value,
-        std::string_view suffix) {
+    std::string appendSuffix(
+        std::string_view value,
+        std::string_view suffix
+    ) {
         if (suffix.empty()) return std::string(value);
         if (endsWith(value, suffix)) return std::string(value);
 
@@ -67,8 +69,10 @@ namespace StringUtil {
         return out;
     }
 
-    std::string stripSuffix(std::string_view value,
-        std::string_view suffix) {
+    std::string stripSuffix(
+        std::string_view value,
+        std::string_view suffix
+    ) {
         if (suffix.empty()) return std::string(value);
         if (endsWith(value, suffix)) {
             return std::string(value.substr(0, value.size() - suffix.size()));

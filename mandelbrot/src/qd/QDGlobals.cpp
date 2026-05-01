@@ -48,8 +48,10 @@ namespace QDGlobals {
         imagScale_qd = realScale_qd / aspect_qd;
     }
 
-    void initQDValues(const char *pr_str, const char *pi_str,
-        const char *zoomStr, const char *sr_str, const char *si_str) {
+    void initQDValues(
+        const char *pr_str, const char *pi_str,
+        const char *zoomStr, const char *sr_str, const char *si_str
+    ) {
         if (zoomStr && *zoomStr) qdZoomString = zoomStr;
         initImageValues();
 

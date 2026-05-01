@@ -134,8 +134,10 @@ constexpr int MIN_THREADING_HEIGHT = 50;
 constexpr int MAX_TASK_COUNT = 4096;
 
 static std::unique_ptr<ProgressTracker>
-createProgressTracker(bool trackProgress,
-    const Backend::Callbacks *callbacks = nullptr) {
+createProgressTracker(
+    bool trackProgress,
+    const Backend::Callbacks *callbacks = nullptr
+) {
     if (trackProgress) {
         const ProgressOptions options{
             .callbacks = callbacks
@@ -170,8 +172,10 @@ static void renderStrip(
     }
 }
 
-static void emitIterations(const Backend::Callbacks *callbacks,
-    uint64_t iter, ProgressTracker::SU time) {
+static void emitIterations(
+    const Backend::Callbacks *callbacks,
+    uint64_t iter, ProgressTracker::SU time
+) {
     if (!callbacks || !callbacks->onInfo) return;
 
     const double gigaIter = static_cast<double>(iter) / 1.0e9,

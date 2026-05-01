@@ -20,7 +20,8 @@ namespace GUI::SineStore {
 
     bool sameConfig(
         const SinePaletteConfig &a,
-        const SinePaletteConfig &b) {
+        const SinePaletteConfig &b
+    ) {
         return NumberUtil::almostEqual(a.freqR, b.freqR)
             && NumberUtil::almostEqual(a.freqG, b.freqG)
             && NumberUtil::almostEqual(a.freqB, b.freqB)
@@ -76,8 +77,10 @@ namespace GUI::SineStore {
         return false;
     }
 
-    bool loadFromPath(const std::filesystem::path &path,
-        SinePaletteConfig &palette, QString &errorMessage) {
+    bool loadFromPath(
+        const std::filesystem::path &path,
+        SinePaletteConfig &palette, QString &errorMessage
+    ) {
         SineParser parser("-");
         std::string err;
         if (parser.parse({ path.string() }, palette, err)) {
@@ -89,8 +92,10 @@ namespace GUI::SineStore {
         return false;
     }
 
-    bool saveToPath(const std::filesystem::path &path,
-        const SinePaletteConfig &palette, QString &errorMessage) {
+    bool saveToPath(
+        const std::filesystem::path &path,
+        const SinePaletteConfig &palette, QString &errorMessage
+    ) {
         SineWriter writer(palette);
         std::string err;
         if (writer.write(path.string(), err)) {

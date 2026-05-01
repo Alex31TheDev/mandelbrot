@@ -1102,8 +1102,12 @@
     <ClCompile Include="src\qd\QDCoords.cpp" />
     <ClCompile Include="src\qd\QDGlobals.cpp" />
     <ClCompile Include="src\qd\QDRenderer.cpp" />
-    <ClCompile Include="src\qd\qdlib\dd_routines.cpp" />
-    <ClCompile Include="src\qd\qdlib\qd_routines.cpp" />
+    <ClCompile Include="src\qd\qdlib\dd_routines.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='Debug - QD|x64' and '$(Configuration)|$(Platform)'!='Release - QD|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\qd\qdlib\qd_routines.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='Debug - QD|x64' and '$(Configuration)|$(Platform)'!='Release - QD|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\render\RenderImage.cpp" />
     <ClCompile Include="src\render\RenderIterationStats.cpp" />
     <ClCompile Include="src\render\ProgressTracker.cpp" />

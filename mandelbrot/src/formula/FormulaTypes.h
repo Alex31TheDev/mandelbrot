@@ -227,8 +227,10 @@ static FORCE_INLINE void wholeFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
     mpfr_add(s.zi, s.t[3], ci, MPFRTypes::ROUNDING);
 }
 
-static FORCE_INLINE void fractionalFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
-    mpfr_srcptr pzr, mpfr_srcptr pzi, MPFRScratch &s) {
+static FORCE_INLINE void fractionalFormulaCore_mp(
+    mpfr_srcptr cr, mpfr_srcptr ci,
+    mpfr_srcptr pzr, mpfr_srcptr pzi, MPFRScratch &s
+) {
     mpfr_pow(s.t[2], s.mag, s.halfN, MPFRTypes::ROUNDING);
     mpfr_atan2(s.t[3], pzi, pzr, MPFRTypes::ROUNDING);
     mpfr_mul(s.t[3], s.t[3], s.nVal, MPFRTypes::ROUNDING);

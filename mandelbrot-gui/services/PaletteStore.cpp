@@ -43,7 +43,8 @@ namespace GUI::PaletteStore {
     }
 
     bool sameConfig(
-        const PaletteHexConfig &a, const PaletteHexConfig &b) {
+        const PaletteHexConfig &a, const PaletteHexConfig &b
+    ) {
         if (!NumberUtil::almostEqual(a.totalLength, b.totalLength)
             || !NumberUtil::almostEqual(a.offset, b.offset)
             || a.blendEnds != b.blendEnds
@@ -150,7 +151,8 @@ namespace GUI::PaletteStore {
     }
 
     QString uniqueName(
-        const QString &baseName, const QStringList &existingNames) {
+        const QString &baseName, const QStringList &existingNames
+    ) {
         const QString sanitized = sanitizeName(baseName);
         if (!existingNames.contains(sanitized, Qt::CaseInsensitive)) {
             return sanitized;
@@ -164,8 +166,10 @@ namespace GUI::PaletteStore {
         }
     }
 
-    bool loadFromPath(const std::filesystem::path &path,
-        PaletteHexConfig &palette, QString &errorMessage) {
+    bool loadFromPath(
+        const std::filesystem::path &path,
+        PaletteHexConfig &palette, QString &errorMessage
+    ) {
         PaletteParser parser("-");
         std::string err;
         if (parser.parse({ path.string() }, palette, err)) {
@@ -177,8 +181,10 @@ namespace GUI::PaletteStore {
         return false;
     }
 
-    bool saveToPath(const std::filesystem::path &path,
-        const PaletteHexConfig &palette, QString &errorMessage) {
+    bool saveToPath(
+        const std::filesystem::path &path,
+        const PaletteHexConfig &palette, QString &errorMessage
+    ) {
         PaletteWriter writer(palette);
         std::string err;
         if (writer.write(path.string(), err)) {
@@ -190,8 +196,10 @@ namespace GUI::PaletteStore {
         return false;
     }
 
-    bool loadNamed(const QString &name,
-        PaletteHexConfig &palette, QString &errorMessage) {
+    bool loadNamed(
+        const QString &name,
+        PaletteHexConfig &palette, QString &errorMessage
+    ) {
         const QString normalizedName = normalizeName(name);
         if (normalizedName.isEmpty()) {
             errorMessage = QCoreApplication::translate(
@@ -210,10 +218,12 @@ namespace GUI::PaletteStore {
         return false;
     }
 
-    bool importFromPath(const std::filesystem::path &sourcePath,
+    bool importFromPath(
+        const std::filesystem::path &sourcePath,
         float totalLength, float offset, QString &importedName,
         PaletteHexConfig &palette,
-        std::filesystem::path &destinationPath, QString &errorMessage) {
+        std::filesystem::path &destinationPath, QString &errorMessage
+    ) {
         PaletteHexConfig loaded;
         if (!loadFromPath(sourcePath, loaded, errorMessage)) return false;
 
@@ -233,9 +243,11 @@ namespace GUI::PaletteStore {
         return true;
     }
 
-    bool saveNamed(const QString &name,
+    bool saveNamed(
+        const QString &name,
         const PaletteHexConfig &palette,
-        std::filesystem::path &destinationPath, QString &errorMessage) {
+        std::filesystem::path &destinationPath, QString &errorMessage
+    ) {
         const QString normalizedName = normalizeName(name);
         if (!isValidName(normalizedName)) {
             errorMessage = QCoreApplication::translate("PaletteStore",
@@ -249,9 +261,11 @@ namespace GUI::PaletteStore {
         return saveToPath(destinationPath, palette, errorMessage);
     }
 
-    bool saveFromDialogPath(const QString &savePath,
+    bool saveFromDialogPath(
+        const QString &savePath,
         const PaletteHexConfig &palette, QString &savedName,
-        std::filesystem::path &destinationPath, QString &errorMessage) {
+        std::filesystem::path &destinationPath, QString &errorMessage
+    ) {
         const QString savePathWithExtension = QString::fromStdString(
             PathUtil::appendExtension(savePath.toStdString(), "txt"));
         savedName = normalizeName(
@@ -265,8 +279,10 @@ namespace GUI::PaletteStore {
         return saveNamed(savedName, palette, destinationPath, errorMessage);
     }
 
-    QImage makePreviewImage(Session *session,
-        const PaletteHexConfig &palette, int width, int height) {
+    QImage makePreviewImage(
+        Session *session,
+        const PaletteHexConfig &palette, int width, int height
+    ) {
         if (!session || width <= 0 || height <= 0) return {};
         if (const Status status = session->setColorPalette(palette);
             !status) {
@@ -277,8 +293,7 @@ namespace GUI::PaletteStore {
             session->renderPalettePreview(width, height));
     }
 
-    std::vector<PaletteStop> configToStops(
-        const PaletteHexConfig &palette) {
+    std::vector<PaletteStop> configToStops(const PaletteHexConfig &palette) {
         std::vector<PaletteStop> stops;
         if (palette.entries.empty()) return stops;
 
@@ -321,8 +336,9 @@ namespace GUI::PaletteStore {
     }
 
     PaletteHexConfig stopsToConfig(
-        const std::vector<PaletteStop> &stops, float totalLength, float offset,
-        bool blendEnds) {
+        const std::vector<PaletteStop> &stops,
+        float totalLength, float offset, bool blendEnds
+    ) {
         const double loopEndpointEpsilon = 1e-4;
         PaletteHexConfig palette;
         palette.totalLength = totalLength;

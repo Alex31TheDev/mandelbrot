@@ -13,8 +13,8 @@ namespace GUI::SineStore {
     inline constexpr auto defaultName = "default";
 
     [[nodiscard]] SinePaletteConfig makeNewConfig();
-    [[nodiscard]] bool sameConfig(
-        const SinePaletteConfig &a, const SinePaletteConfig &b);
+    [[nodiscard]] bool sameConfig(const SinePaletteConfig &a,
+        const SinePaletteConfig &b);
 
     [[nodiscard]] std::filesystem::path directoryPath();
     [[nodiscard]] std::filesystem::path filePath(const QString &name);

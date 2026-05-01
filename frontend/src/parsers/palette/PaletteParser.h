@@ -12,8 +12,7 @@ public:
     PaletteParser(const std::string &skipOption);
 
     bool parse(const std::vector<std::string> &args,
-        Backend::PaletteHexConfig &out, std::string &err
-    );
+        Backend::PaletteHexConfig &out, std::string &err);
 
 private:
     std::string _skipOption;

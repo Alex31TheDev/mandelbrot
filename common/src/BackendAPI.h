@@ -162,8 +162,7 @@ namespace Backend {
             std::string &zoom, std::string &real, std::string &imag) = 0;
         virtual Status getBoxZoomPoint(int left, int top, int right, int bottom,
             std::string &zoom, std::string &real, std::string &imag) = 0;
-        virtual Status mapViewPixelToViewPixel(
-            const ViewportState &sourceView,
+        virtual Status mapViewPixelToViewPixel(const ViewportState &sourceView,
             const ViewportState &targetView,
             int pixelX, int pixelY,
             double &mappedX, double &mappedY) = 0;

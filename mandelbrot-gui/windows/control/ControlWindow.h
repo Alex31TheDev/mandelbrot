@@ -32,7 +32,8 @@ public:
     explicit ControlWindow(QWidget *parent = nullptr);
     ~ControlWindow() override;
 
-    void setBackendNames(const QStringList &names, const QString &selectedBackend);
+    void setBackendNames(const QStringList &names,
+        const QString &selectedBackend);
     void setSineNames(
         const QStringList &names, const QString &currentName, bool dirty
     );
@@ -137,8 +138,6 @@ private:
     void _updateAspectLinkedSizes(bool widthChanged);
     void _updateStatusRightEdgeAlignment();
     void _updateStatusLabels();
-    void _refreshNamedCombo(
-        QComboBox *combo, const QStringList &names,
-        const QString &currentName, bool dirty
-    ) const;
+    void _refreshNamedCombo(QComboBox *combo, const QStringList &names,
+        const QString &currentName, bool dirty) const;
 };

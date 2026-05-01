@@ -259,7 +259,8 @@ void GUIAppController::_requestRenderFromModel() {
 }
 
 void GUIAppController::_requestRender(
-    const std::optional<PendingPickAction> &pickAction) {
+    const std::optional<PendingPickAction> &pickAction
+) {
     _sessionState.mutableState().zoom = Util::clampGUIZoom(
         _sessionState.state().zoom);
     _statusText.clear();
@@ -371,7 +372,8 @@ bool GUIAppController::_loadSelectedBackend() {
 }
 
 std::optional<PendingPickAction> GUIAppController::_pendingPickAction(
-    bool hasPickAction, int pickTarget, const QPoint &pickPixel) const {
+    bool hasPickAction, int pickTarget, const QPoint &pickPixel
+) const {
     if (!hasPickAction) {
         return std::nullopt;
     }
@@ -822,7 +824,8 @@ void GUIAppController::_createNewColorPalette(bool requestRenderOnSuccess) {
 }
 
 bool GUIAppController::_loadSineByName(
-    const QString &name, bool requestRenderOnSuccess, QString *errorMessage) {
+    const QString &name, bool requestRenderOnSuccess, QString *errorMessage
+) {
     if (errorMessage) errorMessage->clear();
     const QString normalizedName = PaletteStore::normalizeName(name);
     if (normalizedName.isEmpty()) return false;
@@ -852,7 +855,8 @@ bool GUIAppController::_loadSineByName(
 }
 
 bool GUIAppController::_loadPaletteByName(
-    const QString &name, bool requestRenderOnSuccess, QString *errorMessage) {
+    const QString &name, bool requestRenderOnSuccess, QString *errorMessage
+) {
     if (errorMessage) errorMessage->clear();
     const QString normalizedName = PaletteStore::normalizeName(name);
     if (normalizedName.isEmpty()) return false;

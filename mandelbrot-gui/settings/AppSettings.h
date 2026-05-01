@@ -14,7 +14,8 @@ public:
     void setLanguage(const QString &language);
 
     [[nodiscard]] QString shortcut(
-        const QString &id, const QString &fallback) const;
+        const QString &id, const QString &fallback
+    ) const;
     void setShortcut(const QString &id, const QString &sequence);
 
     [[nodiscard]] QByteArray controlWindowGeometry() const;

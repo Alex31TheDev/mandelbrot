@@ -53,20 +53,26 @@ qd_number_t getOutputPixelY_qd(qd_param_t imag) {
     return ((imag + point_i_qd) / imagScale_qd) * outputHeight_qd + halfOutputHeight;
 }
 
-void getOutputCenterPoint_qd(qd_number_t &realOut, qd_number_t &imagOut,
-    int x, int y) {
+void getOutputCenterPoint_qd(
+    qd_number_t &realOut, qd_number_t &imagOut,
+    int x, int y
+) {
     realOut = getOutputCenterReal_qd(x);
     imagOut = getOutputCenterImag_qd(y);
 }
 
-void getOutputPixelPoint_qd(qd_number_t &xOut, qd_number_t &yOut,
-    qd_param_t real, qd_param_t imag) {
+void getOutputPixelPoint_qd(
+    qd_number_t &xOut, qd_number_t &yOut,
+    qd_param_t real, qd_param_t imag
+) {
     xOut = getOutputPixelX_qd(real);
     yOut = getOutputPixelY_qd(imag);
 }
 
-void getPanCenterPoint_qd(qd_number_t &realOut,
-    qd_number_t &imagOut, int deltaX, int deltaY) {
+void getPanCenterPoint_qd(
+    qd_number_t &realOut,
+    qd_number_t &imagOut, int deltaX, int deltaY
+) {
     using namespace RenderGlobals;
 
     const int centerX = outputWidth / 2 - deltaX;
@@ -78,8 +84,10 @@ void getPanCenterPoint_qd(qd_number_t &realOut,
     imagOut = -imagOut;
 }
 
-void getBoxCenterPoint_qd(qd_number_t &realOut,
-    qd_number_t &imagOut, int left, int top, int right, int bottom) {
+void getBoxCenterPoint_qd(
+    qd_number_t &realOut,
+    qd_number_t &imagOut, int left, int top, int right, int bottom
+) {
     using namespace RenderGlobals;
 
     const int clampedLeft = clampCoordToImage_qd(std::min(left, right), outputWidth);

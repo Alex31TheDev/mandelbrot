@@ -42,7 +42,8 @@ QString AdaptiveDoubleSpinBox::textFromValue(double value) const {
 }
 
 QValidator::State AdaptiveDoubleSpinBox::validate(
-    QString &text, int &pos) const {
+    QString &text, int &pos
+) const {
     return QDoubleSpinBox::validate(text, pos);
 }
 

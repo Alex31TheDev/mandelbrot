@@ -101,8 +101,10 @@ _DERIVATIVE_OPS_FUNC({});
 
 #ifdef USE_MPFR
 
-static FORCE_INLINE void normalFormula_perpendicular_mp(mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s) {
+static FORCE_INLINE void normalFormula_perpendicular_mp(
+    mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s
+) {
     mpfr_sub(s.t[0], s.zr2, s.zi2, MPFRTypes::ROUNDING);
     mpfr_add(s.t[0], s.t[0], cr, MPFRTypes::ROUNDING);
 
@@ -115,15 +117,19 @@ static FORCE_INLINE void normalFormula_perpendicular_mp(mpfr_srcptr cr, mpfr_src
     mpfr_set(s.zi, s.t[1], MPFRTypes::ROUNDING);
 }
 
-static FORCE_INLINE void wholeFormula_perpendicular_mp(mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s) {
+static FORCE_INLINE void wholeFormula_perpendicular_mp(
+    mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s
+) {
     mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);
     mpfr_neg(s.t[1], s.zi, MPFRTypes::ROUNDING);
     wholeFormulaCore_mp(cr, ci, s.t[0], s.t[1], s);
 }
 
-static FORCE_INLINE void fractionalFormula_perpendicular_mp(mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s) {
+static FORCE_INLINE void fractionalFormula_perpendicular_mp(
+    mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s
+) {
     mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);
     mpfr_neg(s.t[1], s.zi, MPFRTypes::ROUNDING);
     fractionalFormulaCore_mp(cr, ci, s.t[0], s.t[1], s);

@@ -8,7 +8,8 @@ class AdaptiveDoubleSpinBox final : public QDoubleSpinBox {
 public:
     explicit AdaptiveDoubleSpinBox(QWidget *parent = nullptr);
     explicit AdaptiveDoubleSpinBox(
-        int defaultDisplayDecimals, QWidget *parent = nullptr);
+        int defaultDisplayDecimals, QWidget *parent = nullptr
+    );
 
     void setDefaultDisplayDecimals(int decimals);
     void resetDisplayDecimals();

@@ -31,10 +31,8 @@ FORCE_INLINE uint8_t toColorByte(scalar_half_t value) {
 
 #define lerp(a, b, t) ((a) + ((b) - (a)) * (t))
 
-FORCE_INLINE ScalarColor colorLerp(
-    const ScalarColor &a, const ScalarColor &b,
-    scalar_half_t t
-) {
+FORCE_INLINE ScalarColor colorLerp(const ScalarColor &a, const ScalarColor &b,
+    scalar_half_t t) {
     return {
         lerp(a.R, b.R, t),
         lerp(a.G, b.G, t),

@@ -39,20 +39,26 @@ scalar_full_t getOutputPixelY(scalar_full_t imag) {
     return ((imag + point_i) / imagScale) * CAST_F(outputHeight) + halfOutputHeight;
 }
 
-void getOutputCenterPoint(int x, int y,
-    scalar_full_t &real, scalar_full_t &imag) {
+void getOutputCenterPoint(
+    int x, int y,
+    scalar_full_t &real, scalar_full_t &imag
+) {
     real = getOutputCenterReal(x);
     imag = getOutputCenterImag(y);
 }
 
-void getOutputPixelPoint(scalar_full_t real, scalar_full_t imag,
-    scalar_full_t &x, scalar_full_t &y) {
+void getOutputPixelPoint(
+    scalar_full_t real, scalar_full_t imag,
+    scalar_full_t &x, scalar_full_t &y
+) {
     x = getOutputPixelX(real);
     y = getOutputPixelY(imag);
 }
 
-void getPanCenterPoint(int deltaX, int deltaY,
-    scalar_full_t &real, scalar_full_t &imag) {
+void getPanCenterPoint(
+    int deltaX, int deltaY,
+    scalar_full_t &real, scalar_full_t &imag
+) {
     using namespace RenderGlobals;
 
     const int centerX = outputWidth / 2 - deltaX,
@@ -65,8 +71,10 @@ void getPanCenterPoint(int deltaX, int deltaY,
     imag = -imag;
 }
 
-void getBoxCenterPoint(int left, int top, int right, int bottom,
-    scalar_full_t &real, scalar_full_t &imag) {
+void getBoxCenterPoint(
+    int left, int top, int right, int bottom,
+    scalar_full_t &real, scalar_full_t &imag
+) {
     using namespace RenderGlobals;
 
     const int clampedLeft = clampCoordToImage(std::min(left, right), outputWidth);

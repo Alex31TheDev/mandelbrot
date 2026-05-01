@@ -135,8 +135,10 @@ static ImageView makeImageView(const Image *image) {
     };
 }
 
-static bool scaleZoomText(const std::string &sourceZoom,
-    double scaleMultiplier, std::string &zoomText) {
+static bool scaleZoomText(
+    const std::string &sourceZoom,
+    double scaleMultiplier, std::string &zoomText
+) {
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) {
         return false;
     }
@@ -213,24 +215,32 @@ public:
         if (_image) _image->setCallbacks(&_callbacks);
     }
 
-    Status getPointAtPixel(int pixelX, int pixelY,
-        std::string &real, std::string &imag) override {
+    Status getPointAtPixel(
+        int pixelX, int pixelY,
+        std::string &real, std::string &imag
+    ) override {
         return _pointFromPixelString(pixelX, pixelY, real, imag);
     }
 
-    Status getPanPointByDelta(int deltaX, int deltaY,
-        std::string &real, std::string &imag) override {
+    Status getPanPointByDelta(
+        int deltaX, int deltaY,
+        std::string &real, std::string &imag
+    ) override {
         return _panPointString(deltaX, deltaY, real, imag);
     }
 
-    Status getZoomPointByScale(int pixelX, int pixelY,
+    Status getZoomPointByScale(
+        int pixelX, int pixelY,
         double scaleMultiplier,
-        std::string &zoom, std::string &real, std::string &imag) override {
+        std::string &zoom, std::string &real, std::string &imag
+    ) override {
         return _zoomPointString(pixelX, pixelY, scaleMultiplier, zoom, real, imag);
     }
 
-    Status getBoxZoomPoint(int left, int top, int right, int bottom,
-        std::string &zoom, std::string &real, std::string &imag) override {
+    Status getBoxZoomPoint(
+        int left, int top, int right, int bottom,
+        std::string &zoom, std::string &real, std::string &imag
+    ) override {
         return _boxZoomPointString(left, top, right, bottom, zoom, real, imag);
     }
 
@@ -238,7 +248,8 @@ public:
         const ViewportState &sourceView,
         const ViewportState &targetView,
         int pixelX, int pixelY,
-        double &mappedX, double &mappedY) override {
+        double &mappedX, double &mappedY
+    ) override {
         return _mapViewPixelToViewPixel(sourceView, targetView,
             pixelX, pixelY, mappedX, mappedY);
     }
@@ -274,8 +285,10 @@ public:
         return Status::success();
     }
 
-    Status setPoint(const std::string &real,
-        const std::string &imag) override {
+    Status setPoint(
+        const std::string &real,
+        const std::string &imag
+    ) override {
         if (!isValidFullInput(real) || !isValidFullInput(imag)) {
             return makeFailure("Point coordinates must be valid numbers.");
         }
@@ -346,8 +359,10 @@ public:
 #endif
     }
 
-    Status setSeed(const std::string &real,
-        const std::string &imag) override {
+    Status setSeed(
+        const std::string &real,
+        const std::string &imag
+    ) override {
         if (!isValidFullInput(real) || !isValidFullInput(imag)) {
             return makeFailure("Seed coordinates must be valid numbers.");
         }
@@ -458,8 +473,10 @@ public:
         return Status::success();
     }
 
-    Status setColorFormula(float freqR, float freqG, float freqB,
-        float freqMult) override {
+    Status setColorFormula(
+        float freqR, float freqG, float freqB,
+        float freqMult
+    ) override {
         return setSinePalette({
             .freqR = freqR,
             .freqG = freqG,
@@ -468,9 +485,7 @@ public:
             });
     }
 
-    Status setSinePalette(
-        const SinePaletteConfig &paletteConfig
-    ) override {
+    Status setSinePalette(const SinePaletteConfig &paletteConfig) override {
         if (!setSinePaletteGlobals(
             paletteConfig.freqR,
             paletteConfig.freqG,
@@ -483,16 +498,12 @@ public:
         return Status::success();
     }
 
-    Status setColorPalette(
-        const PaletteRGBConfig &paletteConfig
-    ) override {
+    Status setColorPalette(const PaletteRGBConfig &paletteConfig) override {
         return _setPaletteImpl(paletteConfig,
             "Palette entries must use valid RGB values and lengths >= 0.");
     }
 
-    Status setColorPalette(
-        const PaletteHexConfig &paletteConfig
-    ) override {
+    Status setColorPalette(const PaletteHexConfig &paletteConfig) override {
         return _setPaletteImpl(paletteConfig,
             "Palette entries must use valid #RRGGBB colors and lengths >= 0.");
     }
@@ -547,8 +558,10 @@ public:
         return setLight(static_cast<float>(real), static_cast<float>(imag));
     }
 
-    ImageView renderPalettePreview(int previewWidth,
-        int previewHeight) override {
+    ImageView renderPalettePreview(
+        int previewWidth,
+        int previewHeight
+    ) override {
         if (previewWidth <= 0 || previewHeight <= 0) return {};
 
         const bool needsNewPreview = !_palettePreviewImage ||
@@ -593,8 +606,10 @@ public:
         return makeImageView(_palettePreviewImage.get());
     }
 
-    ImageView renderSinePreview(int previewWidth,
-        int previewHeight, float rangeMin, float rangeMax) override {
+    ImageView renderSinePreview(
+        int previewWidth,
+        int previewHeight, float rangeMin, float rangeMax
+    ) override {
         if (previewWidth <= 0 || previewHeight <= 0 || rangeMax <= rangeMin) {
             return {};
         }
@@ -681,8 +696,10 @@ public:
         return makeImageView(_image.get());
     }
 
-    Status saveImage(const std::string &path, bool appendDate,
-        const std::string &type) override {
+    Status saveImage(
+        const std::string &path, bool appendDate,
+        const std::string &type
+    ) override {
         if (!_image) {
             return makeFailure("No rendered image is available.");
         }
@@ -777,8 +794,10 @@ private:
         return Status::success();
     }
 
-    Status _pointFromPixel(int pixelX, int pixelY,
-        scalar_full_t &real, scalar_full_t &imag) const {
+    Status _pointFromPixel(
+        int pixelX, int pixelY,
+        scalar_full_t &real, scalar_full_t &imag
+    ) const {
         if (outputWidth <= 0 || outputHeight <= 0) {
             return makeFailure("Image size must be set before using pixel coordinates.");
         }
@@ -787,8 +806,10 @@ private:
         return Status::success();
     }
 
-    Status _panPoint(scalar_full_t deltaX, scalar_full_t deltaY,
-        scalar_full_t &real, scalar_full_t &imag) const {
+    Status _panPoint(
+        scalar_full_t deltaX, scalar_full_t deltaY,
+        scalar_full_t &real, scalar_full_t &imag
+    ) const {
         if (outputWidth <= 0 || outputHeight <= 0) {
             return makeFailure("Image size must be set before using pixel coordinates.");
         }
@@ -797,8 +818,10 @@ private:
         return Status::success();
     }
 
-    Status _pointFromPixelString(int pixelX, int pixelY,
-        std::string &real, std::string &imag) const {
+    Status _pointFromPixelString(
+        int pixelX, int pixelY,
+        std::string &real, std::string &imag
+    ) const {
 #if defined(USE_MPFR)
         if (outputWidth <= 0 || outputHeight <= 0) {
             return makeFailure("Image size must be set before using pixel coordinates.");
@@ -846,8 +869,10 @@ private:
 #endif
     }
 
-    Status _panPointString(int deltaX, int deltaY,
-        std::string &real, std::string &imag) const {
+    Status _panPointString(
+        int deltaX, int deltaY,
+        std::string &real, std::string &imag
+    ) const {
 #if defined(USE_MPFR)
         if (outputWidth <= 0 || outputHeight <= 0) {
             return makeFailure("Image size must be set before using pixel coordinates.");
@@ -895,9 +920,11 @@ private:
 #endif
     }
 
-    Status _zoomPointForTargetZoom(int pixelX, int pixelY,
+    Status _zoomPointForTargetZoom(
+        int pixelX, int pixelY,
         const std::string &targetZoom,
-        std::string &real, std::string &imag) {
+        std::string &real, std::string &imag
+    ) {
         if (!isZoomAboveMinimum(targetZoom)) {
             return makeFailure("Scale must be > -3.25.");
         }
@@ -1036,9 +1063,11 @@ private:
 #endif
     }
 
-    Status _zoomPointString(int pixelX, int pixelY,
+    Status _zoomPointString(
+        int pixelX, int pixelY,
         double scaleMultiplier,
-        std::string &zoom, std::string &real, std::string &imag) {
+        std::string &zoom, std::string &real, std::string &imag
+    ) {
         if (!scaleZoomText(_zoomValue, scaleMultiplier, zoom)) {
             return makeFailure("Scale multiplier must be > 0.");
         }
@@ -1046,8 +1075,10 @@ private:
         return _zoomPointForTargetZoom(pixelX, pixelY, zoom, real, imag);
     }
 
-    Status _boxZoomPointString(int left, int top, int right, int bottom,
-        std::string &zoom, std::string &real, std::string &imag) {
+    Status _boxZoomPointString(
+        int left, int top, int right, int bottom,
+        std::string &zoom, std::string &real, std::string &imag
+    ) {
         if (outputWidth <= 0 || outputHeight <= 0) {
             return makeFailure("Image size must be set before using pixel coordinates.");
         }
@@ -1174,7 +1205,8 @@ private:
         const std::string &real,
         const std::string &imag,
         double &pixelX,
-        double &pixelY) const {
+        double &pixelY
+    ) const {
 #if defined(USE_MPFR)
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
@@ -1233,7 +1265,8 @@ private:
         const ViewportState &sourceView,
         const ViewportState &targetView,
         int pixelX, int pixelY,
-        double &mappedX, double &mappedY) {
+        double &mappedX, double &mappedY
+    ) {
         const SavedNavigationState saved = _captureNavigationState();
 
         const auto restore = [&]() {

@@ -7,16 +7,14 @@ class VectorSinePalette;
 
 class ScalarSinePalette {
 public:
-    explicit ScalarSinePalette(
-        scalar_half_t freqR,
+    explicit ScalarSinePalette(scalar_half_t freqR,
         scalar_half_t freqG,
         scalar_half_t freqB,
         scalar_half_t freqMult,
         scalar_half_t phaseR,
         scalar_half_t phaseG,
         scalar_half_t phaseB,
-        scalar_half_t cosPhase
-    );
+        scalar_half_t cosPhase);
 
     FORCE_INLINE scalar_half_t getFreqR() const { return _freq_r; }
     FORCE_INLINE scalar_half_t getFreqG() const { return _freq_g; }

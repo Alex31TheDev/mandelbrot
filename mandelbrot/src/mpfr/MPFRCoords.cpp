@@ -74,20 +74,26 @@ void getOutputPixelY_mp(mpfr_t out, mpfr_srcptr imag) {
     mpfr_clears(heightMp, halfOutputHeight, static_cast<mpfr_ptr>(nullptr));
 }
 
-void getOutputCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
-    int x, int y) {
+void getOutputCenterPoint_mp(
+    mpfr_t realOut, mpfr_t imagOut,
+    int x, int y
+) {
     getOutputCenterReal_mp(realOut, x);
     getOutputCenterImag_mp(imagOut, y);
 }
 
-void getOutputPixelPoint_mp(mpfr_t xOut, mpfr_t yOut,
-    mpfr_srcptr real, mpfr_srcptr imag) {
+void getOutputPixelPoint_mp(
+    mpfr_t xOut, mpfr_t yOut,
+    mpfr_srcptr real, mpfr_srcptr imag
+) {
     getOutputPixelX_mp(xOut, real);
     getOutputPixelY_mp(yOut, imag);
 }
 
-void getPanCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
-    int deltaX, int deltaY) {
+void getPanCenterPoint_mp(
+    mpfr_t realOut, mpfr_t imagOut,
+    int deltaX, int deltaY
+) {
     using namespace RenderGlobals;
 
     const int centerX = outputWidth / 2 - deltaX;
@@ -99,8 +105,10 @@ void getPanCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
     mpfr_neg(imagOut, imagOut, MPFRTypes::ROUNDING);
 }
 
-void getBoxCenterPoint_mp(mpfr_t realOut, mpfr_t imagOut,
-    int left, int top, int right, int bottom) {
+void getBoxCenterPoint_mp(
+    mpfr_t realOut, mpfr_t imagOut,
+    int left, int top, int right, int bottom
+) {
     using namespace RenderGlobals;
 
     const int clampedLeft = clampCoordToImage_mp(std::min(left, right), outputWidth);

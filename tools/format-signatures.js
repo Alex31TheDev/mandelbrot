@@ -4,7 +4,16 @@ const readline = require("readline");
 const { parseArgs: parseNodeArgs } = require("util");
 
 const defaultSourceRoots = ["common", "frontend", "mandelbrot-cli", "mandelbrot", "mandelbrot-gui"],
-    targetExtensions = [".h", ".cpp"];
+    defaultMaxWidth = 80;
+
+const ExtensionGroups = {
+    headerExtensions: [".h", ".hpp"],
+    sourceExtensions: [".c", ".cpp", "_impl.h", "_impl.hpp"]
+};
+
+const targetExtensions = [...new Set([...ExtensionGroups.headerExtensions, ...ExtensionGroups.sourceExtensions])];
+
+let args = null;
 
 const usage = `Usage: node ./tools/format-signatures.js [paths...] [options]
 
@@ -12,6 +21,7 @@ Options:
   --repo-root <path>        Repository root
   --source-roots <items>    Comma-separated source roots
   --paths <items>           Comma-separated files or directories
+  --width <columns>         Maximum line width (default: 80)
   -y                        Trust the deduced repo root
   --check                   Report files that would change and exit 1
   --help                    Show this help`;
@@ -96,33 +106,60 @@ const Util = {
         return lines;
     },
 
+    isQualifiedConstructorLikeName: trimmed => {
+        const parts = trimmed.split("::");
+
+        if (parts.length < 2) return false;
+
+        const leaf = parts[parts.length - 1],
+            owner = parts[parts.length - 2];
+
+        if (leaf.startsWith("operator")) return true;
+
+        const normalizedLeaf = leaf.startsWith("~") ? leaf.slice(1) : leaf;
+        return normalizedLeaf === owner;
+    },
+
     testSignaturePrefix: prefix => {
-        const trimmed = prefix.trim();
+        const trimmed = prefix.trim(),
+            normalizedControlFlowPrefix = trimmed.replace(/^(?:\}\s*)+/, "").trimStart();
 
         if (!trimmed) return false;
-        else if (/^(if|for|while|switch|catch|return|else|do|sizeof)\b/.test(trimmed)) return false;
+        else if (/^(if|for|while|switch|catch|return|else|do|sizeof|static_assert)\b/.test(normalizedControlFlowPrefix))
+            return false;
         else if (trimmed.startsWith("#")) return false;
         else if (trimmed.includes("=")) return false;
         else if (trimmed.includes("->") || trimmed.includes(".")) return false;
         else if (/^[A-Z0-9_]+$/.test(trimmed)) return false;
-        else
-            return (
-                trimmed.includes(" ") ||
-                trimmed.includes("::") ||
-                trimmed.startsWith("~") ||
-                trimmed.startsWith("operator")
-            );
+        else if (trimmed.startsWith("~") || trimmed.startsWith("operator")) return true;
+        else if (trimmed.includes(" ")) return true;
+        else if (/^(?:~?\w+|operator\S+)$/.test(trimmed)) return true;
+        else return Util.isQualifiedConstructorLikeName(trimmed);
     },
 
     testSignatureSuffix: suffix => {
-        return /^(?:\{|;|const\s*;|const\s*\{|noexcept\s*;|noexcept\s*\{|override\s*;|override\s*\{|final\s*;|final\s*\{|=\s*0\s*;|=\s*delete\s*;|=\s*default\s*;|const\s+override\s*;|const\s+override\s*\{)/.test(
-            suffix
-        );
+        return /^(?:(?:const|noexcept|override|final)\s*)*(?:=\s*(?:0|delete|default)\s*)?[;{]$/.test(suffix);
     },
 
     getSuffixText: suffix => {
         if (!suffix) return "";
         return suffix === ";" ? ";" : ` ${suffix}`;
+    },
+
+    isSemicolonSuffix: suffix => {
+        return suffix.endsWith(";");
+    },
+
+    isBraceSuffix: suffix => {
+        return suffix.endsWith("{");
+    },
+
+    exceedsWidth: line => {
+        return line.length > args.maxWidth;
+    },
+
+    isInsideFunctionBody: scopeStack => {
+        return scopeStack.includes("function");
     }
 };
 
@@ -188,11 +225,22 @@ function loadExcludePaths(excludeFile, sourceRoots) {
 }
 
 function isTargetExtension(filePath) {
-    return targetExtensions.includes(path.extname(filePath).toLowerCase());
+    const normalizedPath = Util.normalizeSlashes(filePath).toLowerCase();
+
+    return targetExtensions.some(extension => normalizedPath.endsWith(extension));
 }
 
 function isExcludedFile(filePath, excludePaths) {
     return excludePaths.has(path.resolve(filePath));
+}
+
+function isHeaderFile(filePath) {
+    const normalizedPath = Util.normalizeSlashes(filePath).toLowerCase();
+
+    const isHeader = ExtensionGroups.headerExtensions.some(extension => normalizedPath.endsWith(extension)),
+        isSource = ExtensionGroups.sourceExtensions.some(extension => normalizedPath.endsWith(extension));
+
+    return isHeader && !isSource;
 }
 
 function listFiles(directoryPath, files = []) {
@@ -212,11 +260,46 @@ function listFiles(directoryPath, files = []) {
     return files;
 }
 
-function formatVerticalSignature(prefix, groups, indent, suffixText) {
-    const argumentIndent = `${indent}    `,
-        argumentLines = Util.packArgumentLines(groups, 80 - argumentIndent.length);
+function getOriginalArgumentGroups(argumentText) {
+    const argumentGroups = [];
 
-    const formatted = [`${indent}${prefix}(`];
+    for (const rawLine of argumentText.split("\n")) {
+        const line = rawLine.trim().replace(/^,\s*/, "").replace(/,\s*$/, "");
+        if (!line) continue;
+
+        const lineGroups = Util.splitTopLevelArgs(line);
+        if (lineGroups.length < 1) return null;
+
+        argumentGroups.push(lineGroups);
+    }
+
+    return argumentGroups.length > 0 ? argumentGroups : null;
+}
+
+function reflowPreservedArgumentLines(originalArgumentGroups, width) {
+    const argumentLines = [];
+
+    for (const groups of originalArgumentGroups) {
+        const line = groups.join(", ");
+
+        if (line.length <= width) {
+            argumentLines.push(line);
+            continue;
+        }
+
+        argumentLines.push(...Util.packArgumentLines(groups, width));
+    }
+
+    return argumentLines;
+}
+
+function collapseArgumentWhitespace(argument) {
+    return argument.replace(/\s+/g, " ").trim();
+}
+
+function formatVerticalSignatureLines(prefix, argumentLines, indent, suffixText) {
+    const argumentIndent = `${indent}    `,
+        formatted = [`${indent}${prefix}(`];
 
     for (let i = 0; i < argumentLines.length; i += 1) {
         const line = argumentLines[i];
@@ -232,6 +315,44 @@ function formatVerticalSignature(prefix, groups, indent, suffixText) {
     return formatted;
 }
 
+function formatVerticalSignature(prefix, groups, indent, suffixText) {
+    const argumentIndent = `${indent}    `,
+        argumentLines = Util.packArgumentLines(groups, args.maxWidth - argumentIndent.length);
+
+    return formatVerticalSignatureLines(prefix, argumentLines, indent, suffixText);
+}
+
+function formatHeaderLines(prefix, argumentLines, indent, suffixText) {
+    const argumentIndent = `${indent}    `,
+        hangingOpen = `${indent}${prefix}(`;
+
+    if (argumentLines.length < 1) {
+        return [`${indent}${prefix}()${suffixText}`];
+    }
+
+    if (hangingOpen.length + argumentLines[0].length + 1 > args.maxWidth) {
+        return formatVerticalSignatureLines(prefix, argumentLines, indent, suffixText);
+    }
+
+    const formatted = [`${hangingOpen}${argumentLines[0]}${argumentLines.length > 1 ? "," : `)${suffixText}`}`];
+
+    for (let i = 1; i < argumentLines.length; i += 1) {
+        const line = argumentLines[i];
+
+        if (i === argumentLines.length - 1) {
+            formatted.push(`${argumentIndent}${line})${suffixText}`);
+        } else {
+            formatted.push(`${argumentIndent}${line},`);
+        }
+    }
+
+    if (formatted.some(Util.exceedsWidth)) {
+        return formatVerticalSignatureLines(prefix, argumentLines, indent, suffixText);
+    }
+
+    return formatted;
+}
+
 function formatHeaderMultiline(prefix, groups, indent, suffixText) {
     const argumentIndent = `${indent}    `,
         hangingOpen = `${indent}${prefix}(`;
@@ -242,7 +363,7 @@ function formatHeaderMultiline(prefix, groups, indent, suffixText) {
         const candidateGroups = [...firstLineGroups, group],
             candidateLine = candidateGroups.join(", ");
 
-        if (hangingOpen.length + candidateLine.length + 1 <= 80) {
+        if (hangingOpen.length + candidateLine.length + 1 <= args.maxWidth) {
             firstLineGroups.push(group);
             continue;
         }
@@ -260,7 +381,7 @@ function formatHeaderMultiline(prefix, groups, indent, suffixText) {
         return [`${hangingOpen}${firstLineGroups.join(", ")})${suffixText}`];
     }
 
-    const remainingLines = Util.packArgumentLines(remainingGroups, 80 - argumentIndent.length),
+    const remainingLines = Util.packArgumentLines(remainingGroups, args.maxWidth - argumentIndent.length),
         formatted = [`${hangingOpen}${firstLineGroups.join(", ")},`];
 
     for (let i = 0; i < remainingLines.length; i += 1) {
@@ -276,11 +397,11 @@ function formatHeaderMultiline(prefix, groups, indent, suffixText) {
     return formatted;
 }
 
-function formatSignatureBlock(blockLines, isHeader) {
+function getSignatureInfo(blockLines) {
     const blockText = blockLines.join("\n"),
         openIndex = blockText.indexOf("(");
 
-    if (openIndex < 0) return blockLines;
+    if (openIndex < 0) return null;
 
     let depth = 0,
         closeIndex = -1;
@@ -300,46 +421,93 @@ function formatSignatureBlock(blockLines, isHeader) {
         }
     }
 
-    if (closeIndex < 0) return blockLines;
+    if (closeIndex < 0) return null;
 
     const prefix = blockText.slice(0, openIndex);
-    if (!Util.testSignaturePrefix(prefix)) return blockLines;
+    if (!Util.testSignaturePrefix(prefix)) return null;
 
     const suffix = blockText.slice(closeIndex + 1).trim();
-    if (!Util.testSignatureSuffix(suffix)) return blockLines;
+    if (!Util.testSignatureSuffix(suffix)) return null;
 
     const indent = blockLines[0].match(/^\s*/)?.[0] ?? "";
+    const prefixTrimmed = prefix.slice(indent.length).trimEnd();
+    const argumentText = blockText.slice(openIndex + 1, closeIndex).trim();
 
-    const prefixTrimmed = prefix.slice(indent.length).trimEnd(),
-        argumentText = blockText.slice(openIndex + 1, closeIndex).trim();
+    return {
+        suffix,
+        indent,
+        prefixTrimmed,
+        argumentText,
+        suffixText: Util.getSuffixText(suffix),
+        wasMultiline: blockLines.length > 1
+    };
+}
 
+function formatSignatureBlock(blockLines, isHeader, insideFunctionBody) {
+    const signatureInfo = getSignatureInfo(blockLines);
+    if (!signatureInfo) return blockLines;
+    if ((!isHeader || insideFunctionBody) && Util.isSemicolonSuffix(signatureInfo.suffix)) return blockLines;
+
+    const { indent, prefixTrimmed, argumentText, suffixText, wasMultiline } = signatureInfo;
     if (!argumentText) return blockLines;
 
     const groups = Util.splitTopLevelArgs(argumentText),
-        suffixText = Util.getSuffixText(suffix);
+        buildSingleLine = argumentLine => `${prefixTrimmed}(${argumentLine})${suffixText}`;
 
-    const singleLine = `${prefixTrimmed}(${groups.join(", ")})${suffixText}`;
+    if (wasMultiline) {
+        const argumentIndent = `${indent}    `,
+            originalArgumentGroups = getOriginalArgumentGroups(argumentText);
 
-    if (indent.length + singleLine.length <= 80) {
-        return [`${indent}${singleLine}`];
+        if (originalArgumentGroups) {
+            if (groups.length === 1) {
+                const collapsedArgument = collapseArgumentWhitespace(groups[0]),
+                    collapsedSingleLine = buildSingleLine(collapsedArgument);
+
+                if (indent.length + collapsedSingleLine.length <= args.maxWidth) {
+                    return [`${indent}${collapsedSingleLine}`];
+                }
+
+                if (collapsedArgument.length <= args.maxWidth - argumentIndent.length) {
+                    const formatter = isHeader ? formatHeaderLines : formatVerticalSignatureLines;
+
+                    return formatter(prefixTrimmed, [collapsedArgument], indent, suffixText);
+                }
+            }
+
+            const argumentLines = reflowPreservedArgumentLines(
+                    originalArgumentGroups,
+                    args.maxWidth - argumentIndent.length
+                ),
+                formatter = isHeader ? formatHeaderLines : formatVerticalSignatureLines;
+
+            return formatter(prefixTrimmed, argumentLines, indent, suffixText);
+        }
+    } else {
+        const singleLine = buildSingleLine(groups.join(", "));
+
+        if (indent.length + singleLine.length <= args.maxWidth) {
+            return [`${indent}${singleLine}`];
+        }
+
+        const formatter = isHeader ? formatHeaderMultiline : formatVerticalSignature;
+
+        return formatter(prefixTrimmed, groups, indent, suffixText);
     }
-
-    return (isHeader ? formatHeaderMultiline : formatVerticalSignature)(prefixTrimmed, groups, indent, suffixText);
 }
 
-function formatFile(filePath, check) {
+function formatFile(filePath) {
     const oldText = fs.readFileSync(filePath, "utf8"),
         newline = oldText.includes("\r\n") ? "\r\n" : "\n",
         lines = oldText.split(/\r?\n/);
 
-    const extension = path.extname(filePath).toLowerCase(),
-        isHeader = extension === ".h";
+    const isHeader = isHeaderFile(filePath);
 
-    if (lines.length > 0 && lines[lines.length - 1] === "") {
+    while (lines.length > 0 && lines[lines.length - 1] === "") {
         lines.pop();
     }
 
     let output = [],
+        scopeStack = [],
         index = 0;
 
     while (index < lines.length) {
@@ -348,6 +516,7 @@ function formatFile(filePath, check) {
 
         if (openIndex < 0) {
             output.push(line);
+            updateScopeStack(scopeStack, line);
             index += 1;
             continue;
         }
@@ -356,6 +525,7 @@ function formatFile(filePath, check) {
 
         if (!Util.testSignaturePrefix(prefix)) {
             output.push(line);
+            updateScopeStack(scopeStack, line);
             index += 1;
             continue;
         }
@@ -373,18 +543,39 @@ function formatFile(filePath, check) {
             depth += Util.countParenDepth(nextLine);
         }
 
-        output.push(...formatSignatureBlock(block, isHeader));
+        const insideFunctionBody = Util.isInsideFunctionBody(scopeStack),
+            signatureInfo = getSignatureInfo(block),
+            opensFunctionScope = signatureInfo && Util.isBraceSuffix(signatureInfo.suffix),
+            formattedBlock = formatSignatureBlock(block, isHeader, insideFunctionBody);
+
+        output.push(...formattedBlock);
+        updateScopeStack(scopeStack, block.join("\n"), opensFunctionScope ? "function" : null);
+
         index = endIndex + 1;
     }
 
-    const newText = output.join(newline),
+    const bodyText = output.join(newline),
+        newText = isHeader && bodyText ? `${bodyText}${newline}` : bodyText,
         changed = newText !== oldText;
 
-    if (changed && !check) {
+    if (changed && !args.check) {
         fs.writeFileSync(filePath, newText, "utf8");
     }
 
     return changed;
+}
+
+function updateScopeStack(scopeStack, text, openedScopeType = null) {
+    let usedOpenedScopeType = false;
+
+    for (const char of text) {
+        if (char === "{") {
+            scopeStack.push(!usedOpenedScopeType && openedScopeType ? openedScopeType : "other");
+            usedOpenedScopeType = true;
+        } else if (char === "}" && scopeStack.length > 0) {
+            scopeStack.pop();
+        }
+    }
 }
 
 async function parseArgs() {
@@ -406,6 +597,9 @@ async function parseArgs() {
             paths: {
                 type: "string",
                 multiple: true
+            },
+            width: {
+                type: "string"
             },
             check: {
                 type: "boolean"
@@ -429,21 +623,30 @@ async function parseArgs() {
     }
 
     const sourceRoots = (parsed.values["source-roots"]?.flatMap(Util.parseList) ?? defaultSourceRoots).map(entry =>
-        path.resolve(repoRoot, entry)
-    );
+            path.resolve(repoRoot, entry)
+        ),
+        optionPaths = parsed.values.paths?.flatMap(Util.parseList) ?? [];
 
-    const optionPaths = parsed.values.paths?.flatMap(Util.parseList) ?? [];
+    const maxWidth = parsed.values.width ? Number.parseInt(parsed.values.width, 10) : defaultMaxWidth;
+
+    if (!Number.isInteger(maxWidth) || maxWidth < 20) {
+        console.error("ERROR: --width must be an integer >= 20.", "\n");
+        console.log(usage);
+
+        process.exit(1);
+    }
 
     return {
         repoRoot,
         sourceRoots,
         paths: [...optionPaths, ...parsed.positionals].map(entry => path.resolve(repoRoot, entry)),
         excludeFile: path.resolve(repoRoot, ".format-exclude"),
+        maxWidth,
         check: parsed.values.check ?? false
     };
 }
 
-function getTargetFiles(args) {
+function getTargetFiles() {
     const sourceRootPaths = args.sourceRoots.filter(entry => fs.existsSync(entry)),
         scanPaths = args.paths.length > 0 ? args.paths : sourceRootPaths,
         excludePaths = loadExcludePaths(args.excludeFile, sourceRootPaths);
@@ -486,8 +689,9 @@ function getTargetFiles(args) {
 }
 
 async function main() {
-    const args = await parseArgs(),
-        targetFiles = getTargetFiles(args);
+    args = await parseArgs();
+
+    const targetFiles = getTargetFiles();
 
     if (targetFiles.length < 1) {
         console.error("ERROR: No target files found.", "\n");
@@ -499,7 +703,7 @@ async function main() {
     let changedCount = 0;
 
     for (const filePath of targetFiles) {
-        if (!formatFile(filePath, args.check)) {
+        if (!formatFile(filePath)) {
             continue;
         }
 

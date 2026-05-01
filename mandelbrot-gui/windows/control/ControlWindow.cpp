@@ -347,7 +347,8 @@ void ControlWindow::_connectUI() {
 }
 
 void ControlWindow::setBackendNames(
-    const QStringList &names, const QString &selectedBackend) {
+    const QStringList &names, const QString &selectedBackend
+) {
     const QSignalBlocker blocker(_ui->backendCombo);
     _ui->backendCombo->clear();
     _ui->backendCombo->addItems(names);
@@ -356,7 +357,8 @@ void ControlWindow::setBackendNames(
 }
 
 void ControlWindow::setSineNames(
-    const QStringList &names, const QString &currentName, bool dirty) {
+    const QStringList &names, const QString &currentName, bool dirty
+) {
     _sineNames = names;
     _currentSineName = currentName;
     _sineDirty = dirty;
@@ -364,7 +366,8 @@ void ControlWindow::setSineNames(
 }
 
 void ControlWindow::setPaletteNames(
-    const QStringList &names, const QString &currentName, bool dirty) {
+    const QStringList &names, const QString &currentName, bool dirty
+) {
     _paletteNames = names;
     _currentPaletteName = currentName;
     _paletteDirty = dirty;
@@ -378,9 +381,12 @@ void ControlWindow::setCpuInfo(const QString &name, int cores, int threads) {
         threads > 0 ? QString::number(threads) : QString());
 }
 
-void ControlWindow::setSessionState(const GUISessionState &sessionState,
-    NavMode displayedNavMode, SelectionTarget selectionTarget) {
+void ControlWindow::setSessionState(
+    const GUISessionState &sessionState,
+    NavMode displayedNavMode, SelectionTarget selectionTarget
+) {
     const GUIState &state = sessionState.state();
+
     const QSignalBlocker backendBlocker(_ui->backendCombo);
     const QSignalBlocker iterationsBlocker(_ui->iterationsSpin);
     const QSignalBlocker threadsBlocker(_ui->useThreadsCheckBox);
@@ -421,7 +427,8 @@ void ControlWindow::setSessionState(const GUISessionState &sessionState,
     _ui->zoomRateSlider->setValue(state.zoomRate);
     _ui->zoomRateSpin->setValue(state.zoomRate);
     _ui->exponentSlider->setValue(
-        static_cast<int>(std::round(std::max(1.01, state.exponent) * 100.0)));
+        static_cast<int>(std::round(std::max(1.01, state.exponent) * 100.0))
+    );
     Util::setAdaptiveSpinValue(_ui->exponentSpin, std::max(1.01, state.exponent));
     if (!state.sineName.isEmpty()) {
         const int sineIndex = _ui->sineCombo->findData(state.sineName);
@@ -573,10 +580,12 @@ void ControlWindow::saveWindowSettings(AppSettings &settings) const {
     settings.setControlWindowState(saveState());
 }
 
-void ControlWindow::setStatusState(const QString &statusText,
+void ControlWindow::setStatusState(
+    const QString &statusText,
     const QString &statusLinkPath, const QString &pixelsPerSecondText,
     const QString &imageMemoryText, int progressValue, bool progressActive,
-    bool progressCancelled) {
+    bool progressCancelled
+) {
     _statusText = statusText;
     _statusLinkPath = statusLinkPath;
     _pixelsPerSecondText = pixelsPerSecondText;
@@ -602,7 +611,9 @@ void ControlWindow::clearPalettePreview() {
     if (preview) preview->clearPreview();
 }
 
-void ControlWindow::setLightColorButton(const QColor &color, const QString &text) {
+void ControlWindow::setLightColorButton(
+    const QColor &color, const QString &text
+) {
     _ui->lightColorButton->setText(text);
     _ui->lightColorButton->setStyleSheet(Util::lightColorButtonStyle(color));
 }
@@ -896,8 +907,10 @@ void ControlWindow::_updateStatusLabels() {
     _ui->statusRightLabel->setSource(_statusText, _statusLinkPath);
 }
 
-void ControlWindow::_refreshNamedCombo(QComboBox *combo, const QStringList &names,
-    const QString &currentName, bool dirty) const {
+void ControlWindow::_refreshNamedCombo(
+    QComboBox *combo, const QStringList &names,
+    const QString &currentName, bool dirty
+) const {
     const QSignalBlocker blocker(combo);
     combo->clear();
     combo->addItem(Util::translatedNewEntryLabel());

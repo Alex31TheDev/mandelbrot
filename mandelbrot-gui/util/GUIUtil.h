@@ -25,23 +25,27 @@ namespace GUI::Util {
 
     [[nodiscard]] QString translatedNewEntryLabel();
     [[nodiscard]] QString translatedUnsavedLabelSuffix();
-    [[nodiscard]] QString decorateUnsavedLabel(const QString &name, bool unsaved);
+    [[nodiscard]] QString decorateUnsavedLabel(const QString &name,
+        bool unsaved);
     [[nodiscard]] QString undecoratedLabel(const QString &name);
     [[nodiscard]] QString uniqueIndexedNameFromList(
-        const QString &baseName, const QStringList &existingNames);
+        const QString &baseName, const QStringList &existingNames
+    );
     [[nodiscard]] QString uniqueIndexedPathWithExtension(
         const std::filesystem::path &directory, const QString &baseName,
-        const QString &extension);
+        const QString &extension
+    );
 
     [[nodiscard]] QString fractalTypeToConfigString(FractalType fractalType);
-    [[nodiscard]] FractalType fractalTypeFromConfigString(
-        const QString &value);
+    [[nodiscard]] FractalType fractalTypeFromConfigString(const QString &value);
     [[nodiscard]] double clampGUIZoom(double zoom);
     [[nodiscard]] QString defaultPixelsPerSecondText();
     [[nodiscard]] QString defaultImageMemoryText();
     [[nodiscard]] QString defaultViewportFPSText();
     [[nodiscard]] QString formatViewportFPSText(double fps);
-    [[nodiscard]] QString formatPixelsPerSecondText(const QString &pixelsPerSecond);
+    [[nodiscard]] QString formatPixelsPerSecondText(
+        const QString &pixelsPerSecond
+    );
     [[nodiscard]] QString formatImageMemoryText(const ImageEvent &event);
 
     [[nodiscard]] QColor lightColorToQColor(const LightColor &color);

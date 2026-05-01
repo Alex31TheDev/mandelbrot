@@ -131,7 +131,9 @@ static void addArgumentBool(
     arg.store_into(value);
 }
 
-static void configureParser(argparse::ArgumentParser &parser, ParsedArgs &args) {
+static void configureParser(
+    argparse::ArgumentParser &parser, ParsedArgs &args
+) {
     parser.add_description(modeHelp);
 
     const std::string defaultCount = "auto";

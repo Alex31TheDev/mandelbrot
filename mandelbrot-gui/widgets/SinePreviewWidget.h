@@ -43,7 +43,8 @@ private:
 
     [[nodiscard]] QRect _previewRect() const;
     [[nodiscard]] DragMode _hitTest(
-        const QPoint &point, const QRect &strip) const;
+        const QPoint &point, const QRect &strip
+    ) const;
     void _drawHandle(QPainter &painter, int x, const QRect &strip) const;
     void _updateCursor(DragMode mode);
     void _applyRange(double minValue, double maxValue);

@@ -29,7 +29,8 @@ static QString defaultExtensionFromPattern(const QString &patternText) {
 
 namespace GUI {
     std::vector<NativeDialogFilter> parseNativeDialogFilters(
-        const QString &filters) {
+        const QString &filters
+    ) {
         std::vector<NativeDialogFilter> parsed;
         const QStringList entries = filters.split(";;", Qt::SkipEmptyParts);
         for (const QString &entry : entries) {
@@ -46,9 +47,11 @@ namespace GUI {
         return parsed;
     }
 
-    QString showNativeSaveFileDialog(QWidget *parent, const QString &title,
+    QString showNativeSaveFileDialog(
+        QWidget *parent, const QString &title,
         const std::filesystem::path &directory, const QString &suggestedFileName,
-        const QString &filters, QString *selectedFilter) {
+        const QString &filters, QString *selectedFilter
+    ) {
 #ifdef _WIN32
         const std::vector<NativeDialogFilter> parsedFilters
             = parseNativeDialogFilters(filters);
@@ -170,8 +173,10 @@ namespace GUI {
 #endif
     }
 
-    QString showNativeOpenFileDialog(QWidget *parent, const QString &title,
-        const std::filesystem::path &directory, const QString &filters) {
+    QString showNativeOpenFileDialog(
+        QWidget *parent, const QString &title,
+        const std::filesystem::path &directory, const QString &filters
+    ) {
 #ifdef _WIN32
         const std::vector<NativeDialogFilter> parsedFilters
             = parseNativeDialogFilters(filters);
@@ -271,7 +276,8 @@ namespace GUI {
     }
 
     std::optional<SaveDialogResult> runSaveImageDialog(
-        QWidget *parent, const QString &suggestedFile) {
+        QWidget *parent, const QString &suggestedFile
+    ) {
         const std::filesystem::path savesDir = PathUtil::executableDir() / "saves";
         std::error_code ec;
         std::filesystem::create_directories(savesDir, ec);

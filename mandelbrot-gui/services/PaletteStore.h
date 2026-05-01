@@ -17,8 +17,8 @@ namespace GUI::PaletteStore {
     inline constexpr auto defaultName = "default";
 
     [[nodiscard]] PaletteHexConfig makeNewConfig();
-    [[nodiscard]] bool sameConfig(
-        const PaletteHexConfig &a, const PaletteHexConfig &b);
+    [[nodiscard]] bool sameConfig(const PaletteHexConfig &a,
+        const PaletteHexConfig &b);
 
     [[nodiscard]] std::filesystem::path directoryPath();
     [[nodiscard]] std::filesystem::path filePath(const QString &name);
@@ -28,8 +28,8 @@ namespace GUI::PaletteStore {
     [[nodiscard]] bool isValidName(const QString &name);
     [[nodiscard]] QString sanitizeName(const QString &name);
     [[nodiscard]] QStringList listNames();
-    [[nodiscard]] QString uniqueName(
-        const QString &baseName, const QStringList &existingNames);
+    [[nodiscard]] QString uniqueName(const QString &baseName,
+        const QStringList &existingNames);
 
     [[nodiscard]] bool loadFromPath(const std::filesystem::path &path,
         PaletteHexConfig &palette, QString &errorMessage);
@@ -49,10 +49,12 @@ namespace GUI::PaletteStore {
         std::filesystem::path &destinationPath, QString &errorMessage);
 
     [[nodiscard]] std::vector<PaletteStop> configToStops(
-        const PaletteHexConfig &palette);
+        const PaletteHexConfig &palette
+    );
     [[nodiscard]] PaletteHexConfig stopsToConfig(
-        const std::vector<PaletteStop> &stops, float totalLength, float offset,
-        bool blendEnds);
+        const std::vector<PaletteStop> &stops,
+        float totalLength, float offset, bool blendEnds
+    );
 
     [[nodiscard]] QImage makePreviewImage(Session *session,
         const PaletteHexConfig &palette, int width, int height);

@@ -39,7 +39,9 @@ static FORCE_INLINE MPFRScratch &getScratch() {
     return scratch;
 }
 
-static FORCE_INLINE void complexInverse_mp(mpfr_t cr, mpfr_t ci, MPFRScratch &s) {
+static FORCE_INLINE void complexInverse_mp(
+    mpfr_t cr, mpfr_t ci, MPFRScratch &s
+) {
     mpfr_sqr(s.t[0], cr, MPFRTypes::ROUNDING);
     mpfr_sqr(s.t[1], ci, MPFRTypes::ROUNDING);
     mpfr_add(s.t[2], s.t[0], s.t[1], MPFRTypes::ROUNDING);

@@ -16,9 +16,7 @@ using namespace ParserUtil;
 PaletteParser::PaletteParser(const std::string &skipOption)
     : _skipOption(skipOption) {}
 
-bool PaletteParser::_isValidEntry(
-    const PaletteHexEntry &entry
-) const {
+bool PaletteParser::_isValidEntry(const PaletteHexEntry &entry) const {
     bool ok = false;
     parseHexString(entry.color, std::ref(ok));
     return ok && entry.length >= 0.0f;

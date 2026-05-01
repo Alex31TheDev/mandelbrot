@@ -89,10 +89,8 @@ public:
     bool previewPannedViewState(
         const QPoint &delta, ViewTextState &view, QString &errorMessage
     ) override;
-    bool previewScaledViewState(
-        const QPoint &pixel, double scaleMultiplier,
-        ViewTextState &view, QString &errorMessage
-    ) override;
+    bool previewScaledViewState(const QPoint &pixel, double scaleMultiplier,
+        ViewTextState &view, QString &errorMessage) override;
     bool previewBoxZoomViewState(
         const QRect &selectionRect, ViewTextState &view, QString &errorMessage
     ) override;

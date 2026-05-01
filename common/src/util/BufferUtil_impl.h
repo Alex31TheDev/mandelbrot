@@ -17,8 +17,10 @@ namespace BufferUtil {
     }
 
     template <size_t ALIGNMENT>
-    uint8_t *bufferAlloc(size_t bufferSize,
-        std::optional<std::reference_wrapper<size_t>> alignedSize) {
+    uint8_t *bufferAlloc(
+        size_t bufferSize,
+        std::optional<std::reference_wrapper<size_t>> alignedSize
+    ) {
         size_t newSize;
         void *ptr = nullptr;
 
@@ -62,8 +64,10 @@ namespace BufferUtil {
     }
 
     template <size_t ALIGNMENT>
-    AlignedBuffer<ALIGNMENT> bufferAllocPtr(size_t bufferSize,
-        std::optional<std::reference_wrapper<size_t>> alignedSize) {
+    AlignedBuffer<ALIGNMENT> bufferAllocPtr(
+        size_t bufferSize,
+        std::optional<std::reference_wrapper<size_t>> alignedSize
+    ) {
         return AlignedBuffer<ALIGNMENT>(
             bufferAlloc<ALIGNMENT>(bufferSize, alignedSize)
         );

@@ -412,7 +412,9 @@ int PaletteTimelineWidget::_indexForId(int id) const {
     return -1;
 }
 
-std::vector<int> PaletteTimelineWidget::_hitCandidates(const QPoint &point) const {
+std::vector<int> PaletteTimelineWidget::_hitCandidates(
+    const QPoint &point
+) const {
     struct Candidate {
         int index = -1;
         int distance = 0;

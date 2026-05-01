@@ -9,8 +9,10 @@
 #include "util/ParserUtil.h"
 using namespace ParserUtil;
 
-static void parseColor(std::string_view hex,
-    scalar_half_t &r, scalar_half_t &g, scalar_half_t &b) {
+static void parseColor(
+    std::string_view hex,
+    scalar_half_t &r, scalar_half_t &g, scalar_half_t &b
+) {
     bool ok;
     auto [r_i, g_i, b_i] = parseHexString(hex, std::ref(ok));
 

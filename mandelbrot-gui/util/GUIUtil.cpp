@@ -75,7 +75,8 @@ namespace GUI::Util {
     }
 
     QString uniqueIndexedNameFromList(
-        const QString &baseName, const QStringList &existingNames) {
+        const QString &baseName, const QStringList &existingNames
+    ) {
         return QString::fromStdString(
             FormatUtil::uniqueIndexedName(baseName.toStdString(),
                 [&existingNames](const std::string_view candidate) {
@@ -88,7 +89,8 @@ namespace GUI::Util {
 
     QString uniqueIndexedPathWithExtension(
         const std::filesystem::path &directory, const QString &baseName,
-        const QString &extension) {
+        const QString &extension
+    ) {
         const std::string uniqueName
             = FormatUtil::uniqueIndexedName(baseName.toStdString(),
                 [&directory, &extension](const std::string_view candidate) {

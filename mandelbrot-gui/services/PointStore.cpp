@@ -26,8 +26,10 @@ namespace GUI {
         return false;
     }
 
-    bool PointStore::loadFromPath(const std::filesystem::path &path,
-        PointConfig &point, QString &errorMessage) {
+    bool PointStore::loadFromPath(
+        const std::filesystem::path &path,
+        PointConfig &point, QString &errorMessage
+    ) {
         PointParser parser;
         std::string err;
         if (parser.parse(path.string(), point, err)) {
@@ -39,8 +41,10 @@ namespace GUI {
         return false;
     }
 
-    bool PointStore::saveToPath(const std::filesystem::path &path,
-        const PointConfig &point, QString &errorMessage) {
+    bool PointStore::saveToPath(
+        const std::filesystem::path &path,
+        const PointConfig &point, QString &errorMessage
+    ) {
         PointWriter writer(point);
         std::string err;
         if (writer.write(path.string(), err)) {

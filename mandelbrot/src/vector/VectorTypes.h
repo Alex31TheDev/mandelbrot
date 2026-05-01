@@ -1380,10 +1380,8 @@ FORCE_INLINE simd_half_2_t SIMD_SINCOS_H(simd_half_t x) {
 
 #else
 
-FORCE_INLINE simd_full_t SIMD_GATHER_F(
-    const scalar_full_t *values,
-    simd_full_int_t idx
-) {
+FORCE_INLINE simd_full_t SIMD_GATHER_F(const scalar_full_t *values,
+    simd_full_int_t idx) {
     alignas(SIMD_FULL_ALIGNMENT) int idx_arr[SIMD_FULL_WIDTH];
     alignas(SIMD_FULL_ALIGNMENT) scalar_full_t gather_arr[SIMD_FULL_WIDTH];
 
@@ -1395,10 +1393,8 @@ FORCE_INLINE simd_full_t SIMD_GATHER_F(
 
     return SIMD_LOAD_F(gather_arr);
 }
-FORCE_INLINE simd_half_t SIMD_GATHER_H(
-    const scalar_half_t *values,
-    simd_half_int_t idx
-) {
+FORCE_INLINE simd_half_t SIMD_GATHER_H(const scalar_half_t *values,
+    simd_half_int_t idx) {
     alignas(SIMD_HALF_ALIGNMENT) int idx_arr[SIMD_HALF_WIDTH];
     alignas(SIMD_HALF_ALIGNMENT) scalar_half_t gather_arr[SIMD_HALF_WIDTH];
 

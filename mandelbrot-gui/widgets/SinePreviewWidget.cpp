@@ -136,7 +136,8 @@ QRect SinePreviewWidget::_previewRect() const {
 }
 
 SinePreviewWidget::DragMode SinePreviewWidget::_hitTest(
-    const QPoint &point, const QRect &strip) const {
+    const QPoint &point, const QRect &strip
+) const {
     if (!strip.contains(point)) return DragMode::none;
     if (std::abs(point.x() - strip.left()) <= handleHitWidth)
         return DragMode::left;
@@ -146,7 +147,8 @@ SinePreviewWidget::DragMode SinePreviewWidget::_hitTest(
 }
 
 void SinePreviewWidget::_drawHandle(
-    QPainter &painter, int x, const QRect &strip) const {
+    QPainter &painter, int x, const QRect &strip
+) const {
     const QRect handle(
         x - 2, strip.top() + 4, 4, std::max(6, strip.height() - 8));
     painter.fillRect(handle,
