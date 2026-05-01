@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <tuple>
 
-#include "../image/Image.h"
+#include "image/Image.h"
 #include "ThreadPool.h"
 
 static std::unique_ptr<ThreadPool<>> _pool;

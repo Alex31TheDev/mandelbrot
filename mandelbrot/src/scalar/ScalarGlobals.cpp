@@ -6,7 +6,7 @@
 
 #include "ScalarTypes.h"
 
-#include "../render/RenderGlobals.h"
+#include "render/RenderGlobals.h"
 using namespace RenderGlobals;
 
 namespace ScalarGlobals {

@@ -6,7 +6,7 @@
 #include "ScalarTypes.h"
 
 #if defined(USE_SCALAR)
-#include "../render/RenderIterationStats.h"
+#include "render/RenderIterationStats.h"
 
 namespace ScalarRenderer {
     void initCoordsScalar(scalar_full_t &cr, scalar_full_t &ci,

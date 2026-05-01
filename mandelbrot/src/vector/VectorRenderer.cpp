@@ -6,21 +6,21 @@
 #include <type_traits>
 #include <algorithm>
 
-#include "../scalar/ScalarTypes.h"
+#include "scalar/ScalarTypes.h"
 #include "VectorTypes.h"
 
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 #include "VectorGlobals.h"
 using namespace ScalarGlobals;
 using namespace VectorGlobals;
 
-#include "../image/Image.h"
-#include "../render/RenderIterationStats.h"
+#include "image/Image.h"
+#include "render/RenderIterationStats.h"
 #include "VectorCoords.h"
 
 #define _FORMULA_VECTOR
 #define _SKIP_FORMULA_OPS
-#include "../formula/FormulaTypes.h"
+#include "formula/FormulaTypes.h"
 
 #include "util/InlineUtil.h"
 #include "util/AssertUtil.h"
@@ -265,7 +265,7 @@ FORCE_INLINE void writePixelData_vec(uint8_t *out, T RGBA8) {
 }
 
 #else
-#include "../scalar/ScalarColors.h"
+#include "scalar/ScalarColors.h"
 #endif
 
 #define normCos_vec(x) \

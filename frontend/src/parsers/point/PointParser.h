@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "../KeyValueParser.h"
+#include "parsers/KeyValueParser.h"
 
 struct PointConfig {
     std::string fractal = "mandelbrot";

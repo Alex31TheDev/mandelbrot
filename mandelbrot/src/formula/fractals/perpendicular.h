@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../FormulaTypes.h"
+#include "formula/FormulaTypes.h"
 
 #define formula_normalPower \
     new_zi = NUM_MULADD(NUM_CONST(-2.0), NUM_MUL(NUM_ABS(zr), zi), ci); \

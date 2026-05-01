@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include "../util/RangeUtil.h"
+#include "util/RangeUtil.h"
 
 namespace FractalTypes {
     struct FractalType {

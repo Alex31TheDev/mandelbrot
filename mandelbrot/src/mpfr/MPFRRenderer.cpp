@@ -9,21 +9,21 @@
 using namespace MPFRGlobals;
 #include "MPFRScratch.h"
 
-#include "../scalar/ScalarGlobals.h"
-#include "../scalar/ScalarRenderer.h"
+#include "scalar/ScalarGlobals.h"
+#include "scalar/ScalarRenderer.h"
 using namespace ScalarGlobals;
 
 #define FORMULA_MPFR
 #define _SKIP_FORMULA_OPS
 
-#include "../formula/fractals/mandelbrot.h"
-#include "../formula/UndefFormulas.h"
+#include "formula/fractals/mandelbrot.h"
+#include "formula/UndefFormulas.h"
 
-#include "../formula/fractals/perpendicular.h"
-#include "../formula/UndefFormulas.h"
+#include "formula/fractals/perpendicular.h"
+#include "formula/UndefFormulas.h"
 
-#include "../formula/fractals/burningship.h"
-#include "../formula/UndefFormulas.h"
+#include "formula/fractals/burningship.h"
+#include "formula/UndefFormulas.h"
 
 #undef _SKIP_FORMULA_OPS
 #undef FORMULA_MPFR

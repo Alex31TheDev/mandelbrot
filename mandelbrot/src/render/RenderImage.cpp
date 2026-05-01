@@ -6,7 +6,7 @@
 #include <utility>
 #include <optional>
 
-#include "../image/Image.h"
+#include "image/Image.h"
 #include "ProgressTracker.h"
 
 #include "RenderGlobals.h"
@@ -14,8 +14,8 @@ using namespace RenderGlobals;
 
 #if defined(USE_SCALAR)
 
-#include "../scalar/ScalarCoords.h"
-#include "../scalar/ScalarRenderer.h"
+#include "scalar/ScalarCoords.h"
+#include "scalar/ScalarRenderer.h"
 
 struct RowRenderer {
     void operator()(
@@ -36,11 +36,11 @@ struct RowRenderer {
 
 #elif defined(USE_VECTORS)
 
-#include "../scalar/ScalarGlobals.h"
-#include "../vector/VectorTypes.h"
+#include "scalar/ScalarGlobals.h"
+#include "vector/VectorTypes.h"
 
-#include "../vector/VectorCoords.h"
-#include "../vector/VectorRenderer.h"
+#include "vector/VectorCoords.h"
+#include "vector/VectorRenderer.h"
 
 struct RowRenderer {
     int chunkWidth;
@@ -72,8 +72,8 @@ struct RowRenderer {
 
 #elif defined(USE_MPFR)
 
-#include "../mpfr/MPFRCoords.h"
-#include "../mpfr/MPFRRenderer.h"
+#include "mpfr/MPFRCoords.h"
+#include "mpfr/MPFRRenderer.h"
 
 struct RowRenderer {
     mpfr_t ci;
@@ -104,8 +104,8 @@ struct RowRenderer {
 
 #elif defined(USE_QD)
 
-#include "../qd/QDCoords.h"
-#include "../qd/QDRenderer.h"
+#include "qd/QDCoords.h"
+#include "qd/QDRenderer.h"
 
 struct RowRenderer {
     qd_real ci;

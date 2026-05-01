@@ -1,6 +1,6 @@
 #include "ScalarCoords.h"
 
-#include "../render/RenderGlobals.h"
+#include "render/RenderGlobals.h"
 #include "util/InlineUtil.h"
 
 FORCE_INLINE int clampCoordToImage(int coord, int size) {

@@ -2,7 +2,7 @@
 #include "CommonDefs.h"
 #include "QDCoords.h"
 
-#include "../render/RenderGlobals.h"
+#include "render/RenderGlobals.h"
 #include "util/InlineUtil.h"
 
 FORCE_INLINE int clampCoordToImage_qd(int coord, int size) {

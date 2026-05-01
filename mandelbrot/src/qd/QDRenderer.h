@@ -6,7 +6,7 @@
 #include <cstdint>
 
 #include "QDTypes.h"
-#include "../render/RenderIterationStats.h"
+#include "render/RenderIterationStats.h"
 
 #include "util/InlineUtil.h"
 

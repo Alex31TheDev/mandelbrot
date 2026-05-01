@@ -9,8 +9,8 @@
 #include "ScalarGlobals.h"
 using namespace ScalarGlobals;
 
-#include "../image/Image.h"
-#include "../render/RenderIterationStats.h"
+#include "image/Image.h"
+#include "render/RenderIterationStats.h"
 #include "util/InlineUtil.h"
 
 #ifdef USE_SCALAR
@@ -18,7 +18,7 @@ using namespace ScalarGlobals;
 
 #define _FORMULA_SCALAR
 #define _SKIP_FORMULA_OPS
-#include "../formula/FormulaTypes.h"
+#include "formula/FormulaTypes.h"
 
 FORCE_INLINE void complexInverse(
     scalar_full_t &cr, scalar_full_t &ci

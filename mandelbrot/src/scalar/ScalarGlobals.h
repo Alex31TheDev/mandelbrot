@@ -9,7 +9,7 @@
 #include "ScalarTypes.h"
 #include "util/MathConstants.h"
 
-#include "../image/Image.h"
+#include "image/Image.h"
 #include "ScalarColorPalette.h"
 #include "ScalarSinePalette.h"
 

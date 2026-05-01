@@ -4,7 +4,7 @@
 
 #include "VectorTypes.h"
 
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 
 #include "VectorColorPalette.h"
 #include "VectorSinePalette.h"

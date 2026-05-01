@@ -4,7 +4,7 @@
 #include <ostream>
 
 #include "PointParser.h"
-#include "../KeyValueWriter.h"
+#include "parsers/KeyValueWriter.h"
 
 class PointWriter : public KeyValueWriter {
 public:

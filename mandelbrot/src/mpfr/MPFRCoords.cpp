@@ -2,7 +2,7 @@
 #include "CommonDefs.h"
 #include "MPFRCoords.h"
 
-#include "../render/RenderGlobals.h"
+#include "render/RenderGlobals.h"
 
 void getOutputCenterReal_mp(mpfr_t out, int x) {
     using namespace RenderGlobals;

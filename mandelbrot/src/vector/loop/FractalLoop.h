@@ -1,4 +1,4 @@
-#include _STRING_EVAL(../../formula/fractals/_FRACTAL_TYPE.h)
+#include _STRING_EVAL(formula/fractals/_FRACTAL_TYPE.h)
 
 if (false) {}
 
@@ -14,4 +14,4 @@ if (false) {}
 #include "OuterLoop.h"
 #undef _FORMULA_TYPE
 
-#include "../../formula/UndefFormulas.h"
+#include "formula/UndefFormulas.h"

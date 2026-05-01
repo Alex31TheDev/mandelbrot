@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../FormulaTypes.h"
+#include "formula/FormulaTypes.h"
 
 #define formula_normalPower \
     new_zr = NUM_ADD(NUM_SUB(zr2, zi2), cr); \

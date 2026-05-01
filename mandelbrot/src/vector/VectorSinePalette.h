@@ -4,7 +4,7 @@
 
 #include "VectorTypes.h"
 
-#include "../scalar/ScalarSinePalette.h"
+#include "scalar/ScalarSinePalette.h"
 
 class VectorSinePalette {
 public:

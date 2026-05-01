@@ -5,8 +5,8 @@
 #include <cstdint>
 
 #include "VectorTypes.h"
-#include "../scalar/ScalarTypes.h"
-#include "../render/RenderIterationStats.h"
+#include "scalar/ScalarTypes.h"
+#include "render/RenderIterationStats.h"
 
 #include "util/InlineUtil.h"
 

@@ -1,4 +1,4 @@
-#include "../../formula/DefineFormulas.h"
+#include "formula/DefineFormulas.h"
 
 else if (_CONCAT2(_FORMULA_NAME, Power)) {
     switch (colorMethod) {
@@ -16,4 +16,4 @@ else if (_CONCAT2(_FORMULA_NAME, Power)) {
     }
 }
 
-#include "../../formula/UndefFormulas.h"
+#include "formula/UndefFormulas.h"

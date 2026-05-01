@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "../image/Image.h"
+#include "image/Image.h"
 
 #include "RenderIterationStats.h"
 

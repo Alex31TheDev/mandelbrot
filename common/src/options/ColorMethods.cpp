@@ -3,7 +3,7 @@
 #include <string_view>
 #include <algorithm>
 
-#include "../util/RangeUtil.h"
+#include "util/RangeUtil.h"
 
 namespace ColorMethods {
     DEFINE_RANGE_ARRAY(ColorMethod, colorMethods,

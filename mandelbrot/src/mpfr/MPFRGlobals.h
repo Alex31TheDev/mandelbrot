@@ -4,7 +4,7 @@
 
 #include <mpfr.h>
 
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 
 namespace MPFRGlobals {
     constexpr int MIN_PRECISION_DIGITS = 20;

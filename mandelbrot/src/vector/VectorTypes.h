@@ -11,7 +11,7 @@ PUSH_DISABLE_WARNINGS
 POP_DISABLE_WARNINGS
 #endif
 
-#include "../scalar/ScalarTypes.h"
+#include "scalar/ScalarTypes.h"
 
 #include "util/MacroUtil.h"
 #include "util/InlineUtil.h"

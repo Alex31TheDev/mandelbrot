@@ -8,8 +8,8 @@
 #include "VectorTypes.h"
 #include "VectorColor.h"
 
-#include "../scalar/ScalarTypes.h"
-#include "../scalar/ScalarColorPalette.h"
+#include "scalar/ScalarTypes.h"
+#include "scalar/ScalarColorPalette.h"
 
 #include "util/InlineUtil.h"
 

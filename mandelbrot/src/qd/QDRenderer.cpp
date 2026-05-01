@@ -4,21 +4,21 @@
 
 #include <cstdint>
 
-#include "../scalar/ScalarTypes.h"
+#include "scalar/ScalarTypes.h"
 #include "QDTypes.h"
 
 #include "QDGlobals.h"
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 using namespace QDGlobals;
 using namespace ScalarGlobals;
 
 #include "QDCoords.h"
-#include "../scalar/ScalarRenderer.h"
-#include "../render/RenderIterationStats.h"
+#include "scalar/ScalarRenderer.h"
+#include "render/RenderIterationStats.h"
 
 #define FORMULA_QD
 #define _SKIP_FORMULA_OPS
-#include "../formula/FormulaTypes.h"
+#include "formula/FormulaTypes.h"
 
 #include "util/InlineUtil.h"
 

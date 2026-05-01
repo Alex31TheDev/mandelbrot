@@ -4,11 +4,11 @@
 
 #include <vector>
 
-#include "../scalar/ScalarTypes.h"
+#include "scalar/ScalarTypes.h"
 #include "VectorTypes.h"
 #include "VectorColor.h"
 
-#include "../scalar/ScalarColorPalette.h"
+#include "scalar/ScalarColorPalette.h"
 
 #include "util/InlineUtil.h"
 

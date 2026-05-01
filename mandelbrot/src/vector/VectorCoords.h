@@ -5,7 +5,7 @@
 #include <array>
 #include <utility>
 
-#include "../scalar/ScalarTypes.h"
+#include "scalar/ScalarTypes.h"
 #include "VectorTypes.h"
 
 #include "VectorGlobals.h"

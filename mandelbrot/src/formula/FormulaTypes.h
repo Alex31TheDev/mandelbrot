@@ -6,7 +6,7 @@
 #define _USE_FUSED_OPS 0
 
 #if defined(_FORMULA_SCALAR)
-#include "../scalar/ScalarTypes.h"
+#include "scalar/ScalarTypes.h"
 
 typedef scalar_full_t number_t;
 typedef scalar_full_2_t number_2_t;
@@ -46,7 +46,7 @@ typedef scalar_full_t number_param_t;
 #define NUM_SINCOS SINCOS_F
 
 #elif defined(_FORMULA_VECTOR)
-#include "../vector/VectorTypes.h"
+#include "vector/VectorTypes.h"
 
 #undef _USE_FUSED_OPS
 #define _USE_FUSED_OPS VEC_FUSED_OPS
@@ -89,7 +89,7 @@ typedef simd_full_t number_param_t;
 #define NUM_SINCOS SIMD_SINCOS_F
 
 #elif defined(FORMULA_QD)
-#include "../qd/QDTypes.h"
+#include "qd/QDTypes.h"
 
 typedef qd_number_t number_t;
 typedef qd_num_2_t number_2_t;
@@ -129,7 +129,7 @@ typedef qd_param_t number_param_t;
 #define NUM_SINCOS sincos_qd
 
 #elif defined(FORMULA_MPFR)
-#include "../mpfr/MPFRTypes.h"
+#include "mpfr/MPFRTypes.h"
 
 typedef mpfr_number_t number_t;
 typedef mpfr_num_2_t number_2_t;
@@ -175,7 +175,7 @@ typedef mpfr_param_t number_param_t;
 #ifndef MPFR_FORMULA_SHARED_HELPERS
 #define MPFR_FORMULA_SHARED_HELPERS
 
-#include "../mpfr/MPFRScratch.h"
+#include "mpfr/MPFRScratch.h"
 
 static FORCE_INLINE void setSign_mp(mpfr_t out, mpfr_srcptr in) {
     mpfr_set_si(out, mpfr_sgn(in), MPFRTypes::ROUNDING);
@@ -250,7 +250,7 @@ static FORCE_INLINE void fractionalFormulaCore_mp(
 #error "Must define a formula type."
 #endif
 
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 #define N_VAR NUM_VAR(ScalarGlobals::N)
 
 constexpr int OP_CONST = 0;

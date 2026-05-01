@@ -4,7 +4,7 @@
 
 #include "QDTypes.h"
 
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 
 namespace QDGlobals {
     using namespace ScalarGlobals;

@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "MPFRTypes.h"
-#include "../render/RenderIterationStats.h"
+#include "render/RenderIterationStats.h"
 
 namespace MPFRRenderer {
     void initCoordsMPFR(mpfr_t cr, mpfr_t ci,

@@ -4,7 +4,7 @@
 
 #include "VectorTypes.h"
 
-#include "../scalar/ScalarGlobals.h"
+#include "scalar/ScalarGlobals.h"
 using namespace ScalarGlobals;
 
 namespace VectorGlobals {

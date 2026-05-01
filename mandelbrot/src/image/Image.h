@@ -11,7 +11,7 @@
 #include "BackendAPI.h"
 
 #ifdef USE_VECTORS
-#include "../vector/VectorTypes.h"
+#include "vector/VectorTypes.h"
 #endif
 
 #include "util/BufferUtil.h"

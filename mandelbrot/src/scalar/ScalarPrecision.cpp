@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "ScalarGlobals.h"
-#include "../render/RenderGlobals.h"
+#include "render/RenderGlobals.h"
 using namespace ScalarGlobals;
 using namespace RenderGlobals;
 

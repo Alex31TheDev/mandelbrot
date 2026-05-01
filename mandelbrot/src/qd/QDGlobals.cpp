@@ -6,8 +6,8 @@
 
 #include "QDTypes.h"
 
-#include "../scalar/ScalarGlobals.h"
-#include "../render/RenderGlobals.h"
+#include "scalar/ScalarGlobals.h"
+#include "render/RenderGlobals.h"
 using namespace ScalarGlobals;
 using namespace RenderGlobals;
 
