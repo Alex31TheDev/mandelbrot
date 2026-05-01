@@ -31,7 +31,7 @@ PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig& palette,
     _ui->setupUi(this);
 
     _ui->nameEdit->setText(_savedPaletteName.isEmpty()
-            ? QString::fromLatin1(GUI::PaletteStore::kDefaultName)
+            ? QString::fromLatin1(GUI::PaletteStore::defaultName)
             : _savedPaletteName);
     _ui->nameEdit->setValidator(new QRegularExpressionValidator(
         QRegularExpression("[A-Za-z0-9 _.\\-]*"), _ui->nameEdit));

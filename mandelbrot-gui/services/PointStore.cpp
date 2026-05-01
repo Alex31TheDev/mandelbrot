@@ -2,6 +2,8 @@
 
 #include <system_error>
 
+#include <QCoreApplication>
+
 #include "parsers/point/PointParser.h"
 #include "parsers/point/PointWriter.h"
 #include "util/PathUtil.h"
@@ -17,7 +19,8 @@ bool GUI::PointStore::ensureDirectory(QString& errorMessage) {
     std::filesystem::create_directories(directoryPath(), ec);
     if (!ec) return true;
 
-    errorMessage = QString("Failed to create views directory: %1")
+    errorMessage = QCoreApplication::translate(
+                       "PointStore", "Failed to create views directory: %1")
                        .arg(QString::fromStdString(ec.message()));
     return false;
 }

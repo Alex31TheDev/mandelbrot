@@ -38,7 +38,8 @@ foreach ($runtimeName in $RuntimeNames) {
     $whereResults = @()
     try {
         $whereResults = @(where.exe $runtimeName 2>$null)
-    } catch {
+    }
+    catch {
         $whereResults = @()
     }
 
@@ -56,8 +57,8 @@ foreach ($runtimeName in $RuntimeNames) {
             }
 
             $candidate = Get-ChildItem -Path (Join-Path $root "*\\bin\\$runtimeName") -File -ErrorAction SilentlyContinue |
-                Sort-Object FullName -Descending |
-                Select-Object -First 1
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
             if ($candidate) {
                 $sourcePath = $candidate.FullName
                 break
@@ -70,7 +71,8 @@ foreach ($runtimeName in $RuntimeNames) {
         Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force
         $copied.Add($runtimeName) | Out-Null
         Write-Host "Copied Intel runtime $runtimeName from $sourcePath"
-    } else {
+    }
+    else {
         $missing.Add($runtimeName) | Out-Null
         Write-Warning "Could not locate Intel runtime $runtimeName."
     }

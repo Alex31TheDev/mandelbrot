@@ -27,7 +27,7 @@ BackendModule &BackendModule::operator=(BackendModule &&other) noexcept {
         _sessions = std::move(other._sessions);
         _createSession = other._createSession;
         _destroySession = other._destroySession;
-        
+
         other._module = nullptr;
         other._createSession = nullptr;
         other._destroySession = nullptr;
@@ -78,10 +78,10 @@ BackendModule loadBackendModule(const std::filesystem::path &exeDir,
 
     const auto createSession = reinterpret_cast<CreateBackendFunc>(
         GetProcAddress(module, "mandelbrot_backend_create")
-    );
+        );
     const auto destroySession = reinterpret_cast<DestroyBackendFunc>(
         GetProcAddress(module, "mandelbrot_backend_destroy")
-    );
+        );
 
     if (!createSession || !destroySession) {
         err = "Backend DLL is missing backend factory exports.";

@@ -1,14 +1,10 @@
-#include "AppSettings.h"
+#include "settings/AppSettings.h"
 
 #include <algorithm>
 #include <filesystem>
 
+#include "app/GUIConstants.h"
 #include "util/PathUtil.h"
-
-namespace {
-    constexpr int kDefaultOutputWidth = 1920;
-    constexpr int kDefaultOutputHeight = 1080;
-}
 
 static QString settingsPath() {
     const std::filesystem::path path
@@ -66,7 +62,9 @@ void AppSettings::setPreferredBackend(const QString &backend) {
 }
 
 int AppSettings::previewFallbackFPS() const {
-    return _settings.value("render/previewFallbackFPS", 30).toInt();
+    return _settings.value(
+        "render/previewFallbackFPS", GUI::Constants::defaultInteractionTargetFPS)
+        .toInt();
 }
 
 void AppSettings::setPreviewFallbackFPS(int fps) {
@@ -75,7 +73,10 @@ void AppSettings::setPreviewFallbackFPS(int fps) {
 
 int AppSettings::selectedOutputWidth() const {
     return std::max(
-        1, _settings.value("render/outputWidth", kDefaultOutputWidth).toInt());
+        1,
+        _settings
+            .value("render/outputWidth", GUI::Constants::defaultOutputWidth)
+            .toInt());
 }
 
 void AppSettings::setSelectedOutputWidth(int width) {
@@ -84,7 +85,9 @@ void AppSettings::setSelectedOutputWidth(int width) {
 
 int AppSettings::selectedOutputHeight() const {
     return std::max(1,
-        _settings.value("render/outputHeight", kDefaultOutputHeight).toInt());
+        _settings
+            .value("render/outputHeight", GUI::Constants::defaultOutputHeight)
+            .toInt());
 }
 
 void AppSettings::setSelectedOutputHeight(int height) {
@@ -92,5 +95,10 @@ void AppSettings::setSelectedOutputHeight(int height) {
 }
 
 void AppSettings::sync() {
+    _settings.sync();
+}
+
+void AppSettings::clearPersistedSettings() {
+    _settings.clear();
     _settings.sync();
 }

@@ -5,7 +5,7 @@
 #include <QKeySequence>
 #include <QString>
 
-#include "AppSettings.h"
+#include "settings/AppSettings.h"
 
 struct ShortcutDef {
     QString id;

@@ -27,9 +27,10 @@ namespace NumberUtil {
         return std::fabs(a - b) <= epsilon;
     }
 
-    bool equalParsedDoubleText(std::string_view a,
-        std::string_view b,
-        double epsilon) {
+    bool equalParsedDoubleText(
+        std::string_view a, std::string_view b,
+        double epsilon
+    ) {
         if (StringUtil::trimWhitespace(a) ==
             StringUtil::trimWhitespace(b)) {
             return true;

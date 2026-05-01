@@ -69,15 +69,15 @@
     <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(MSBuildProjectDirectory)\bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <QtDeploy>false</QtDeploy>
     <QtDeployDebugRelease>debug</QtDeployDebugRelease>
     <QtDeployPdb>true</QtDeployPdb>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(MSBuildProjectDirectory)\bin\obj\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <QtDeploy>false</QtDeploy>
     <QtDeployDebugRelease>release</QtDeployDebugRelease>
   </PropertyGroup>
@@ -117,23 +117,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AppSettings.h" />
+    <ClInclude Include="settings\AppSettings.h" />
     <ClInclude Include="services\NativeFileDialog.h" />
     <ClInclude Include="services\PaletteStore.h" />
     <ClInclude Include="services\BackendCatalog.h" />
     <ClInclude Include="services\PointStore.h" />
     <ClInclude Include="services\SineStore.h" />
     <ClInclude Include="util\GUIUtil.h" />
-    <ClInclude Include="GUITypes.h" />
+    <ClInclude Include="app\GUIConstants.h" />
+    <QtMoc Include="app\GUIAppController.h" />
+    <QtMoc Include="controllers\ViewportController.h" />
+    <ClInclude Include="app\GUITypes.h" />
+    <QtMoc Include="app\GUISessionState.h" />
+    <QtMoc Include="runtime\RenderController.h" />
     <ClInclude Include="windows\viewport\ViewportHost.h" />
     <QtMoc Include="windows\viewport\ViewportWindow.h" />
     <QtMoc Include="windows\control\ControlWindow.h" />
     <QtMoc Include="dialogs\about\AboutDialog.h" />
     <QtMoc Include="dialogs\help\HelpDialog.h" />
     <QtMoc Include="dialogs\palette\PaletteDialog.h" />
-    <QtMoc Include="GUILocale.h" />
+    <QtMoc Include="locale\GUILocale.h" />
     <QtMoc Include="dialogs\settings\SettingsDialog.h" />
-    <ClInclude Include="Shortcuts.h" />
+    <ClInclude Include="settings\Shortcuts.h" />
     <QtMoc Include="widgets\AdaptiveDoubleSpinBox.h" />
     <QtMoc Include="widgets\CollapsibleGroupBox.h" />
     <QtMoc Include="widgets\IterationSpinBox.h" />
@@ -142,21 +147,25 @@
     <QtMoc Include="widgets\PalettePreviewWidget.h" />
     <QtMoc Include="widgets\PaletteTimelineWidget.h" />
     <QtMoc Include="widgets\SinePreviewWidget.h" />
-    <ClCompile Include="AppSettings.cpp" />
+    <ClCompile Include="settings\AppSettings.cpp" />
     <ClCompile Include="services\NativeFileDialog.cpp" />
     <ClCompile Include="services\PaletteStore.cpp" />
     <ClCompile Include="services\BackendCatalog.cpp" />
     <ClCompile Include="services\PointStore.cpp" />
     <ClCompile Include="services\SineStore.cpp" />
     <ClCompile Include="util\GUIUtil.cpp" />
-    <ClCompile Include="GUILocale.cpp" />
+    <ClCompile Include="app\GUIAppController.cpp" />
+    <ClCompile Include="controllers\ViewportController.cpp" />
+    <ClCompile Include="locale\GUILocale.cpp" />
+    <ClCompile Include="app\GUISessionState.cpp" />
+    <ClCompile Include="runtime\RenderController.cpp" />
     <ClCompile Include="windows\control\ControlWindow.cpp" />
     <ClCompile Include="dialogs\about\AboutDialog.cpp" />
     <ClCompile Include="dialogs\help\HelpDialog.cpp" />
     <ClCompile Include="dialogs\palette\PaletteDialog.cpp" />
     <ClCompile Include="windows\viewport\ViewportWindow.cpp" />
     <ClCompile Include="dialogs\settings\SettingsDialog.cpp" />
-    <ClCompile Include="Shortcuts.cpp" />
+    <ClCompile Include="settings\Shortcuts.cpp" />
     <ClCompile Include="widgets\AdaptiveDoubleSpinBox.cpp" />
     <ClCompile Include="widgets\CollapsibleGroupBox.cpp" />
     <ClCompile Include="widgets\IterationSpinBox.cpp" />

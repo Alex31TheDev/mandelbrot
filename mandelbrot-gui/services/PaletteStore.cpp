@@ -4,6 +4,7 @@
 #include <system_error>
 
 #include <QColor>
+#include <QCoreApplication>
 #include <QFileInfo>
 
 #include "parsers/palette/PaletteParser.h"
@@ -58,7 +59,8 @@ bool GUI::PaletteStore::ensureDirectory(QString& errorMessage) {
     std::filesystem::create_directories(directoryPath(), ec);
     if (!ec) return true;
 
-    errorMessage = QString("Failed to create palette directory: %1")
+    errorMessage = QCoreApplication::translate(
+                       "PaletteStore", "Failed to create palette directory: %1")
                        .arg(QString::fromStdString(ec.message()));
     return false;
 }
@@ -93,7 +95,7 @@ QString GUI::PaletteStore::sanitizeName(const QString& name) {
 
     sanitized = sanitized.simplified();
     if (sanitized.isEmpty() || sanitized == "." || sanitized == "..") {
-        sanitized = "palette";
+        sanitized = QCoreApplication::translate("PaletteStore", "palette");
     }
 
     return sanitized;
@@ -119,8 +121,8 @@ QStringList GUI::PaletteStore::listNames() {
     names.removeDuplicates();
     std::sort(
         names.begin(), names.end(), [](const QString& a, const QString& b) {
-            if (a.compare(kDefaultName, Qt::CaseInsensitive) == 0) return true;
-            if (b.compare(kDefaultName, Qt::CaseInsensitive) == 0) return false;
+            if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
+            if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
             return a.compare(b, Qt::CaseInsensitive) < 0;
         });
     return names;
@@ -171,7 +173,8 @@ bool GUI::PaletteStore::loadNamed(const QString& name,
     Backend::PaletteHexConfig& palette, QString& errorMessage) {
     const QString normalizedName = normalizeName(name);
     if (normalizedName.isEmpty()) {
-        errorMessage = "Palette name is empty.";
+        errorMessage = QCoreApplication::translate(
+            "PaletteStore", "Palette name is empty.");
         return false;
     }
 
@@ -180,7 +183,9 @@ bool GUI::PaletteStore::loadNamed(const QString& name,
         return loadFromPath(sourcePath, palette, errorMessage);
     }
 
-    errorMessage = QString("Palette not found: %1").arg(normalizedName);
+    errorMessage = QCoreApplication::translate(
+                       "PaletteStore", "Palette not found: %1")
+                       .arg(normalizedName);
     return false;
 }
 
@@ -211,8 +216,8 @@ bool GUI::PaletteStore::saveNamed(const QString& name,
     std::filesystem::path& destinationPath, QString& errorMessage) {
     const QString normalizedName = normalizeName(name);
     if (!isValidName(normalizedName)) {
-        errorMessage =
-            "Use an ASCII name with letters, numbers, spaces, ., _, or -.";
+        errorMessage = QCoreApplication::translate("PaletteStore",
+            "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
         return false;
     }
 
@@ -230,8 +235,8 @@ bool GUI::PaletteStore::saveFromDialogPath(const QString& savePath,
     savedName = normalizeName(
         QFileInfo(savePathWithExtension).completeBaseName());
     if (!isValidName(savedName)) {
-        errorMessage =
-            "Use an ASCII name with letters, numbers, spaces, ., _, or -.";
+        errorMessage = QCoreApplication::translate("PaletteStore",
+            "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
         return false;
     }
 
@@ -310,7 +315,7 @@ std::vector<PaletteStop> GUI::PaletteStore::configToStops(
 Backend::PaletteHexConfig GUI::PaletteStore::stopsToConfig(
     const std::vector<PaletteStop>& stops, float totalLength, float offset,
     bool blendEnds) {
-    constexpr double kLoopEndpointEpsilon = 1e-4;
+    const double loopEndpointEpsilon = 1e-4;
     Backend::PaletteHexConfig palette;
     palette.totalLength = totalLength;
     palette.offset = offset;
@@ -329,8 +334,9 @@ Backend::PaletteHexConfig GUI::PaletteStore::stopsToConfig(
         });
 
     if (blendEnds && sorted.size() >= 2 && sorted.back().pos >= 1.0) {
-        const double minPos = std::min(1.0 - kLoopEndpointEpsilon,
-            sorted[sorted.size() - 2].pos + kLoopEndpointEpsilon);
+        const double minPos = std::min(
+            1.0 - loopEndpointEpsilon,
+            sorted[sorted.size() - 2].pos + loopEndpointEpsilon);
         sorted.back().pos = minPos;
     }
 

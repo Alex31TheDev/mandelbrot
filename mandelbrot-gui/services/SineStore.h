@@ -8,7 +8,7 @@
 #include "BackendAPI.h"
 
 namespace GUI::SineStore {
-inline constexpr auto kDefaultName = "default";
+inline constexpr auto defaultName = "default";
 
 [[nodiscard]] Backend::SinePaletteConfig makeNewConfig();
 [[nodiscard]] bool sameConfig(

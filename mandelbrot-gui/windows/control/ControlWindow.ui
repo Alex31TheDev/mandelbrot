@@ -174,7 +174,7 @@
           <property name="checked">
            <bool>true</bool>
           </property>
-          <layout class="QGridLayout" name="renderLayout">
+          <layout class="QFormLayout" name="renderLayout">
            <item row="0" column="0">
             <widget class="QLabel" name="backendLabel">
              <property name="text">
@@ -182,7 +182,7 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1" colspan="3">
+            <item row="0" column="1">
             <widget class="QComboBox" name="backendCombo">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
@@ -205,7 +205,7 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="1" colspan="3">
+            <item row="1" column="1">
             <widget class="IterationSpinBox" name="iterationsSpin">
              <property name="specialValueText">
               <string>Auto</string>
@@ -222,7 +222,7 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1" colspan="3">
+            <item row="2" column="1">
             <widget class="QComboBox" name="colorMethodCombo">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
@@ -245,7 +245,7 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="1" colspan="3">
+            <item row="3" column="1">
             <widget class="QComboBox" name="fractalCombo">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
@@ -261,19 +261,51 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="1">
-            <widget class="QCheckBox" name="juliaCheck">
-             <property name="text">
-              <string>Julia</string>
+            <item row="4" column="1">
+            <layout class="QHBoxLayout" name="renderModeFlagsLayout">
+             <property name="spacing">
+              <number>12</number>
              </property>
-            </widget>
-           </item>
-           <item row="4" column="2">
-            <widget class="QCheckBox" name="inverseCheck">
-             <property name="text">
-              <string>Inverse</string>
+             <property name="leftMargin">
+              <number>0</number>
              </property>
-            </widget>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QCheckBox" name="juliaCheck">
+               <property name="text">
+                <string>Julia</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="inverseCheck">
+               <property name="text">
+                <string>Inverse</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="renderModeFlagsSpacer">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -1223,12 +1255,13 @@
     <addaction name="actionHome"/>
     <addaction name="actionOpenView"/>
     <addaction name="actionSaveView"/>
-    <addaction name="separatorFileView"/>
+    <addaction name="separator"/>
     <addaction name="actionSaveImage"/>
     <addaction name="actionQuickSave"/>
-    <addaction name="separatorFileSave"/>
+    <addaction name="separator"/>
     <addaction name="actionSettings"/>
-    <addaction name="separatorFileExit"/>
+    <addaction name="actionClearSavedSettings"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -1237,7 +1270,7 @@
     </property>
     <addaction name="actionCycleMode"/>
     <addaction name="actionCycleGrid"/>
-    <addaction name="actionMinimalUi"/>
+    <addaction name="actionMinimalUI"/>
     <addaction name="actionFullscreen"/>
    </widget>
    <widget class="QMenu" name="menuRender">
@@ -1274,11 +1307,6 @@
     <string>Save View</string>
    </property>
   </action>
-  <action name="separatorFileView">
-   <property name="separator" stdset="0">
-    <bool>true</bool>
-   </property>
-  </action>
   <action name="actionSaveImage">
    <property name="text">
     <string>Save Image</string>
@@ -1289,19 +1317,14 @@
     <string>Quick Save</string>
    </property>
   </action>
-  <action name="separatorFileSave">
-   <property name="separator" stdset="0">
-    <bool>true</bool>
-   </property>
-  </action>
   <action name="actionSettings">
    <property name="text">
     <string>Settings</string>
    </property>
   </action>
-  <action name="separatorFileExit">
-   <property name="separator" stdset="0">
-    <bool>true</bool>
+  <action name="actionClearSavedSettings">
+   <property name="text">
+    <string>Clear Saved Settings</string>
    </property>
   </action>
   <action name="actionExit">
@@ -1319,7 +1342,7 @@
     <string>Cycle Grid</string>
    </property>
   </action>
-  <action name="actionMinimalUi">
+  <action name="actionMinimalUI">
    <property name="text">
     <string>Toggle Viewport Overlay</string>
    </property>

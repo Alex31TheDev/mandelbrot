@@ -10,7 +10,7 @@
 #include <QSize>
 #include <QString>
 
-#include "GUITypes.h"
+#include "app/GUITypes.h"
 
 class ViewportHost {
 public:
@@ -24,7 +24,6 @@ public:
     virtual void pickAtPixel(const QPoint& pixel) = 0;
     virtual void updateMouseCoords(const QPoint& pixel) = 0;
     virtual void clearMouseCoords() = 0;
-    virtual void requestApplicationShutdown(bool closeViewportWindow) = 0;
     virtual void adjustIterationsBy(int delta) = 0;
     virtual void cycleNavMode() = 0;
     virtual void cancelQueuedRenders() = 0;
@@ -38,6 +37,7 @@ public:
     [[nodiscard]] virtual bool renderInFlight() const = 0;
     [[nodiscard]] virtual QSize outputSize() const = 0;
     [[nodiscard]] virtual const QImage& previewImage() const = 0;
+    [[nodiscard]] virtual bool previewUsesBackendMemory() const = 0;
     [[nodiscard]] virtual bool hasDisplayedViewState() const = 0;
     [[nodiscard]] virtual ViewTextState currentViewTextState() const = 0;
     [[nodiscard]] virtual ViewTextState displayedViewTextState() const = 0;
@@ -46,6 +46,9 @@ public:
         = 0;
     virtual bool previewScaledViewState(const QPoint& pixel,
         double scaleMultiplier, ViewTextState& view, QString& errorMessage)
+        = 0;
+    virtual bool previewBoxZoomViewState(
+        const QRect& selectionRect, ViewTextState& view, QString& errorMessage)
         = 0;
     virtual bool mapViewPixelToViewPixel(const ViewTextState& sourceView,
         const ViewTextState& targetView, const QPoint& pixel,

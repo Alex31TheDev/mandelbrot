@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <system_error>
 
+#include <QCoreApplication>
+
 #include "util/PathUtil.h"
 
 int GUI::BackendCatalog::typeRank(const QString& name) {
@@ -33,7 +35,8 @@ QStringList GUI::BackendCatalog::listNames(QString& errorMessage) {
     std::error_code ec;
     const std::filesystem::path dir = PathUtil::executableDir() / "backends";
     if (!std::filesystem::exists(dir, ec) || ec) {
-        errorMessage = "Backend directory was not found.";
+        errorMessage = QCoreApplication::translate(
+            "BackendCatalog", "Backend directory was not found.");
         return names;
     }
 
@@ -60,9 +63,11 @@ QStringList GUI::BackendCatalog::listNames(QString& errorMessage) {
             if (precisionA != precisionB) return precisionA < precisionB;
 
             return a.compare(b, Qt::CaseInsensitive) < 0;
-        });
+    });
     if (names.isEmpty()) {
-        errorMessage = "No backend DLLs were found in the backends directory.";
+        errorMessage = QCoreApplication::translate(
+            "BackendCatalog",
+            "No backend DLLs were found in the backends directory.");
     }
 
     return names;

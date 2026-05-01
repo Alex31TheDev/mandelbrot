@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <array>
 #include <optional>
 
 #include <QPoint>
@@ -10,18 +9,7 @@
 #include <QString>
 
 #include "BackendAPI.h"
-
-inline constexpr auto kDefaultBackendType = "FloatAVX2";
-inline constexpr int kDefaultInteractionTargetFPS = 30;
-inline constexpr int kPreviewStillMs = 5000;
-inline constexpr int kPrecisionInteractionDelayMs = 200;
-inline constexpr double kBoostedPanSpeedFactor = 2.0;
-inline constexpr std::array<double, 21> kZoomStepTable
-    = { 1.000625, 1.00125, 1.0025, 1.005, 1.01, 1.015, 1.02, 1.025, 1.03, 1.04,
-          1.05, 1.06, 1.07, 1.08, 1.09, 1.10, 1.11, 1.12, 1.14, 1.17, 1.20 };
-inline constexpr int kGridModes[] = { 0, 2, 3, 5, 9 };
-inline constexpr int kGridModeCount
-    = sizeof(kGridModes) / sizeof(kGridModes[0]);
+#include "app/GUIConstants.h"
 
 enum class NavMode { realtimeZoom, zoom, pan };
 
@@ -44,12 +32,12 @@ struct GUIState {
     bool preserveRatio = true;
     bool julia = false;
     bool inverse = false;
-    int outputWidth = 1920;
-    int outputHeight = 1080;
+    int outputWidth = GUI::Constants::defaultOutputWidth;
+    int outputHeight = GUI::Constants::defaultOutputHeight;
     int panRate = 8;
     int zoomRate = 8;
-    int interactionTargetFPS = kDefaultInteractionTargetFPS;
-    double zoom = -0.65;
+    int interactionTargetFPS = GUI::Constants::defaultInteractionTargetFPS;
+    double zoom = GUI::Constants::homeZoom;
     double exponent = 2.0;
     QPointF point = { 0.0, 0.0 };
     QPointF seed = { 0.0, 0.0 };
@@ -89,4 +77,13 @@ struct RenderRequest {
     QString seedImagText;
     std::optional<PendingPickAction> pickAction;
     uint64_t id = 0;
+};
+
+struct GUIRenderSnapshot {
+    GUIState state;
+    QString pointRealText;
+    QString pointImagText;
+    QString zoomText;
+    QString seedRealText;
+    QString seedImagText;
 };

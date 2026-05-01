@@ -6,8 +6,8 @@
 #include <QDialog>
 #include <QKeySequenceEdit>
 
-#include "AppSettings.h"
-#include "Shortcuts.h"
+#include "settings/AppSettings.h"
+#include "settings/Shortcuts.h"
 
 namespace Ui {
 class SettingsDialog;

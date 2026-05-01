@@ -21,6 +21,8 @@ void markLineEditTextCommitted(QLineEdit* edit);
 void setCommittedLineEditText(QLineEdit* edit, const QString& text);
 [[nodiscard]] bool hasUncommittedLineEditChange(const QLineEdit* edit);
 
+[[nodiscard]] QString translatedNewEntryLabel();
+[[nodiscard]] QString translatedUnsavedLabelSuffix();
 [[nodiscard]] QString decorateUnsavedLabel(const QString& name, bool unsaved);
 [[nodiscard]] QString undecoratedLabel(const QString& name);
 [[nodiscard]] QString uniqueIndexedNameFromList(
@@ -34,6 +36,11 @@ void setCommittedLineEditText(QLineEdit* edit, const QString& text);
 [[nodiscard]] Backend::FractalType fractalTypeFromConfigString(
     const QString& value);
 [[nodiscard]] double clampGUIZoom(double zoom);
+[[nodiscard]] QString defaultPixelsPerSecondText();
+[[nodiscard]] QString defaultImageMemoryText();
+[[nodiscard]] QString defaultViewportFPSText();
+[[nodiscard]] QString formatViewportFPSText(double fps);
+[[nodiscard]] QString formatPixelsPerSecondText(const QString& pixelsPerSecond);
 [[nodiscard]] QString formatImageMemoryText(const Backend::ImageEvent& event);
 
 [[nodiscard]] QColor lightColorToQColor(const Backend::LightColor& color);

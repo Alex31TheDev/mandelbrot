@@ -1,6 +1,9 @@
 #include "ViewportWindow.h"
 
+#include <QApplication>
+
 #include "ui_ViewportWindow.h"
+#include "app/GUIConstants.h"
 #include "util/NumberUtil.h"
 
 ViewportWindow::ViewportWindow(ViewportHost* host)
@@ -125,6 +128,18 @@ ViewTextState ViewportWindow::targetPreviewView() const {
         }
     }
 
+    if (!_selectionRect.isNull()) {
+        QString error;
+        ViewTextState boxZoomView;
+        if (_host->previewBoxZoomViewState(
+                _mapToOutputRect(_selectionRect.normalized()), boxZoomView, error)) {
+            view = boxZoomView;
+        } else {
+            view.valid = false;
+            return view;
+        }
+    }
+
     return view;
 }
 
@@ -242,17 +257,25 @@ void ViewportWindow::paintEvent(QPaintEvent*) {
 
     const QImage& image = _host->previewImage();
     if (!image.isNull()) {
+        const bool selectionPreviewActive = !_selectionRect.isNull();
         const bool usePreviewFallback
             = _host && _host->shouldUseInteractionPreviewFallback();
-        const std::optional<PreviewTransform> transform
-            = usePreviewFallback ? previewTransform() : std::nullopt;
-        if (transform) {
+        const std::optional<PreviewTransform> availableTransform
+            = (usePreviewFallback || selectionPreviewActive)
+            ? previewTransform()
+            : std::nullopt;
+        const bool transformedPreview = availableTransform.has_value();
+        const QImage drawImage = (transformedPreview
+                                     && _host->previewUsesBackendMemory())
+            ? image.copy()
+            : image;
+        if (availableTransform) {
             painter.save();
-            painter.translate(transform->translation);
-            painter.translate(transform->center);
-            painter.scale(transform->scaleX, transform->scaleY);
-            painter.translate(-transform->center);
-            painter.drawImage(rect(), image);
+            painter.translate(availableTransform->translation);
+            painter.translate(availableTransform->center);
+            painter.scale(availableTransform->scaleX, availableTransform->scaleY);
+            painter.translate(-availableTransform->center);
+            painter.drawImage(rect(), drawImage);
             painter.restore();
         } else {
             painter.drawImage(rect(), image);
@@ -379,8 +402,9 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent* event) {
         if (dragMagnitude > 0) {
             _zoomOutDragMoved = true;
             const double zoomFactor
-                = _host ? _host->zoomRateFactor() : kZoomStepTable[8];
-            constexpr double zoomOutDragPixelsPerStep = 12.0;
+                = _host ? _host->zoomRateFactor()
+                        : GUI::Constants::zoomStepTable[8];
+            const double zoomOutDragPixelsPerStep = 12.0;
             const double stepScale = std::pow(zoomFactor,
                 static_cast<double>(dragMagnitude) / zoomOutDragPixelsPerStep);
             _zoomOutPreviewScale
@@ -651,21 +675,20 @@ void ViewportWindow::closeEvent(QCloseEvent* event) {
     if (mouseGrabber() == this) {
         releaseMouse();
     }
-    if (_host) {
-        event->ignore();
-        _host->requestApplicationShutdown(true);
-        return;
-    }
     event->accept();
+    QMetaObject::invokeMethod(
+        qApp, &QCoreApplication::quit, Qt::QueuedConnection);
 }
 
 void ViewportWindow::cycleGridMode() {
     int idx = 0;
-    while (idx < kGridModeCount && kGridModes[idx] != _gridDivisions)
+    while (idx < static_cast<int>(GUI::Constants::gridModes.size())
+        && GUI::Constants::gridModes[idx] != _gridDivisions) {
         ++idx;
-    idx = (idx + 1) % kGridModeCount;
+    }
+    idx = (idx + 1) % static_cast<int>(GUI::Constants::gridModes.size());
 
-    _gridDivisions = kGridModes[idx];
+    _gridDivisions = GUI::Constants::gridModes[idx];
     update();
 }
 
@@ -742,7 +765,8 @@ int ViewportWindow::_baseInteractionTickIntervalMs() const {
 }
 
 int ViewportWindow::_precisionInteractionTickIntervalMs() const {
-    return _precisionModifierActive() ? kPrecisionInteractionDelayMs
+    return _precisionModifierActive()
+        ? GUI::Constants::precisionInteractionDelayMs
                                       : _baseInteractionTickIntervalMs();
 }
 
@@ -943,8 +967,9 @@ void ViewportWindow::_applyArrowPanStep() {
     }
     if (_speedModifierActive()) {
         step = std::max(1,
-            static_cast<int>(std::lround(
-                static_cast<double>(step) * kBoostedPanSpeedFactor)));
+                static_cast<int>(std::lround(
+                static_cast<double>(step)
+                * GUI::Constants::boostedPanSpeedFactor)));
     }
     _host->panByPixels(QPoint(xDir * step, yDir * step));
 }
@@ -972,7 +997,13 @@ void ViewportWindow::_drawGrid(QPainter& painter) {
 }
 
 void ViewportWindow::_updateWindowTitle() {
-    setWindowTitle(tr("Viewport"));
+    if (!_host) {
+        setWindowTitle(tr("Viewport"));
+        return;
+    }
+
+    setWindowTitle(_usePreviewFallback() ? tr("Viewport (Preview)")
+                                         : tr("Viewport (Direct)"));
 }
 
 QPoint ViewportWindow::_clampToOutputPixel(const QPointF& pixel) const {
@@ -1142,7 +1173,7 @@ void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {
 
     double panFactor = std::max(0.1, _host->panRateFactor());
     if (_speedModifierActive()) {
-        panFactor *= kBoostedPanSpeedFactor;
+        panFactor *= GUI::Constants::boostedPanSpeedFactor;
     }
     const double followPixelsPerSecond = 32.0 * panFactor * 60.0;
     const double maxStep

@@ -19,7 +19,7 @@
 #include <QWidget>
 #include <QWheelEvent>
 
-#include "GUITypes.h"
+#include "app/GUITypes.h"
 #include "windows/viewport/ViewportHost.h"
 
 namespace Ui {

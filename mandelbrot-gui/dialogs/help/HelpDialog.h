@@ -16,5 +16,7 @@ public:
     ~HelpDialog() override;
 
 private:
+    [[nodiscard]] QString _buildHelpHtml() const;
+
     std::unique_ptr<Ui::HelpDialog> _ui;
 };

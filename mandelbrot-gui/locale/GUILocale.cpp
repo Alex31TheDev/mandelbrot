@@ -1,4 +1,4 @@
-#include "GUILocale.h"
+#include "locale/GUILocale.h"
 
 #include <filesystem>
 

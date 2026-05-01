@@ -12,7 +12,7 @@ namespace BufferUtil {
     template <size_t ALIGNMENT>
     uint8_t *bufferAlloc(size_t bufferSize,
         std::optional<std::reference_wrapper<size_t>> alignedSize = std::nullopt);
-        
+
     template <size_t ALIGNMENT>
     void bufferFree(uint8_t *ptr) noexcept;
 

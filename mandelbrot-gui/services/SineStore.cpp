@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <system_error>
 
+#include <QCoreApplication>
+
 #include "parsers/sine/SineParser.h"
 #include "parsers/sine/SineWriter.h"
 #include "util/NumberUtil.h"
@@ -49,8 +51,8 @@ QStringList GUI::SineStore::listNames() {
     names.removeDuplicates();
     std::sort(
         names.begin(), names.end(), [](const QString& a, const QString& b) {
-            if (a.compare(kDefaultName, Qt::CaseInsensitive) == 0) return true;
-            if (b.compare(kDefaultName, Qt::CaseInsensitive) == 0) return false;
+            if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
+            if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
             return a.compare(b, Qt::CaseInsensitive) < 0;
         });
     return names;
@@ -63,7 +65,8 @@ bool GUI::SineStore::ensureDirectory(QString& errorMessage) {
     std::filesystem::create_directories(directoryPath(), ec);
     if (!ec) return true;
 
-    errorMessage = QString("Failed to create sine directory: %1")
+    errorMessage = QCoreApplication::translate(
+                       "SineStore", "Failed to create sine directory: %1")
                        .arg(QString::fromStdString(ec.message()));
     return false;
 }

@@ -1,31 +1,23 @@
+param(
+    [string]$RepoRoot = (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)),
+    [string]$SourceRoot = "mandelbrot/src"
+)
+
 $ErrorActionPreference = "Stop"
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$root = Split-Path -Parent $scriptDir
-$excludeFile = Join-Path $root ".format-exclude"
+$excludeFile = Join-Path $RepoRoot ".format-exclude"
+$sourceRoot = Join-Path $RepoRoot $SourceRoot
 
 if (-not (Get-Command clang-format -ErrorAction SilentlyContinue)) {
     Write-Error "clang-format not found"
 }
 
-$excludeSet = [System.Collections.Generic.HashSet[string]]::new(
-    [System.StringComparer]::OrdinalIgnoreCase
-)
-
-if (Test-Path $excludeFile) {
-    Get-Content $excludeFile | ForEach-Object {
-        $line = $_.Trim()
-
-        if ($line.Length -eq 0 -or $line.StartsWith("#")) {
-            return
-        }
-
-        $normalized = $line.Replace('\', '/')
-        [void]$excludeSet.Add($normalized)
-    }
+$exclude = @()
+if (Test-Path -LiteralPath $excludeFile) {
+    $exclude = Get-Content $excludeFile | ForEach-Object { $_.Trim().Replace('\', '/') } |
+    Where-Object { $_ -and -not $_.StartsWith("#") }
 }
 
-$sourceRoot = Join-Path $root "mandelbrot/src"
 $extensions = @(".cpp", ".h", ".hpp", ".hh", ".cxx", ".cc", ".inl")
 
 if (-not (Test-Path -LiteralPath $sourceRoot)) {
@@ -35,7 +27,7 @@ if (-not (Test-Path -LiteralPath $sourceRoot)) {
 $files = Get-ChildItem -Path $sourceRoot -Recurse -File | Where-Object {
     $extensions -contains $_.Extension
 } | ForEach-Object {
-    $relativePath = [System.IO.Path]::GetRelativePath($sourceRoot, $_.FullName)
+    $relativePath = $_.FullName.Substring($sourceRoot.Length).TrimStart('\', '/')
     [PSCustomObject]@{
         FullName = $_.FullName
         Relative = $relativePath.Replace('\', '/')
@@ -43,7 +35,7 @@ $files = Get-ChildItem -Path $sourceRoot -Recurse -File | Where-Object {
 }
 
 foreach ($file in $files) {
-    if ($excludeSet.Contains($file.Relative)) {
+    if ($exclude -contains $file.Relative) {
         continue
     }
 

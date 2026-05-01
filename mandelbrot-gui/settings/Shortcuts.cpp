@@ -1,12 +1,11 @@
-#include "Shortcuts.h"
+#include "settings/Shortcuts.h"
 
-#include "AppSettings.h"
 #include <QCoreApplication>
 #include <QMap>
 #include <QObject>
 
 const std::vector<ShortcutDef> &Shortcuts::defs() {
-    static const std::vector<ShortcutDef> kDefs = {
+    static const std::vector<ShortcutDef> defs = {
         { "cancel", QT_TRANSLATE_NOOP("Shortcuts", "Cancel render"),
             QKeySequence(Qt::Key_Escape), true },
         { "home", QT_TRANSLATE_NOOP("Shortcuts", "Home view"),
@@ -33,7 +32,7 @@ const std::vector<ShortcutDef> &Shortcuts::defs() {
             QKeySequence(Qt::CTRL | Qt::Key_Comma) },
         { "exit", QT_TRANSLATE_NOOP("Shortcuts", "Exit"), QKeySequence::Quit }
     };
-    return kDefs;
+    return defs;
 }
 
 QString Shortcuts::label(const ShortcutDef &def) {

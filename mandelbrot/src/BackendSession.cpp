@@ -696,8 +696,8 @@ public:
             static_cast<bool>(_callbacks.onProgress),
             static_cast<bool>(_callbacks.onInfo) || _autoIterations,
             _autoIterations
-                ? OptionalIterationStats(std::ref(iterStats))
-                : std::nullopt);
+            ? OptionalIterationStats(std::ref(iterStats))
+            : std::nullopt);
 
         if (_autoIterations) {
             applyAutoIterations(iterStats);
@@ -1300,7 +1300,7 @@ private:
 
         const auto restore = [&]() {
             return _restoreNavigationState(saved);
-        };
+            };
 
         Backend::Status status = _applyViewportState(targetView);
         if (!status) {

@@ -10,12 +10,12 @@
 #include <QResizeEvent>
 
 namespace {
-constexpr int kHandleWidth = 12;
-constexpr int kHandleHeight = 12;
-constexpr int kHandleHitHalfWidth = 14;
-constexpr int kHandleHitTopPadding = 14;
-constexpr int kHandleHitBottomPadding = 20;
-constexpr int kHitRepeatTolerance = 3;
+const int handleWidth = 12;
+const int handleHeight = 12;
+const int handleHitHalfWidth = 14;
+const int handleHitTopPadding = 14;
+const int handleHitBottomPadding = 20;
+const int hitRepeatTolerance = 3;
 }
 
 PaletteTimelineWidget::PaletteTimelineWidget(QWidget *parent)
@@ -208,8 +208,10 @@ void PaletteTimelineWidget::paintEvent(QPaintEvent *) {
         const QPoint handlePos = _stopPoint(stop.pos);
         QPainterPath path;
         path.moveTo(handlePos.x(), grad.bottom() + 4);
-        path.lineTo(handlePos.x() - kHandleWidth / 2, grad.bottom() + 4 + kHandleHeight);
-        path.lineTo(handlePos.x() + kHandleWidth / 2, grad.bottom() + 4 + kHandleHeight);
+        path.lineTo(
+            handlePos.x() - handleWidth / 2, grad.bottom() + 4 + handleHeight);
+        path.lineTo(
+            handlePos.x() + handleWidth / 2, grad.bottom() + 4 + handleHeight);
         path.closeSubpath();
 
         painter.fillPath(path, stop.color);
@@ -346,10 +348,9 @@ QPoint PaletteTimelineWidget::_stopPoint(double pos) const {
 
 QRect PaletteTimelineWidget::_stopHitRect(double pos) const {
     const QPoint handle = _stopPoint(pos);
-    return { handle.x() - kHandleHitHalfWidth,
-        handle.y() - kHandleHitTopPadding,
-        kHandleHitHalfWidth * 2 + 1,
-        kHandleHitTopPadding + kHandleHitBottomPadding + 1 };
+    return { handle.x() - handleHitHalfWidth,
+        handle.y() - handleHitTopPadding, handleHitHalfWidth * 2 + 1,
+        handleHitTopPadding + handleHitBottomPadding + 1 };
 }
 
 double PaletteTimelineWidget::_posFromPixel(double x) const {
@@ -458,8 +459,8 @@ int PaletteTimelineWidget::_hitTest(const QPoint &point) {
     }
 
     const bool repeatedHit = !_lastHitCandidateIds.empty()
-        && std::abs(point.x() - _lastHitPoint.x()) <= kHitRepeatTolerance
-        && std::abs(point.y() - _lastHitPoint.y()) <= kHitRepeatTolerance
+        && std::abs(point.x() - _lastHitPoint.x()) <= hitRepeatTolerance
+        && std::abs(point.y() - _lastHitPoint.y()) <= hitRepeatTolerance
         && candidates.size() == _lastHitCandidateIds.size()
         && std::equal(candidates.begin(), candidates.end(),
             _lastHitCandidateIds.begin(),

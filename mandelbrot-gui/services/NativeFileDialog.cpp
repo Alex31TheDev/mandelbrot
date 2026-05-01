@@ -9,6 +9,7 @@
 #endif
 
 #include <QDialog>
+#include <QCoreApplication>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QStringList>
@@ -286,12 +287,29 @@ std::optional<GUI::SaveDialogResult> GUI::runSaveImageDialog(
         return std::nullopt;
     }
 
-    dialog->SetTitle(L"Save Image");
+    const QString saveImageTitle
+        = QCoreApplication::translate("NativeFileDialog", "Save Image");
+    const QString pngFilterLabel
+        = QCoreApplication::translate("NativeFileDialog", "PNG Files (*.png)");
+    const QString jpegFilterLabel = QCoreApplication::translate(
+        "NativeFileDialog", "JPEG Files (*.jpg;*.jpeg)");
+    const QString bmpFilterLabel
+        = QCoreApplication::translate("NativeFileDialog", "Bitmap Files (*.bmp)");
+    const QString appendDateLabel
+        = QCoreApplication::translate("NativeFileDialog", "Append Date");
+    const std::wstring saveImageTitleW = saveImageTitle.toStdWString();
+    const std::wstring pngFilterLabelW = pngFilterLabel.toStdWString();
+    const std::wstring jpegFilterLabelW = jpegFilterLabel.toStdWString();
+    const std::wstring bmpFilterLabelW = bmpFilterLabel.toStdWString();
+    const std::wstring appendDateLabelW = appendDateLabel.toStdWString();
+
+    dialog->SetTitle(saveImageTitleW.c_str());
     dialog->SetFileName(reinterpret_cast<LPCWSTR>(suggestedFile.utf16()));
 
-    const COMDLG_FILTERSPEC filters[] = { { L"PNG Files (*.png)", L"*.png" },
-        { L"JPEG Files (*.jpg;*.jpeg)", L"*.jpg;*.jpeg" },
-        { L"Bitmap Files (*.bmp)", L"*.bmp" } };
+    const COMDLG_FILTERSPEC filters[]
+        = { { pngFilterLabelW.c_str(), L"*.png" },
+              { jpegFilterLabelW.c_str(), L"*.jpg;*.jpeg" },
+              { bmpFilterLabelW.c_str(), L"*.bmp" } };
     dialog->SetFileTypes(static_cast<UINT>(std::size(filters)), filters);
     dialog->SetFileTypeIndex(1);
     dialog->SetDefaultExtension(L"png");
@@ -313,7 +331,7 @@ std::optional<GUI::SaveDialogResult> GUI::runSaveImageDialog(
     bool appendDate = true;
     if (SUCCEEDED(dialog->QueryInterface(IID_PPV_ARGS(&customize)))
         && customize) {
-        customize->AddCheckButton(1, L"Append Date", TRUE);
+        customize->AddCheckButton(1, appendDateLabelW.c_str(), TRUE);
     }
 
     const HWND owner
@@ -376,14 +394,19 @@ std::optional<GUI::SaveDialogResult> GUI::runSaveImageDialog(
     if (shouldUninitialize) CoUninitialize();
 #else
     QString selectedFilter;
-    result.path = showNativeSaveFileDialog(parent, "Save Image", savesDir,
-        suggestedFile,
-        "PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)",
-        &selectedFilter);
+    const QString saveImageTitle
+        = QCoreApplication::translate("NativeFileDialog", "Save Image");
+    const QString saveImageFilters = QCoreApplication::translate(
+        "NativeFileDialog",
+        "PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)");
+    result.path = showNativeSaveFileDialog(parent, saveImageTitle, savesDir,
+        suggestedFile, saveImageFilters, &selectedFilter);
     if (result.path.isEmpty()) return std::nullopt;
 
     const QMessageBox::StandardButton appendDateChoice = QMessageBox::question(
-        parent, "Save Image", "Append date to filename?",
+        parent, saveImageTitle,
+        QCoreApplication::translate(
+            "NativeFileDialog", "Append date to filename?"),
         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
         QMessageBox::Yes);
     if (appendDateChoice == QMessageBox::Cancel) return std::nullopt;

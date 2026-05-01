@@ -12,9 +12,7 @@
 #include "widgets/PaletteTypes.h"
 
 namespace GUI::PaletteStore {
-inline constexpr auto kDefaultName = "default";
-inline constexpr auto kNewEntryLabel = "+ New";
-inline constexpr auto kUnsavedLabelSuffix = " (unsaved)";
+inline constexpr auto defaultName = "default";
 
 [[nodiscard]] Backend::PaletteHexConfig makeNewConfig();
 [[nodiscard]] bool sameConfig(

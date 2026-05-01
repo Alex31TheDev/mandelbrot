@@ -9,6 +9,11 @@ class SinePreviewWidget final : public QWidget {
     Q_OBJECT
 
 public:
+    static constexpr double defaultMin = 0.0;
+    static constexpr double defaultMax = 100.0;
+    static constexpr double minSpan = 1.0;
+    static constexpr int handleHitWidth = 10;
+
     explicit SinePreviewWidget(QWidget *parent = nullptr);
 
     [[nodiscard]] std::pair<double, double> range() const;
@@ -28,16 +33,11 @@ protected:
 private:
     enum class DragMode { none, left, right, pan };
 
-    static constexpr double kDefaultMin = 0.0;
-    static constexpr double kDefaultMax = 100.0;
-    static constexpr double kMinSpan = 1.0;
-    static constexpr int kHandleHitWidth = 10;
-
-    double _rangeMin = kDefaultMin;
-    double _rangeMax = kDefaultMax;
+    double _rangeMin = defaultMin;
+    double _rangeMax = defaultMax;
     double _dragStartX = 0.0;
-    double _dragRangeMin = kDefaultMin;
-    double _dragRangeMax = kDefaultMax;
+    double _dragRangeMin = defaultMin;
+    double _dragRangeMax = defaultMax;
     DragMode _dragMode = DragMode::none;
     QImage _previewImage;
 

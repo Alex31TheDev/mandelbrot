@@ -5,15 +5,20 @@
 #include <vector>
 
 #include <QKeySequenceEdit>
+#include <QCoreApplication>
 #include <QLocale>
 
-#include "AppSettings.h"
-#include "GUITypes.h"
+#include "app/GUIConstants.h"
+#include "settings/AppSettings.h"
 #include "ui_SettingsDialog.h"
 #include "util/PathUtil.h"
 
 namespace {
 QString _displayLanguageName(const QString& code) {
+    if (code.trimmed().compare("en", Qt::CaseInsensitive) == 0) {
+        return QCoreApplication::translate("SettingsDialog", "English (US)");
+    }
+
     const QLocale locale(code);
     QString name = locale.nativeLanguageName();
     if (name.isEmpty()) {
@@ -94,7 +99,7 @@ QString SettingsDialog::language() const {
 
 int SettingsDialog::previewFallbackFPS() const {
     return _ui ? _ui->previewFallbackSpin->value()
-               : kDefaultInteractionTargetFPS;
+               : GUI::Constants::defaultInteractionTargetFPS;
 }
 
 Shortcuts SettingsDialog::shortcuts(AppSettings& settings) const {

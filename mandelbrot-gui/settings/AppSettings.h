@@ -36,6 +36,7 @@ public:
     void setSelectedOutputHeight(int height);
 
     void sync();
+    void clearPersistedSettings();
 
 private:
     QSettings _settings;

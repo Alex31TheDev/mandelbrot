@@ -22,7 +22,7 @@ void SinePreviewWidget::setPreviewImage(const QImage &image) {
 
 void SinePreviewWidget::resetRange(double minValue, double maxValue) {
     _rangeMin = minValue;
-    _rangeMax = std::max(minValue + kMinSpan, maxValue);
+    _rangeMax = std::max(minValue + minSpan, maxValue);
     emit rangeChanged(_rangeMin, _rangeMax);
     update();
 }
@@ -73,7 +73,7 @@ void SinePreviewWidget::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::RightButton) {
         const QRect strip = _previewRect();
         if (strip.contains(event->position().toPoint())) {
-            resetRange(kDefaultMin, kDefaultMax);
+            resetRange(defaultMin, defaultMax);
         }
         return;
     }
@@ -98,7 +98,7 @@ void SinePreviewWidget::mouseMoveEvent(QMouseEvent *event) {
     }
     if (strip.width() <= 0) return;
 
-    const double span = std::max(kMinSpan, _dragRangeMax - _dragRangeMin);
+    const double span = std::max(minSpan, _dragRangeMax - _dragRangeMin);
     const double deltaValue
         = (_dragStartX - event->position().x()) / strip.width() * span;
 
@@ -108,12 +108,12 @@ void SinePreviewWidget::mouseMoveEvent(QMouseEvent *event) {
             break;
         case DragMode::left:
             _applyRange(
-                std::min(_dragRangeMin + deltaValue, _dragRangeMax - kMinSpan),
+                std::min(_dragRangeMin + deltaValue, _dragRangeMax - minSpan),
                 _dragRangeMax);
             break;
         case DragMode::right:
             _applyRange(_dragRangeMin,
-                std::max(_dragRangeMin + kMinSpan, _dragRangeMax + deltaValue));
+                std::max(_dragRangeMin + minSpan, _dragRangeMax + deltaValue));
             break;
         case DragMode::none:
             break;
@@ -138,9 +138,9 @@ QRect SinePreviewWidget::_previewRect() const {
 SinePreviewWidget::DragMode SinePreviewWidget::_hitTest(
     const QPoint &point, const QRect &strip) const {
     if (!strip.contains(point)) return DragMode::none;
-    if (std::abs(point.x() - strip.left()) <= kHandleHitWidth)
+    if (std::abs(point.x() - strip.left()) <= handleHitWidth)
         return DragMode::left;
-    if (std::abs(point.x() - strip.right()) <= kHandleHitWidth)
+    if (std::abs(point.x() - strip.right()) <= handleHitWidth)
         return DragMode::right;
     return DragMode::pan;
 }
@@ -170,7 +170,7 @@ void SinePreviewWidget::_updateCursor(DragMode mode) {
 
 void SinePreviewWidget::_applyRange(double minValue, double maxValue) {
     const double clampedMin = minValue;
-    const double clampedMax = std::max(clampedMin + kMinSpan, maxValue);
+    const double clampedMax = std::max(clampedMin + minSpan, maxValue);
     if (qFuzzyCompare(_rangeMin, clampedMin)
         && qFuzzyCompare(_rangeMax, clampedMax)) {
         return;

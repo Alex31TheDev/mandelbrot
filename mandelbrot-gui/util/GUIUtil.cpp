@@ -8,21 +8,30 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QApplication>
 #include <QScreen>
 #include <QWidget>
 #include <QWindow>
 
 #include "widgets/AdaptiveDoubleSpinBox.h"
+#include "app/GUIConstants.h"
 #include "util/FormatUtil.h"
 #include "util/PathUtil.h"
 #include "util/StringUtil.h"
 
-static constexpr auto kCommittedLineEditTextProperty
+const char committedLineEditTextProperty[]
     = "_mandelbrotCommittedText";
-static constexpr double kMinGUIZoom = -3.2499;
 
 int GUI::Util::clampSliderValue(int value) {
     return std::clamp(value, 0, 20);
+}
+
+QString GUI::Util::translatedNewEntryLabel() {
+    return QApplication::translate("GUI::Util", "+ New");
+}
+
+QString GUI::Util::translatedUnsavedLabelSuffix() {
+    return QApplication::translate("GUI::Util", " (unsaved)");
 }
 
 QString GUI::Util::committedLineEditText(const QLineEdit* edit) {
@@ -32,7 +41,7 @@ QString GUI::Util::committedLineEditText(const QLineEdit* edit) {
 void GUI::Util::markLineEditTextCommitted(QLineEdit* edit) {
     if (!edit) return;
     edit->setProperty(
-        kCommittedLineEditTextProperty, committedLineEditText(edit));
+        committedLineEditTextProperty, committedLineEditText(edit));
 }
 
 void GUI::Util::setCommittedLineEditText(QLineEdit* edit, const QString& text) {
@@ -44,18 +53,20 @@ void GUI::Util::setCommittedLineEditText(QLineEdit* edit, const QString& text) {
 bool GUI::Util::hasUncommittedLineEditChange(const QLineEdit* edit) {
     if (!edit) return false;
     return committedLineEditText(edit)
-        != edit->property(kCommittedLineEditTextProperty).toString();
+        != edit->property(committedLineEditTextProperty).toString();
 }
 
 QString GUI::Util::decorateUnsavedLabel(const QString& name, bool unsaved) {
     if (!unsaved) return name;
     return QString::fromStdString(
-        StringUtil::appendSuffix(name.toStdString(), " (unsaved)"));
+        StringUtil::appendSuffix(
+            name.toStdString(), translatedUnsavedLabelSuffix().toStdString()));
 }
 
 QString GUI::Util::undecoratedLabel(const QString& name) {
     return QString::fromStdString(
-        StringUtil::stripSuffix(name.toStdString(), " (unsaved)"));
+        StringUtil::stripSuffix(
+            name.toStdString(), translatedUnsavedLabelSuffix().toStdString()));
 }
 
 QString GUI::Util::uniqueIndexedNameFromList(
@@ -113,19 +124,42 @@ Backend::FractalType GUI::Util::fractalTypeFromConfigString(
 }
 
 double GUI::Util::clampGUIZoom(double zoom) {
-    return std::max(zoom, kMinGUIZoom);
+    return std::max(zoom, GUI::Constants::minimumZoom);
+}
+
+QString GUI::Util::defaultPixelsPerSecondText() {
+    return QApplication::translate("GUI::Util", "0 pixels/s");
+}
+
+QString GUI::Util::defaultImageMemoryText() {
+    return QApplication::translate("GUI::Util", "Render: -  Output: -");
+}
+
+QString GUI::Util::defaultViewportFPSText() {
+    return QApplication::translate("GUI::Util", "- FPS");
+}
+
+QString GUI::Util::formatViewportFPSText(double fps) {
+    return QApplication::translate("GUI::Util", "%1 FPS")
+        .arg(QString::number(fps, 'f', 1));
+}
+
+QString GUI::Util::formatPixelsPerSecondText(const QString& pixelsPerSecond) {
+    return QApplication::translate("GUI::Util", "%1 pixels/s")
+        .arg(pixelsPerSecond);
 }
 
 QString GUI::Util::formatImageMemoryText(const Backend::ImageEvent& event) {
     const QString renderBytes = QString::fromStdString(
         FormatUtil::formatBufferSize(event.primaryBytes));
     if (!event.downscaling) {
-        return QString("Render: %1").arg(renderBytes);
+        return QApplication::translate("GUI::Util", "Render: %1").arg(renderBytes);
     }
 
     const QString outputBytesText = QString::fromStdString(
         FormatUtil::formatBufferSize(event.secondaryBytes));
-    return QString("Render: %1  Output: %2").arg(renderBytes, outputBytesText);
+    return QApplication::translate("GUI::Util", "Render: %1  Output: %2")
+        .arg(renderBytes, outputBytesText);
 }
 
 QColor GUI::Util::lightColorToQColor(const Backend::LightColor& color) {
