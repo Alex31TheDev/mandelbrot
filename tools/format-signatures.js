@@ -1,17 +1,17 @@
-const fs = require("fs");
 const path = require("path");
-const readline = require("readline");
 const { parseArgs: parseNodeArgs } = require("util");
+const {
+    ExtensionGroups,
+    FileUtil,
+    FormatterUtil,
+    confirmRepoRoot,
+    getTargetFiles,
+    getRepoRoot,
+    isHeaderFile,
+} = require("./util/formatter-util");
 
 const defaultSourceRoots = ["common", "frontend", "mandelbrot-cli", "mandelbrot", "mandelbrot-gui"],
     defaultMaxWidth = 80;
-
-const ExtensionGroups = {
-    headerExtensions: [".h", ".hpp"],
-    sourceExtensions: [".c", ".cpp", "_impl.h", "_impl.hpp"]
-};
-
-const targetExtensions = [...new Set([...ExtensionGroups.headerExtensions, ...ExtensionGroups.sourceExtensions])];
 
 let args = null;
 
@@ -26,18 +26,7 @@ Options:
   --check                   Report files that would change and exit 1
   --help                    Show this help`;
 
-const Util = {
-    parseList: str => {
-        return str
-            .split(",")
-            .map(x => x.trim())
-            .filter(Boolean);
-    },
-
-    normalizeSlashes: str => {
-        return str.replaceAll("\\", "/");
-    },
-
+const Util = Object.freeze({
     countParenDepth: str => {
         let depth = 0;
 
@@ -161,104 +150,7 @@ const Util = {
     isInsideFunctionBody: scopeStack => {
         return scopeStack.includes("function");
     }
-};
-
-function getRepoRoot() {
-    return path.resolve(path.dirname(process.argv[1]), "..");
-}
-
-function ask(question) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
-    return new Promise(resolve => {
-        rl.question(question, answer => {
-            rl.close();
-            resolve(answer);
-        });
-    });
-}
-
-async function confirmRepoRoot(repoRoot) {
-    if (!process.stdin?.isTTY || !process.stdout?.isTTY) {
-        console.error("ERROR: Refusing to guess the repo root in non-interactive mode.");
-        console.error("Pass --repo-root explicitly, or use -y to trust the deduced root.", "\n");
-        console.log(usage);
-
-        process.exit(1);
-    }
-
-    const answer = await ask(`Use deduced repo root "${repoRoot}"? [y/N] `),
-        normalized = answer?.trim().toLowerCase() ?? "";
-
-    if (normalized === "y" || normalized === "yes") {
-        return repoRoot;
-    }
-
-    console.error("ERROR: Repo root not confirmed.");
-    console.error("Pass --repo-root explicitly, or use -y to trust the deduced root.", "\n");
-    console.log(usage);
-
-    process.exit(1);
-}
-
-function loadExcludePaths(excludeFile, sourceRoots) {
-    if (!fs.existsSync(excludeFile)) return new Set();
-
-    const lines = fs
-        .readFileSync(excludeFile, "utf8")
-        .split(/\r?\n/)
-        .map(line => Util.normalizeSlashes(line.trim()))
-        .filter(line => line && !line.startsWith("#"));
-
-    const excludePaths = new Set();
-
-    for (const sourceRoot of sourceRoots) {
-        for (const line of lines) {
-            excludePaths.add(path.resolve(sourceRoot, line));
-        }
-    }
-
-    return excludePaths;
-}
-
-function isTargetExtension(filePath) {
-    const normalizedPath = Util.normalizeSlashes(filePath).toLowerCase();
-
-    return targetExtensions.some(extension => normalizedPath.endsWith(extension));
-}
-
-function isExcludedFile(filePath, excludePaths) {
-    return excludePaths.has(path.resolve(filePath));
-}
-
-function isHeaderFile(filePath) {
-    const normalizedPath = Util.normalizeSlashes(filePath).toLowerCase();
-
-    const isHeader = ExtensionGroups.headerExtensions.some(extension => normalizedPath.endsWith(extension)),
-        isSource = ExtensionGroups.sourceExtensions.some(extension => normalizedPath.endsWith(extension));
-
-    return isHeader && !isSource;
-}
-
-function listFiles(directoryPath, files = []) {
-    const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
-
-    for (const entry of entries) {
-        const entryPath = path.join(directoryPath, entry.name);
-
-        if (entry.isDirectory()) {
-            listFiles(entryPath, files);
-            continue;
-        }
-
-        if (entry.isFile()) files.push(entryPath);
-    }
-
-    return files;
-}
+});
 
 function getOriginalArgumentGroups(argumentText) {
     const argumentGroups = [];
@@ -495,8 +387,21 @@ function formatSignatureBlock(blockLines, isHeader, insideFunctionBody) {
     }
 }
 
+function updateScopeStack(scopeStack, text, openedScopeType = null) {
+    let usedOpenedScopeType = false;
+
+    for (const char of text) {
+        if (char === "{") {
+            scopeStack.push(!usedOpenedScopeType && openedScopeType ? openedScopeType : "other");
+            usedOpenedScopeType = true;
+        } else if (char === "}" && scopeStack.length > 0) {
+            scopeStack.pop();
+        }
+    }
+}
+
 function formatFile(filePath) {
-    const oldText = fs.readFileSync(filePath, "utf8"),
+    const oldText = FileUtil.readFile(filePath),
         newline = oldText.includes("\r\n") ? "\r\n" : "\n",
         lines = oldText.split(/\r?\n/);
 
@@ -555,27 +460,9 @@ function formatFile(filePath) {
     }
 
     const bodyText = output.join(newline),
-        newText = isHeader && bodyText ? `${bodyText}${newline}` : bodyText,
-        changed = newText !== oldText;
+        newText = isHeader && bodyText ? `${bodyText}${newline}` : bodyText;
 
-    if (changed && !args.check) {
-        fs.writeFileSync(filePath, newText, "utf8");
-    }
-
-    return changed;
-}
-
-function updateScopeStack(scopeStack, text, openedScopeType = null) {
-    let usedOpenedScopeType = false;
-
-    for (const char of text) {
-        if (char === "{") {
-            scopeStack.push(!usedOpenedScopeType && openedScopeType ? openedScopeType : "other");
-            usedOpenedScopeType = true;
-        } else if (char === "}" && scopeStack.length > 0) {
-            scopeStack.pop();
-        }
-    }
+    return FileUtil.writeIfChanged(filePath, oldText, newText, args.check);
 }
 
 async function parseArgs() {
@@ -616,16 +503,16 @@ async function parseArgs() {
         process.exit(0);
     }
 
-    let repoRoot = path.resolve(parsed.values["repo-root"] || getRepoRoot());
+    let repoRoot = path.resolve(parsed.values["repo-root"] || getRepoRoot(process.argv[1]));
 
     if (!parsed.values["repo-root"] && !parsed.values.yes) {
-        repoRoot = await confirmRepoRoot(repoRoot);
+        repoRoot = await confirmRepoRoot(repoRoot, usage);
     }
 
-    const sourceRoots = (parsed.values["source-roots"]?.flatMap(Util.parseList) ?? defaultSourceRoots).map(entry =>
+    const sourceRoots = (parsed.values["source-roots"]?.flatMap(FormatterUtil.parseList) ?? defaultSourceRoots).map(entry =>
             path.resolve(repoRoot, entry)
         ),
-        optionPaths = parsed.values.paths?.flatMap(Util.parseList) ?? [];
+        optionPaths = parsed.values.paths?.flatMap(FormatterUtil.parseList) ?? [];
 
     const maxWidth = parsed.values.width ? Number.parseInt(parsed.values.width, 10) : defaultMaxWidth;
 
@@ -646,52 +533,10 @@ async function parseArgs() {
     };
 }
 
-function getTargetFiles() {
-    const sourceRootPaths = args.sourceRoots.filter(entry => fs.existsSync(entry)),
-        scanPaths = args.paths.length > 0 ? args.paths : sourceRootPaths,
-        excludePaths = loadExcludePaths(args.excludeFile, sourceRootPaths);
-
-    const files = new Set();
-
-    for (const entryPath of scanPaths) {
-        if (!fs.existsSync(entryPath)) {
-            console.error("ERROR: Path not found:", entryPath, "\n");
-            console.log(usage);
-
-            process.exit(1);
-        }
-
-        const resolvedPath = path.resolve(entryPath),
-            stats = fs.statSync(resolvedPath);
-
-        if (stats.isDirectory()) {
-            const discoveredFiles = listFiles(resolvedPath);
-
-            for (const filePath of discoveredFiles) {
-                if (!isTargetExtension(filePath) || isExcludedFile(filePath, excludePaths)) {
-                    continue;
-                }
-
-                files.add(path.resolve(filePath));
-            }
-
-            continue;
-        }
-
-        if (!stats.isFile() || !isTargetExtension(resolvedPath) || isExcludedFile(resolvedPath, excludePaths)) {
-            continue;
-        }
-
-        files.add(resolvedPath);
-    }
-
-    return [...files].sort((a, b) => a.localeCompare(b));
-}
-
 async function main() {
     args = await parseArgs();
 
-    const targetFiles = getTargetFiles();
+    const targetFiles = getTargetFiles(args, usage);
 
     if (targetFiles.length < 1) {
         console.error("ERROR: No target files found.", "\n");

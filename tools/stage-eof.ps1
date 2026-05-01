@@ -1,4 +1,4 @@
-$files = git diff --name-only -- '*.h'
+$files = git diff --name-only -- '*.h' '*.hpp' '*.c' '*.cpp'
 $stage = @()
 
 foreach ($file in $files) {
@@ -25,10 +25,10 @@ foreach ($file in $files) {
 }
 
 if ($stage.Count -lt 1) {
-    Write-Output "No EOF only header changes found."
+    Write-Output "No EOF only source changes found."
     exit 0
 }
 
 git add -- $stage
-Write-Output "Staged EOF only header changes:"
+Write-Output "Staged EOF only source changes:"
 $stage

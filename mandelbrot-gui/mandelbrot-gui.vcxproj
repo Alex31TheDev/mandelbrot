@@ -217,6 +217,7 @@
   </ItemGroup>
   <ItemGroup>
     <QtTranslation Include="translations\mandelbrot_en.ts" />
+    <QtTranslation Include="translations\mandelbrot_fr.ts" />
     <QtTranslation Include="translations\mandelbrot_ro.ts" />
   </ItemGroup>
   <ItemGroup>
@@ -228,7 +229,7 @@
     <QtUic Include="dialogs\settings\SettingsDialog.ui" />
   </ItemGroup>
   <ItemGroup>
-    <QtRcc Include="mandelbrotgui.qrc" />
+    <QtRcc Include="mandelbrot-gui.qrc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="mandelbrot-gui.aps" />

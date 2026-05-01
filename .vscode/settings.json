@@ -1,0 +1,24 @@
+{
+    "VSCodeCounter.languages": {
+        "translation": {
+            "aliases": ["Translation"],
+            "extensions": [".ts"],
+            "filenames": [],
+            "lineComments": [],
+            "blockComments": [["<!--", "-->"]]
+        }
+    },
+    "files.exclude": {
+        "**/src/args/argparse.hpp": true,
+        "**/src/image/stb_image_write.h": true,
+        "**/src/qd/qdlib/dd_inline.h": true,
+        "**/src/qd/qdlib/dd_real.h": true,
+        "**/src/qd/qdlib/dd_routines.cpp": true,
+        "**/src/qd/qdlib/inline.h": true,
+        "**/src/qd/qdlib/qd_config.h": true,
+        "**/src/qd/qdlib/qd_inline.h": true,
+        "**/src/qd/qdlib/qd_real.h": true,
+        "**/src/qd/qdlib/qd_routines.cpp": true
+    },
+    "VSCodeCounter.useFilesExclude": true
+}

@@ -379,6 +379,8 @@ mandelbrot_*.png
 mandelbrot_*.bmp
 
 # Misc
+.VSCodeCounter/*
 mandelbrot_app
 tools/*
 !tools/*.*
+!tools/util
