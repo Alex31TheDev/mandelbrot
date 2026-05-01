@@ -10,89 +10,95 @@
 #include "util/NumberUtil.h"
 #include "util/PathUtil.h"
 
-Backend::SinePaletteConfig GUI::SineStore::makeNewConfig() {
-    return { .freqR = 1.0f, .freqG = 1.0f, .freqB = 1.0f, .freqMult = 1.0f };
-}
+#include "BackendAPI.h"
+using namespace Backend;
 
-bool GUI::SineStore::sameConfig(
-    const Backend::SinePaletteConfig& a, const Backend::SinePaletteConfig& b) {
-    return NumberUtil::almostEqual(a.freqR, b.freqR)
-        && NumberUtil::almostEqual(a.freqG, b.freqG)
-        && NumberUtil::almostEqual(a.freqB, b.freqB)
-        && NumberUtil::almostEqual(a.freqMult, b.freqMult);
-}
+namespace GUI::SineStore {
+    SinePaletteConfig makeNewConfig() {
+        return { .freqR = 1.0f, .freqG = 1.0f, .freqB = 1.0f, .freqMult = 1.0f };
+    }
 
-std::filesystem::path GUI::SineStore::directoryPath() {
-    return PathUtil::executableDir() / "sines";
-}
+    bool sameConfig(
+        const SinePaletteConfig &a,
+        const SinePaletteConfig &b) {
+        return NumberUtil::almostEqual(a.freqR, b.freqR)
+            && NumberUtil::almostEqual(a.freqG, b.freqG)
+            && NumberUtil::almostEqual(a.freqB, b.freqB)
+            && NumberUtil::almostEqual(a.freqMult, b.freqMult);
+    }
 
-std::filesystem::path GUI::SineStore::filePath(const QString& name) {
-    return directoryPath()
-        / std::filesystem::path((name + ".txt").toStdString());
-}
+    std::filesystem::path directoryPath() {
+        return PathUtil::executableDir() / "sines";
+    }
 
-QStringList GUI::SineStore::listNames() {
-    QStringList names;
-    std::error_code ec;
-    const std::filesystem::path dir = directoryPath();
-    if (!std::filesystem::exists(dir, ec) || ec) {
+    std::filesystem::path filePath(const QString &name) {
+        return directoryPath()
+            / std::filesystem::path((name + ".txt").toStdString());
+    }
+
+    QStringList listNames() {
+        QStringList names;
+        std::error_code ec;
+        const std::filesystem::path dir = directoryPath();
+        if (!std::filesystem::exists(dir, ec) || ec) {
+            return names;
+        }
+
+        for (const auto &entry : std::filesystem::directory_iterator(dir, ec)) {
+            if (ec) break;
+            if (!entry.is_regular_file()) continue;
+
+            const std::filesystem::path path = entry.path();
+            if (path.extension() != ".txt") continue;
+            names.push_back(QString::fromStdWString(path.stem().wstring()));
+        }
+
+        names.removeDuplicates();
+        std::sort(
+            names.begin(), names.end(), [](const QString &a, const QString &b) {
+                if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
+                if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
+                return a.compare(b, Qt::CaseInsensitive) < 0;
+            });
         return names;
     }
 
-    for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
-        if (ec) break;
-        if (!entry.is_regular_file()) continue;
-
-        const std::filesystem::path path = entry.path();
-        if (path.extension() != ".txt") continue;
-        names.push_back(QString::fromStdWString(path.stem().wstring()));
-    }
-
-    names.removeDuplicates();
-    std::sort(
-        names.begin(), names.end(), [](const QString& a, const QString& b) {
-            if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
-            if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
-            return a.compare(b, Qt::CaseInsensitive) < 0;
-        });
-    return names;
-}
-
-bool GUI::SineStore::ensureDirectory(QString& errorMessage) {
-    errorMessage.clear();
-
-    std::error_code ec;
-    std::filesystem::create_directories(directoryPath(), ec);
-    if (!ec) return true;
-
-    errorMessage = QCoreApplication::translate(
-                       "SineStore", "Failed to create sine directory: %1")
-                       .arg(QString::fromStdString(ec.message()));
-    return false;
-}
-
-bool GUI::SineStore::loadFromPath(const std::filesystem::path& path,
-    Backend::SinePaletteConfig& palette, QString& errorMessage) {
-    SineParser parser("-");
-    std::string err;
-    if (parser.parse({ path.string() }, palette, err)) {
+    bool ensureDirectory(QString &errorMessage) {
         errorMessage.clear();
-        return true;
+
+        std::error_code ec;
+        std::filesystem::create_directories(directoryPath(), ec);
+        if (!ec) return true;
+
+        errorMessage = QCoreApplication::translate(
+            "SineStore", "Failed to create sine directory: %1")
+            .arg(QString::fromStdString(ec.message()));
+        return false;
     }
 
-    errorMessage = QString::fromStdString(err);
-    return false;
-}
+    bool loadFromPath(const std::filesystem::path &path,
+        SinePaletteConfig &palette, QString &errorMessage) {
+        SineParser parser("-");
+        std::string err;
+        if (parser.parse({ path.string() }, palette, err)) {
+            errorMessage.clear();
+            return true;
+        }
 
-bool GUI::SineStore::saveToPath(const std::filesystem::path& path,
-    const Backend::SinePaletteConfig& palette, QString& errorMessage) {
-    SineWriter writer(palette);
-    std::string err;
-    if (writer.write(path.string(), err)) {
-        errorMessage.clear();
-        return true;
+        errorMessage = QString::fromStdString(err);
+        return false;
     }
 
-    errorMessage = QString::fromStdString(err);
-    return false;
+    bool saveToPath(const std::filesystem::path &path,
+        const SinePaletteConfig &palette, QString &errorMessage) {
+        SineWriter writer(palette);
+        std::string err;
+        if (writer.write(path.string(), err)) {
+            errorMessage.clear();
+            return true;
+        }
+
+        errorMessage = QString::fromStdString(err);
+        return false;
+    }
 }

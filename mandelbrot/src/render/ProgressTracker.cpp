@@ -9,9 +9,10 @@
 #include <variant>
 #include <type_traits>
 
-#include "BackendAPI.h"
-
 using namespace std::chrono;
+
+#include "BackendAPI.h"
+using namespace Backend;
 
 ProgressTracker::ProgressTracker(
     WU totalWork, bool threadSafe,
@@ -111,7 +112,7 @@ void ProgressTracker::_emitProgress(int perc, bool completed) {
             if constexpr (std::is_same_v<T, _PlainState>) {
                 const auto *callbacks = _options.callbacks;
                 if (callbacks && callbacks->onProgress) {
-                    const Backend::ProgressEvent event = {
+                    const ProgressEvent event = {
                         .percentage = perc,
                         .opsPerSecond = opsPerSecond(),
                         .elapsedMs = elapsedInt(),
@@ -134,7 +135,7 @@ void ProgressTracker::_emitProgress(int perc, bool completed) {
 
                 const auto *callbacks = _options.callbacks;
                 if (callbacks && callbacks->onProgress) {
-                    const Backend::ProgressEvent event = {
+                    const ProgressEvent event = {
                         .percentage = perc,
                         .opsPerSecond = opsPerSecond(),
                         .elapsedMs = elapsedInt(),

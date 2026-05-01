@@ -6,6 +6,8 @@
 #include "app/GUIConstants.h"
 #include "util/PathUtil.h"
 
+using namespace GUI;
+
 static QString settingsPath() {
     const std::filesystem::path path
         = PathUtil::executableDir() / "settings.ini";
@@ -63,7 +65,7 @@ void AppSettings::setPreferredBackend(const QString &backend) {
 
 int AppSettings::previewFallbackFPS() const {
     return _settings.value(
-        "render/previewFallbackFPS", GUI::Constants::defaultInteractionTargetFPS)
+        "render/previewFallbackFPS", Constants::defaultInteractionTargetFPS)
         .toInt();
 }
 
@@ -75,8 +77,8 @@ int AppSettings::selectedOutputWidth() const {
     return std::max(
         1,
         _settings
-            .value("render/outputWidth", GUI::Constants::defaultOutputWidth)
-            .toInt());
+        .value("render/outputWidth", Constants::defaultOutputWidth)
+        .toInt());
 }
 
 void AppSettings::setSelectedOutputWidth(int width) {
@@ -86,8 +88,8 @@ void AppSettings::setSelectedOutputWidth(int width) {
 int AppSettings::selectedOutputHeight() const {
     return std::max(1,
         _settings
-            .value("render/outputHeight", GUI::Constants::defaultOutputHeight)
-            .toInt());
+        .value("render/outputHeight", Constants::defaultOutputHeight)
+        .toInt());
 }
 
 void AppSettings::setSelectedOutputHeight(int height) {

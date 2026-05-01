@@ -11,6 +11,8 @@
 #include "BackendAPI.h"
 #include "app/GUIConstants.h"
 
+using namespace GUI;
+
 enum class NavMode { realtimeZoom, zoom, pan };
 
 enum class SelectionTarget { zoomPoint, seedPoint, lightPoint };
@@ -32,12 +34,12 @@ struct GUIState {
     bool preserveRatio = true;
     bool julia = false;
     bool inverse = false;
-    int outputWidth = GUI::Constants::defaultOutputWidth;
-    int outputHeight = GUI::Constants::defaultOutputHeight;
+    int outputWidth = Constants::defaultOutputWidth;
+    int outputHeight = Constants::defaultOutputHeight;
     int panRate = 8;
     int zoomRate = 8;
-    int interactionTargetFPS = GUI::Constants::defaultInteractionTargetFPS;
-    double zoom = GUI::Constants::homeZoom;
+    int interactionTargetFPS = Constants::defaultInteractionTargetFPS;
+    double zoom = Constants::homeZoom;
     double exponent = 2.0;
     QPointF point = { 0.0, 0.0 };
     QPointF seed = { 0.0, 0.0 };

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iosfwd>
 #include <string>
+#include <ostream>
 
 #include "BackendAPI.h"
 

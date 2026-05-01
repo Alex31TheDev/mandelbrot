@@ -70,7 +70,7 @@ static FORCE_INLINE void complexInverse_mp(mpfr_t cr, mpfr_t ci, MPFRScratch &s)
     }
 
 #define MP_ITERATE_FOR(_FRACTAL_NAME) \
-    for (; i < count; ++i) { \
+    for (; i < count; i++) { \
         mpfr_sqr(s.zr2, s.zr, MPFRTypes::ROUNDING); \
         mpfr_sqr(s.zi2, s.zi, MPFRTypes::ROUNDING); \
         mpfr_add(s.mag, s.zr2, s.zi2, MPFRTypes::ROUNDING); \

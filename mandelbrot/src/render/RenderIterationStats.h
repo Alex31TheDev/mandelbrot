@@ -19,4 +19,4 @@ struct RenderIterationStats {
 };
 
 typedef std::optional<std::reference_wrapper<RenderIterationStats>>
-    OptionalIterationStats;
+OptionalIterationStats;

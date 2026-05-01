@@ -29,19 +29,19 @@
 #include "widgets/PalettePreviewWidget.h"
 #include "widgets/SinePreviewWidget.h"
 
-namespace {
-const int controlWindowScreenPadding = 48;
+using namespace GUI;
 
-int controlScrollBarExtent(const QScrollArea* area) {
+static const int controlWindowScreenPadding = 48;
+
+static int controlScrollBarExtent(const QScrollArea *area) {
     if (!area) return 0;
-    if (const QScrollBar* scrollBar = area->verticalScrollBar()) {
+    if (const QScrollBar *scrollBar = area->verticalScrollBar()) {
         return std::max(0, scrollBar->sizeHint().width());
     }
     return 0;
 }
-}
 
-ControlWindow::ControlWindow(QWidget* parent)
+ControlWindow::ControlWindow(QWidget *parent)
     : QMainWindow(parent)
     , _ui(std::make_unique<Ui::ControlWindow>()) {
     _buildUI();
@@ -67,7 +67,7 @@ void ControlWindow::_buildUI() {
     _ui->controlScrollArea->setVerticalScrollBarPolicy(
         Qt::ScrollBarPolicy::ScrollBarAlwaysOn);
 
-    if (QScrollBar* scrollBar = _ui->controlScrollArea->verticalScrollBar()) {
+    if (QScrollBar *scrollBar = _ui->controlScrollArea->verticalScrollBar()) {
         scrollBar->setStyleSheet(QString());
         if (QStyleFactory::keys().contains("windowsvista")) {
             scrollBar->setStyle(QStyleFactory::create("windowsvista"));
@@ -80,27 +80,27 @@ void ControlWindow::_buildUI() {
     }
 
     const auto onSectionToggled = [this](bool) { _updateControlWindowSize(); };
-    const std::array<QGroupBox*, 8> groups = { _ui->cpuGroup, _ui->renderGroup,
+    const std::array<QGroupBox *, 8> groups = { _ui->cpuGroup, _ui->renderGroup,
         _ui->infoGroup, _ui->viewportGroup, _ui->sineGroup, _ui->paletteGroup,
-        _ui->lightGroup, static_cast<QGroupBox*>(_ui->imageGroup) };
-    for (QGroupBox* group : groups) {
-        auto* collapsible = qobject_cast<::CollapsibleGroupBox*>(group);
+        _ui->lightGroup, static_cast<QGroupBox *>(_ui->imageGroup) };
+    for (QGroupBox *group : groups) {
+        auto *collapsible = qobject_cast<::CollapsibleGroupBox *>(group);
         if (!collapsible) continue;
         connect(collapsible, &::CollapsibleGroupBox::expandedChanged, this,
             onSectionToggled);
         collapsible->applyExpandedState(collapsible->isChecked());
     }
 
-    if (auto* spin = qobject_cast<::IterationSpinBox*>(_ui->iterationsSpin)) {
+    if (auto *spin = qobject_cast<::IterationSpinBox *>(_ui->iterationsSpin)) {
         spin->resolveAutoIterations = [this]() {
             return _iterationAutoResolver ? std::max(1, _iterationAutoResolver()) : 1;
-        };
+            };
     }
-    if (QLineEdit* iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit*>()) {
+    if (QLineEdit *iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit *>()) {
         iterationsEdit->installEventFilter(this);
     }
 
-    if (auto* spin = qobject_cast<::AdaptiveDoubleSpinBox*>(_ui->exponentSpin)) {
+    if (auto *spin = qobject_cast<::AdaptiveDoubleSpinBox *>(_ui->exponentSpin)) {
         spin->setDefaultDisplayDecimals(2);
     }
 
@@ -109,25 +109,25 @@ void ControlWindow::_buildUI() {
     compactSpinProbe.setDecimals(4);
     compactSpinProbe.setSingleStep(0.01);
     const int compactSpinWidth = compactSpinProbe.sizeHint().width();
-    for (QDoubleSpinBox* spin : { _ui->freqRSpin, _ui->freqGSpin, _ui->freqBSpin,
+    for (QDoubleSpinBox *spin : { _ui->freqRSpin, _ui->freqGSpin, _ui->freqBSpin,
              _ui->freqMultSpin, _ui->paletteLengthSpin,
              _ui->paletteOffsetSpin }) {
         spin->setFixedWidth(compactSpinWidth);
-        if (auto* adaptive = qobject_cast<::AdaptiveDoubleSpinBox*>(spin)) {
+        if (auto *adaptive = qobject_cast<::AdaptiveDoubleSpinBox *>(spin)) {
             adaptive->setDefaultDisplayDecimals(4);
         }
     }
 
-    for (QPushButton* button : { _ui->savePointButton, _ui->loadPointButton,
+    for (QPushButton *button : { _ui->savePointButton, _ui->loadPointButton,
              _ui->randomizeSineButton, _ui->importSineButton,
              _ui->saveSineButton, _ui->paletteLoadButton,
              _ui->paletteSaveButton, _ui->paletteEditorButton,
              _ui->lightColorButton, _ui->resizeButton, _ui->calculateButton,
              _ui->homeButton, _ui->zoomButton, _ui->saveButton }) {
-        GUI::Util::stabilizePushButton(button);
+        Util::stabilizePushButton(button);
     }
 
-    connect(qobject_cast<::SinePreviewWidget*>(_ui->sinePreview),
+    connect(qobject_cast<::SinePreviewWidget *>(_ui->sinePreview),
         &::SinePreviewWidget::rangeChanged, this,
         [this](double, double) { emit previewRefreshRequested(); });
 
@@ -203,7 +203,7 @@ void ControlWindow::_connectUI() {
     connect(_ui->panRateSlider, &QSlider::valueChanged, this, [this](int value) {
         const QSignalBlocker blocker(_ui->panRateSpin);
         _ui->panRateSpin->setValue(value);
-    });
+        });
     connect(_ui->panRateSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int value) {
             const QSignalBlocker blocker(_ui->panRateSlider);
@@ -213,7 +213,7 @@ void ControlWindow::_connectUI() {
     connect(_ui->zoomRateSlider, &QSlider::valueChanged, this, [this](int value) {
         const QSignalBlocker blocker(_ui->zoomRateSpin);
         _ui->zoomRateSpin->setValue(value);
-    });
+        });
     connect(_ui->zoomRateSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int value) {
             const QSignalBlocker blocker(_ui->zoomRateSlider);
@@ -222,9 +222,9 @@ void ControlWindow::_connectUI() {
         });
 
     connect(_ui->sineCombo, &QComboBox::currentTextChanged, this,
-        [this](const QString&) {
+        [this](const QString &) {
             const QString selected = _ui->sineCombo->currentData().toString();
-            if (selected == GUI::Util::translatedNewEntryLabel()
+            if (selected == Util::translatedNewEntryLabel()
                 || _ui->sineCombo->currentIndex() == 0) {
                 emit newSineRequested();
                 return;
@@ -232,10 +232,10 @@ void ControlWindow::_connectUI() {
 
             emit sineSelectionRequested(
                 selected.isEmpty()
-                    ? GUI::Util::undecoratedLabel(_ui->sineCombo->currentText())
-                    : selected);
+                ? Util::undecoratedLabel(_ui->sineCombo->currentText())
+                : selected);
         });
-    for (QDoubleSpinBox* spin : { _ui->freqRSpin, _ui->freqGSpin, _ui->freqBSpin,
+    for (QDoubleSpinBox *spin : { _ui->freqRSpin, _ui->freqGSpin, _ui->freqBSpin,
              _ui->freqMultSpin }) {
         connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
             [emitRender](double) { emitRender(); });
@@ -248,9 +248,9 @@ void ControlWindow::_connectUI() {
         &ControlWindow::saveSineRequested);
 
     connect(_ui->paletteCombo, &QComboBox::currentTextChanged, this,
-        [this](const QString&) {
+        [this](const QString &) {
             const QString selected = _ui->paletteCombo->currentData().toString();
-            if (selected == GUI::Util::translatedNewEntryLabel()
+            if (selected == Util::translatedNewEntryLabel()
                 || _ui->paletteCombo->currentIndex() == 0) {
                 emit newPaletteRequested();
                 return;
@@ -258,8 +258,8 @@ void ControlWindow::_connectUI() {
 
             emit paletteSelectionRequested(
                 selected.isEmpty()
-                    ? GUI::Util::undecoratedLabel(_ui->paletteCombo->currentText())
-                    : selected);
+                ? Util::undecoratedLabel(_ui->paletteCombo->currentText())
+                : selected);
         });
     connect(_ui->paletteLengthSpin,
         QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
@@ -297,15 +297,15 @@ void ControlWindow::_connectUI() {
         &ControlWindow::loadViewRequested);
 
     const auto applyViewTextEdits = [this]() { emit renderRequested(); };
-    const auto connectViewTextEdit = [this, applyViewTextEdits](QLineEdit* edit) {
+    const auto connectViewTextEdit = [this, applyViewTextEdits](QLineEdit *edit) {
         if (!edit) return;
-        GUI::Util::markLineEditTextCommitted(edit);
+        Util::markLineEditTextCommitted(edit);
         connect(edit, &QLineEdit::editingFinished, this,
             [edit, applyViewTextEdits]() {
-                if (!GUI::Util::hasUncommittedLineEditChange(edit)) return;
+                if (!Util::hasUncommittedLineEditChange(edit)) return;
                 applyViewTextEdits();
             });
-    };
+        };
     connectViewTextEdit(_ui->infoRealEdit);
     connectViewTextEdit(_ui->infoImagEdit);
     connectViewTextEdit(_ui->infoZoomEdit);
@@ -347,7 +347,7 @@ void ControlWindow::_connectUI() {
 }
 
 void ControlWindow::setBackendNames(
-    const QStringList& names, const QString& selectedBackend) {
+    const QStringList &names, const QString &selectedBackend) {
     const QSignalBlocker blocker(_ui->backendCombo);
     _ui->backendCombo->clear();
     _ui->backendCombo->addItems(names);
@@ -356,7 +356,7 @@ void ControlWindow::setBackendNames(
 }
 
 void ControlWindow::setSineNames(
-    const QStringList& names, const QString& currentName, bool dirty) {
+    const QStringList &names, const QString &currentName, bool dirty) {
     _sineNames = names;
     _currentSineName = currentName;
     _sineDirty = dirty;
@@ -364,23 +364,23 @@ void ControlWindow::setSineNames(
 }
 
 void ControlWindow::setPaletteNames(
-    const QStringList& names, const QString& currentName, bool dirty) {
+    const QStringList &names, const QString &currentName, bool dirty) {
     _paletteNames = names;
     _currentPaletteName = currentName;
     _paletteDirty = dirty;
     _refreshNamedCombo(_ui->paletteCombo, names, currentName, dirty);
 }
 
-void ControlWindow::setCpuInfo(const QString& name, int cores, int threads) {
+void ControlWindow::setCpuInfo(const QString &name, int cores, int threads) {
     _ui->cpuNameEdit->setText(name);
     _ui->cpuCoresEdit->setText(cores > 0 ? QString::number(cores) : QString());
     _ui->cpuThreadsEdit->setText(
         threads > 0 ? QString::number(threads) : QString());
 }
 
-void ControlWindow::setSessionState(const GUISessionState& sessionState,
+void ControlWindow::setSessionState(const GUISessionState &sessionState,
     NavMode displayedNavMode, SelectionTarget selectionTarget) {
-    const GUIState& state = sessionState.state();
+    const GUIState &state = sessionState.state();
     const QSignalBlocker backendBlocker(_ui->backendCombo);
     const QSignalBlocker iterationsBlocker(_ui->iterationsSpin);
     const QSignalBlocker threadsBlocker(_ui->useThreadsCheckBox);
@@ -422,7 +422,7 @@ void ControlWindow::setSessionState(const GUISessionState& sessionState,
     _ui->zoomRateSpin->setValue(state.zoomRate);
     _ui->exponentSlider->setValue(
         static_cast<int>(std::round(std::max(1.01, state.exponent) * 100.0)));
-    GUI::Util::setAdaptiveSpinValue(_ui->exponentSpin, std::max(1.01, state.exponent));
+    Util::setAdaptiveSpinValue(_ui->exponentSpin, std::max(1.01, state.exponent));
     if (!state.sineName.isEmpty()) {
         const int sineIndex = _ui->sineCombo->findData(state.sineName);
         if (sineIndex >= 0) {
@@ -431,10 +431,10 @@ void ControlWindow::setSessionState(const GUISessionState& sessionState,
             _ui->sineCombo->setCurrentText(state.sineName);
         }
     }
-    GUI::Util::setAdaptiveSpinValue(_ui->freqRSpin, state.sinePalette.freqR);
-    GUI::Util::setAdaptiveSpinValue(_ui->freqGSpin, state.sinePalette.freqG);
-    GUI::Util::setAdaptiveSpinValue(_ui->freqBSpin, state.sinePalette.freqB);
-    GUI::Util::setAdaptiveSpinValue(_ui->freqMultSpin, state.sinePalette.freqMult);
+    Util::setAdaptiveSpinValue(_ui->freqRSpin, state.sinePalette.freqR);
+    Util::setAdaptiveSpinValue(_ui->freqGSpin, state.sinePalette.freqG);
+    Util::setAdaptiveSpinValue(_ui->freqBSpin, state.sinePalette.freqB);
+    Util::setAdaptiveSpinValue(_ui->freqMultSpin, state.sinePalette.freqMult);
     if (!state.paletteName.isEmpty()) {
         const int paletteIndex = _ui->paletteCombo->findData(state.paletteName);
         if (paletteIndex >= 0) {
@@ -443,8 +443,8 @@ void ControlWindow::setSessionState(const GUISessionState& sessionState,
             _ui->paletteCombo->setCurrentText(state.paletteName);
         }
     }
-    GUI::Util::setAdaptiveSpinValue(_ui->paletteLengthSpin, state.palette.totalLength);
-    GUI::Util::setAdaptiveSpinValue(_ui->paletteOffsetSpin, state.palette.offset);
+    Util::setAdaptiveSpinValue(_ui->paletteLengthSpin, state.palette.totalLength);
+    Util::setAdaptiveSpinValue(_ui->paletteOffsetSpin, state.palette.offset);
     _ui->outputWidthSpin->setValue(state.outputWidth);
     _ui->outputHeightSpin->setValue(state.outputHeight);
     _lastOutputSize = QSize(state.outputWidth, state.outputHeight);
@@ -453,19 +453,19 @@ void ControlWindow::setSessionState(const GUISessionState& sessionState,
     _ui->navModeCombo->setCurrentIndex(static_cast<int>(displayedNavMode));
     _ui->pickTargetCombo->setCurrentIndex(static_cast<int>(selectionTarget));
 
-    GUI::Util::setCommittedLineEditText(_ui->infoRealEdit, sessionState.pointRealText());
-    GUI::Util::setCommittedLineEditText(_ui->infoImagEdit, sessionState.pointImagText());
-    GUI::Util::setCommittedLineEditText(_ui->infoZoomEdit, sessionState.zoomText());
-    GUI::Util::setCommittedLineEditText(_ui->infoSeedRealEdit, sessionState.seedRealText());
-    GUI::Util::setCommittedLineEditText(_ui->infoSeedImagEdit, sessionState.seedImagText());
+    Util::setCommittedLineEditText(_ui->infoRealEdit, sessionState.pointRealText());
+    Util::setCommittedLineEditText(_ui->infoImagEdit, sessionState.pointImagText());
+    Util::setCommittedLineEditText(_ui->infoZoomEdit, sessionState.zoomText());
+    Util::setCommittedLineEditText(_ui->infoSeedRealEdit, sessionState.seedRealText());
+    Util::setCommittedLineEditText(_ui->infoSeedImagEdit, sessionState.seedImagText());
     _ui->lightRealEdit->setText(sessionState.stateToString(state.light.x(), 12));
     _ui->lightImagEdit->setText(sessionState.stateToString(state.light.y(), 12));
 
     _updateModeEnablement(state.colorMethod);
 }
 
-void ControlWindow::syncToSessionState(GUISessionState& sessionState) const {
-    GUIState& state = sessionState.mutableState();
+void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
+    GUIState &state = sessionState.mutableState();
     state.backend = _ui->backendCombo->currentText();
     state.iterations = _ui->iterationsSpin->value();
     state.useThreads = _ui->useThreadsCheckBox->isChecked();
@@ -484,26 +484,26 @@ void ControlWindow::syncToSessionState(GUISessionState& sessionState) const {
         = static_cast<float>(_ui->paletteLengthSpin->value());
     const float paletteOffset
         = static_cast<float>(_ui->paletteOffsetSpin->value());
-    const auto paletteStops = GUI::PaletteStore::configToStops(state.palette);
-    state.palette = GUI::PaletteStore::stopsToConfig(
+    const auto paletteStops = PaletteStore::configToStops(state.palette);
+    state.palette = PaletteStore::stopsToConfig(
         paletteStops, paletteTotalLength, paletteOffset, state.palette.blendEnds);
     state.outputWidth = _ui->outputWidthSpin->value();
     state.outputHeight = _ui->outputHeightSpin->value();
 
     QString sineName = _ui->sineCombo->currentData().toString();
     if (sineName.isEmpty()) {
-        sineName = GUI::Util::undecoratedLabel(_ui->sineCombo->currentText());
+        sineName = Util::undecoratedLabel(_ui->sineCombo->currentText());
     }
-    if (!sineName.isEmpty() && sineName != GUI::Util::translatedNewEntryLabel()) {
+    if (!sineName.isEmpty() && sineName != Util::translatedNewEntryLabel()) {
         state.sineName = sineName;
     }
 
     QString paletteName = _ui->paletteCombo->currentData().toString();
     if (paletteName.isEmpty()) {
-        paletteName = GUI::Util::undecoratedLabel(_ui->paletteCombo->currentText());
+        paletteName = Util::undecoratedLabel(_ui->paletteCombo->currentText());
     }
     if (!paletteName.isEmpty()
-        && paletteName != GUI::Util::translatedNewEntryLabel()) {
+        && paletteName != Util::translatedNewEntryLabel()) {
         state.paletteName = paletteName;
     }
 
@@ -529,10 +529,10 @@ void ControlWindow::syncToSessionState(GUISessionState& sessionState) const {
         = static_cast<Backend::FractalType>(_ui->fractalCombo->currentIndex());
 }
 
-void ControlWindow::applyShortcuts(const Shortcuts& shortcuts) {
-    const auto setShortcut = [&shortcuts](QAction* action, const QString& id) {
+void ControlWindow::applyShortcuts(const Shortcuts &shortcuts) {
+    const auto setShortcut = [&shortcuts](QAction *action, const QString &id) {
         if (action) action->setShortcut(shortcuts.sequence(id));
-    };
+        };
 
     setShortcut(_ui->actionCancelRender, "cancel");
     setShortcut(_ui->actionHome, "home");
@@ -553,7 +553,7 @@ void ControlWindow::setIterationAutoResolver(std::function<int()> resolver) {
     _iterationAutoResolver = std::move(resolver);
 }
 
-void ControlWindow::restoreWindowSettings(const AppSettings& settings) {
+void ControlWindow::restoreWindowSettings(const AppSettings &settings) {
     const QByteArray geometry = settings.controlWindowGeometry();
     if (!geometry.isEmpty()) {
         restoreGeometry(geometry);
@@ -568,14 +568,14 @@ void ControlWindow::restoreWindowSettings(const AppSettings& settings) {
     }
 }
 
-void ControlWindow::saveWindowSettings(AppSettings& settings) const {
+void ControlWindow::saveWindowSettings(AppSettings &settings) const {
     settings.setControlWindowGeometry(saveGeometry());
     settings.setControlWindowState(saveState());
 }
 
-void ControlWindow::setStatusState(const QString& statusText,
-    const QString& statusLinkPath, const QString& pixelsPerSecondText,
-    const QString& imageMemoryText, int progressValue, bool progressActive,
+void ControlWindow::setStatusState(const QString &statusText,
+    const QString &statusLinkPath, const QString &pixelsPerSecondText,
+    const QString &imageMemoryText, int progressValue, bool progressActive,
     bool progressCancelled) {
     _statusText = statusText;
     _statusLinkPath = statusLinkPath;
@@ -587,49 +587,41 @@ void ControlWindow::setStatusState(const QString& statusText,
     _updateStatusLabels();
 }
 
-void ControlWindow::setSinePreviewImage(const QImage& image) {
-    auto* preview = qobject_cast<::SinePreviewWidget*>(_ui->sinePreview);
+void ControlWindow::setSinePreviewImage(const QImage &image) {
+    auto *preview = qobject_cast<::SinePreviewWidget *>(_ui->sinePreview);
     if (preview) preview->setPreviewImage(image);
 }
 
-void ControlWindow::setPalettePreviewPixmap(const QPixmap& pixmap) {
-    _palettePreviewPixmap = pixmap;
-    _palettePreviewSize = pixmap.size();
-    auto* preview = qobject_cast<::PalettePreviewWidget*>(_ui->palettePreviewLabel);
+void ControlWindow::setPalettePreviewPixmap(const QPixmap &pixmap) {
+    auto *preview = qobject_cast<::PalettePreviewWidget *>(_ui->palettePreviewLabel);
     if (preview) preview->setPreviewPixmap(pixmap);
 }
 
 void ControlWindow::clearPalettePreview() {
-    _palettePreviewPixmap = {};
-    _palettePreviewSize = {};
-    auto* preview = qobject_cast<::PalettePreviewWidget*>(_ui->palettePreviewLabel);
+    auto *preview = qobject_cast<::PalettePreviewWidget *>(_ui->palettePreviewLabel);
     if (preview) preview->clearPreview();
 }
 
-void ControlWindow::setLightColorButton(const QColor& color, const QString& text) {
+void ControlWindow::setLightColorButton(const QColor &color, const QString &text) {
     _ui->lightColorButton->setText(text);
-    _ui->lightColorButton->setStyleSheet(GUI::Util::lightColorButtonStyle(color));
+    _ui->lightColorButton->setStyleSheet(Util::lightColorButtonStyle(color));
 }
 
 std::pair<double, double> ControlWindow::sinePreviewRange() const {
-    if (auto* preview = qobject_cast<::SinePreviewWidget*>(_ui->sinePreview)) {
+    if (auto *preview = qobject_cast<::SinePreviewWidget *>(_ui->sinePreview)) {
         return preview->range();
     }
     return { 0.0, 1.0 };
 }
 
-bool ControlWindow::preserveRatioEnabled() const {
-    return _ui->preserveRatioCheck->isChecked();
-}
-
-bool ControlWindow::eventFilter(QObject* watched, QEvent* event) {
-    QLineEdit* iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit*>();
+bool ControlWindow::eventFilter(QObject *watched, QEvent *event) {
+    QLineEdit *iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit *>();
     if (iterationsEdit && watched == iterationsEdit
         && event->type() == QEvent::KeyPress) {
-        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
         const QString text = iterationsEdit->text().trimmed();
         if (text.compare(
-                _ui->iterationsSpin->specialValueText(), Qt::CaseInsensitive)
+            _ui->iterationsSpin->specialValueText(), Qt::CaseInsensitive)
             == 0) {
             const bool printableInput = !keyEvent->text().isEmpty()
                 && !keyEvent->text().at(0).isSpace()
@@ -645,7 +637,7 @@ bool ControlWindow::eventFilter(QObject* watched, QEvent* event) {
     return QMainWindow::eventFilter(watched, event);
 }
 
-void ControlWindow::changeEvent(QEvent* event) {
+void ControlWindow::changeEvent(QEvent *event) {
     QMainWindow::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
         _ui->retranslateUi(this);
@@ -660,13 +652,13 @@ void ControlWindow::changeEvent(QEvent* event) {
     }
 }
 
-void ControlWindow::closeEvent(QCloseEvent* event) {
+void ControlWindow::closeEvent(QCloseEvent *event) {
     event->accept();
     QMetaObject::invokeMethod(
         qApp, &QCoreApplication::quit, Qt::QueuedConnection);
 }
 
-void ControlWindow::showEvent(QShowEvent* event) {
+void ControlWindow::showEvent(QShowEvent *event) {
     QMainWindow::showEvent(event);
 
     if (!_controlWindowSized) {
@@ -727,14 +719,14 @@ void ControlWindow::_updateModeEnablement(Backend::ColorMethod colorMethod) {
     const bool sineMode = colorMethod == Backend::ColorMethod::iterations
         || colorMethod == Backend::ColorMethod::smooth_iterations;
     const bool lightMode = colorMethod == Backend::ColorMethod::light;
-    static_cast<::CollapsibleGroupBox*>(_ui->sineGroup)->setContentEnabled(sineMode);
-    static_cast<::CollapsibleGroupBox*>(_ui->paletteGroup)
+    static_cast<::CollapsibleGroupBox *>(_ui->sineGroup)->setContentEnabled(sineMode);
+    static_cast<::CollapsibleGroupBox *>(_ui->paletteGroup)
         ->setContentEnabled(paletteMode);
-    static_cast<::CollapsibleGroupBox*>(_ui->lightGroup)->setContentEnabled(lightMode);
+    static_cast<::CollapsibleGroupBox *>(_ui->lightGroup)->setContentEnabled(lightMode);
 }
 
 void ControlWindow::_updateControlWindowSize() {
-    QLayout* outerLayout = _ui->centralWidget ? _ui->centralWidget->layout() : nullptr;
+    QLayout *outerLayout = _ui->centralWidget ? _ui->centralWidget->layout() : nullptr;
     if (outerLayout) outerLayout->activate();
     if (_ui->controlScrollContent && _ui->controlScrollContent->layout()) {
         _ui->controlScrollContent->layout()->activate();
@@ -767,19 +759,19 @@ void ControlWindow::_updateControlWindowSize() {
         0, _ui->viewportGroup->geometry().bottom() + 1 + contentMargins.bottom());
     target.setWidth(std::max(target.width(),
         controlContentMinWidth + outerMargins.left() + outerMargins.right()
-            + scrollBarExtent + scrollAreaFrameWidth));
+        + scrollBarExtent + scrollAreaFrameWidth));
     packedWidth = std::max(packedWidth,
         controlContentMinWidth + outerMargins.left() + outerMargins.right()
-            + scrollBarExtent + scrollAreaFrameWidth);
+        + scrollBarExtent + scrollAreaFrameWidth);
 
     _ui->controlScrollArea->setMinimumWidth(
         std::max(1, controlContentMinWidth + scrollBarExtent + scrollAreaFrameWidth));
 
     int fixedPanelsMinWidth = 0;
     if (outerLayout) {
-        for (int i = 0; i < outerLayout->count(); ++i) {
-            QLayoutItem* item = outerLayout->itemAt(i);
-            QWidget* widget = item ? item->widget() : nullptr;
+        for (int i = 0; i < outerLayout->count(); i++) {
+            QLayoutItem *item = outerLayout->itemAt(i);
+            QWidget *widget = item ? item->widget() : nullptr;
             if (!widget || widget == _ui->controlScrollArea) continue;
             fixedPanelsMinWidth = std::max(fixedPanelsMinWidth, item->minimumSize().width());
             fixedPanelsMinWidth
@@ -803,12 +795,12 @@ void ControlWindow::_updateControlWindowSize() {
             fixedPanelsHeight += margins.top() + margins.bottom();
 
             int visibleWidgets = 0;
-            for (int i = 0; i < outerLayout->count(); ++i) {
-                QLayoutItem* item = outerLayout->itemAt(i);
-                QWidget* widget = item ? item->widget() : nullptr;
+            for (int i = 0; i < outerLayout->count(); i++) {
+                QLayoutItem *item = outerLayout->itemAt(i);
+                QWidget *widget = item ? item->widget() : nullptr;
                 if (!widget) continue;
 
-                ++visibleWidgets;
+                visibleWidgets++;
                 if (widget == _ui->controlScrollArea) continue;
                 fixedPanelsHeight += item->sizeHint().height();
             }
@@ -820,9 +812,9 @@ void ControlWindow::_updateControlWindowSize() {
             : controlContentHeight;
         int desiredHeight
             = std::max(minHeight, fixedPanelsHeight + desiredContentHeight);
-        if (const QScreen* screen = (windowHandle() && windowHandle()->screen())
-                ? windowHandle()->screen()
-                : (this->screen() ? this->screen() : QApplication::primaryScreen())) {
+        if (const QScreen *screen = (windowHandle() && windowHandle()->screen())
+            ? windowHandle()->screen()
+            : (this->screen() ? this->screen() : QApplication::primaryScreen())) {
             const int maxOnScreenHeight = std::max(
                 minHeight,
                 screen->availableGeometry().height() - controlWindowScreenPadding);
@@ -864,10 +856,10 @@ void ControlWindow::_updateAspectLinkedSizes(bool widthChanged) {
 
 void ControlWindow::_updateStatusRightEdgeAlignment() {
     constexpr int statusRowLeftShift = 3;
-    QWidget* statusPanel = _ui->statusRightLabel->parentWidget();
+    QWidget *statusPanel = _ui->statusRightLabel->parentWidget();
     if (!statusPanel) return;
 
-    auto* statusRow = qobject_cast<QHBoxLayout*>(statusPanel->layout());
+    auto *statusRow = qobject_cast<QHBoxLayout *>(statusPanel->layout());
     if (!statusRow) return;
 
     const QPoint saveTopLeft = _ui->saveButton->mapTo(this, QPoint(0, 0));
@@ -891,36 +883,36 @@ void ControlWindow::_updateStatusLabels() {
         _progressCancelled ? QStringLiteral("color: rgb(215, 80, 80);") : QString());
     _ui->progressBar->setValue(shownProgressValue);
     _ui->progressBar->setStyleSheet(_progressCancelled
-            ? QStringLiteral("QProgressBar::chunk { background-color: rgb(215, 80, 80); }")
-            : QString());
+        ? QStringLiteral("QProgressBar::chunk { background-color: rgb(215, 80, 80); }")
+        : QString());
     _ui->statusRightLabel->setEmphasisEnabled(_progressCancelled);
     _ui->pixelsPerSecondLabel->setText(
         ((_progressActive
-                 || _pixelsPerSecondText != GUI::Util::defaultPixelsPerSecondText())
-                && !_pixelsPerSecondText.isEmpty())
-            ? _pixelsPerSecondText
-            : QString());
+            || _pixelsPerSecondText != Util::defaultPixelsPerSecondText())
+            && !_pixelsPerSecondText.isEmpty())
+        ? _pixelsPerSecondText
+        : QString());
     _ui->imageMemoryLabel->setText(_imageMemoryText);
     _ui->statusRightLabel->setSource(_statusText, _statusLinkPath);
 }
 
-void ControlWindow::_refreshNamedCombo(QComboBox* combo, const QStringList& names,
-    const QString& currentName, bool dirty) const {
+void ControlWindow::_refreshNamedCombo(QComboBox *combo, const QStringList &names,
+    const QString &currentName, bool dirty) const {
     const QSignalBlocker blocker(combo);
     combo->clear();
-    combo->addItem(GUI::Util::translatedNewEntryLabel());
+    combo->addItem(Util::translatedNewEntryLabel());
     combo->setItemData(0, QBrush(QColor(0, 153, 0)), Qt::ForegroundRole);
     combo->insertSeparator(1);
     QStringList effectiveNames = names;
     if (!currentName.isEmpty()
-        && currentName != GUI::Util::translatedNewEntryLabel()
+        && currentName != Util::translatedNewEntryLabel()
         && !effectiveNames.contains(currentName, Qt::CaseInsensitive)) {
         effectiveNames.push_front(currentName);
     }
-    for (const QString& name : effectiveNames) {
+    for (const QString &name : effectiveNames) {
         const bool currentDirty
             = dirty && name.compare(currentName, Qt::CaseInsensitive) == 0;
-        combo->addItem(GUI::Util::decorateUnsavedLabel(name, currentDirty), name);
+        combo->addItem(Util::decorateUnsavedLabel(name, currentDirty), name);
     }
 
     const int selectedIndex = combo->findData(currentName);

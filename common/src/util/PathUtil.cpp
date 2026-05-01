@@ -2,26 +2,15 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 
 #include <string>
 #include <string_view>
 #include <filesystem>
 #include <tuple>
-#include <chrono>
 
+#include "DateTimeUtil.h"
 #include "IncludeWin32.h"
 #include "StringUtil.h"
-
-using namespace std::chrono;
-
-static bool safeLocaltime(time_t time, tm &out) {
-#if defined(_MSC_VER)
-    return localtime_s(&out, &time) == 0;
-#else
-    return localtime_r(&time, &out) != nullptr;
-#endif
-}
 
 namespace PathUtil {
     std::filesystem::path executableDir() {
@@ -33,17 +22,17 @@ namespace PathUtil {
         return std::filesystem::path(path).parent_path();
     }
 
-    std::tuple<std::string_view, std::string_view>
-        splitFilename(std::string_view filePath) {
+    std::tuple<std::string_view, std::string_view> splitFilename(std::string_view filePath) {
         std::string_view name, ext;
 
-        const size_t lastDot = filePath.find_last_of('.');
-        const size_t lastSlash = filePath.find_last_of("/\\");
+        const size_t lastDot = filePath.find_last_of('.'),
+            lastSlash = filePath.find_last_of("/\\");
 
-        if (lastDot != std::string::npos &&
+        if (
+            lastDot != std::string::npos &&
             lastDot != filePath.length() - 1 &&
-            (lastSlash == std::string::npos ||
-                lastDot > lastSlash)) {
+            (lastSlash == std::string::npos || lastDot > lastSlash)
+            ) {
             name = filePath.substr(0, lastDot);
             ext = filePath.substr(lastDot);
         } else {
@@ -87,38 +76,36 @@ namespace PathUtil {
     }
 
     std::string appendIsoDate(std::string_view filePath) {
+        return appendDate(filePath, "%Y_%m_%d-%H_%M_%S");
+    }
+
+    std::string appendDate(std::string_view filePath, const std::string &format) {
         const auto [name, ext] = splitFilename(filePath);
 
-        const time_t now = system_clock::to_time_t(system_clock::now());
-        tm localTime;
-
-        if (!safeLocaltime(now, localTime)) return "";
-
-        char buf[20];
-        strftime(buf, sizeof(buf), "%Y_%m_%d-%H_%M_%S", &localTime);
+        const std::string formatted = DateTimeUtil::formatCurrentLocalTime(format);
+        if (formatted.empty()) return "";
 
         std::string result;
-        result.reserve(name.size() + strlen(buf) + ext.size() + 1);
+        result.reserve(name.size() + formatted.size() + ext.size() + 1);
         result.append(name);
         result.push_back('-');
-        result.append(buf);
+        result.append(formatted);
         result.append(ext);
         return result;
     }
 
-    std::string appendExtension(std::string_view filePath,
-        std::string_view extension) {
-        std::string normalizedExt(extension);
-        if (StringUtil::startsWith(normalizedExt, ".")) {
-            normalizedExt.erase(normalizedExt.begin());
-        }
+    std::string appendExtension(
+        std::string_view filePath, const std::string &extension
+    ) {
+        std::string_view normalizedExt = extension;
+        if (StringUtil::startsWith(normalizedExt, "."))
+            normalizedExt.remove_prefix(1);
         if (normalizedExt.empty()) return std::string(filePath);
 
-        const std::string loweredPath = StringUtil::toLower(filePath);
-        const std::string loweredExt = StringUtil::toLower(normalizedExt);
-        const std::string fullExt = "." + loweredExt;
+        const std::string lowerPath = StringUtil::toLower(filePath),
+            fullExt = "." + StringUtil::toLower(normalizedExt);
 
-        if (StringUtil::endsWith(loweredPath, fullExt)) return std::string(filePath);
+        if (StringUtil::endsWith(lowerPath, fullExt)) return std::string(filePath);
 
         std::string out;
         out.reserve(filePath.size() + normalizedExt.size() + 1);

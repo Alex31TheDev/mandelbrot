@@ -20,28 +20,30 @@
 #include "util/GUIUtil.h"
 #include "util/PathUtil.h"
 
-PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig& palette,
-    const QString& paletteName,
-    std::function<void(const QString&)> savedPathCallback, QWidget* parent)
+using namespace GUI;
+
+PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig &palette,
+    const QString &paletteName,
+    std::function<void(const QString &)> savedPathCallback, QWidget *parent)
     : QDialog(parent)
     , _ui(std::make_unique<Ui::PaletteDialog>())
     , _palette(palette)
-    , _savedPaletteName(GUI::PaletteStore::normalizeName(paletteName))
+    , _savedPaletteName(PaletteStore::normalizeName(paletteName))
     , _savedPathCallback(std::move(savedPathCallback)) {
     _ui->setupUi(this);
 
     _ui->nameEdit->setText(_savedPaletteName.isEmpty()
-            ? QString::fromLatin1(GUI::PaletteStore::defaultName)
-            : _savedPaletteName);
+        ? QString::fromLatin1(PaletteStore::defaultName)
+        : _savedPaletteName);
     _ui->nameEdit->setValidator(new QRegularExpressionValidator(
         QRegularExpression("[A-Za-z0-9 _.\\-]*"), _ui->nameEdit));
 
-    GUI::Util::stabilizePushButton(_ui->addButton);
-    GUI::Util::stabilizePushButton(_ui->removeButton);
-    GUI::Util::stabilizePushButton(_ui->evenButton);
-    GUI::Util::stabilizePushButton(_ui->colorButton);
-    GUI::Util::stabilizePushButton(_ui->importButton);
-    GUI::Util::stabilizePushButton(_ui->saveButton);
+    Util::stabilizePushButton(_ui->addButton);
+    Util::stabilizePushButton(_ui->removeButton);
+    Util::stabilizePushButton(_ui->evenButton);
+    Util::stabilizePushButton(_ui->colorButton);
+    Util::stabilizePushButton(_ui->importButton);
+    Util::stabilizePushButton(_ui->saveButton);
 
     _applyPalette(_palette);
 
@@ -69,7 +71,7 @@ PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig& palette,
             _refreshButtonState();
         });
     connect(_ui->nameEdit, &QLineEdit::textEdited, this,
-        [this](const QString&) { _savedPaletteDirty = true; });
+        [this](const QString &) { _savedPaletteDirty = true; });
     connect(_ui->importButton, &QPushButton::clicked, this,
         &PaletteDialog::_importPalette);
     connect(_ui->saveButton, &QPushButton::clicked, this,
@@ -98,23 +100,23 @@ void PaletteDialog::accept() {
 }
 
 Backend::PaletteHexConfig PaletteDialog::_currentPalette() const {
-    return GUI::PaletteStore::stopsToConfig(_ui->paletteTimeline->stops(),
+    return PaletteStore::stopsToConfig(_ui->paletteTimeline->stops(),
         _palette.totalLength, _palette.offset,
         _ui->blendEndsCheck->isChecked());
 }
 
-void PaletteDialog::_applyPalette(const Backend::PaletteHexConfig& palette) {
+void PaletteDialog::_applyPalette(const Backend::PaletteHexConfig &palette) {
     _palette = palette;
     const QSignalBlocker blendBlocker(_ui->blendEndsCheck);
     _ui->blendEndsCheck->setChecked(_palette.blendEnds);
     _ui->paletteTimeline->setBlendEnds(_palette.blendEnds);
-    _ui->paletteTimeline->setStops(GUI::PaletteStore::configToStops(_palette));
+    _ui->paletteTimeline->setStops(PaletteStore::configToStops(_palette));
 }
 
 QString PaletteDialog::_validatedPaletteName() const {
     const QString name
-        = GUI::PaletteStore::normalizeName(_ui->nameEdit->text());
-    return GUI::PaletteStore::isValidName(name) ? name : QString();
+        = PaletteStore::normalizeName(_ui->nameEdit->text());
+    return PaletteStore::isValidName(name) ? name : QString();
 }
 
 void PaletteDialog::_editColor() {
@@ -129,8 +131,8 @@ void PaletteDialog::_editColor() {
 }
 
 void PaletteDialog::_importPalette() {
-    const QString sourcePath = GUI::showNativeOpenFileDialog(this,
-        tr("Import Palette"), GUI::PaletteStore::directoryPath(),
+    const QString sourcePath = showNativeOpenFileDialog(this,
+        tr("Import Palette"), PaletteStore::directoryPath(),
         tr("Palette Files (*.txt);;All Files (*.*)"));
     if (sourcePath.isEmpty()) return;
 
@@ -138,9 +140,9 @@ void PaletteDialog::_importPalette() {
     QString importedName;
     std::filesystem::path destinationPath;
     QString errorMessage;
-    if (!GUI::PaletteStore::importFromPath(sourcePath.toStdString(),
-            _palette.totalLength, _palette.offset, importedName, loaded,
-            destinationPath, errorMessage)) {
+    if (!PaletteStore::importFromPath(sourcePath.toStdString(),
+        _palette.totalLength, _palette.offset, importedName, loaded,
+        destinationPath, errorMessage)) {
         QMessageBox::warning(this, tr("Palette"), errorMessage);
         return;
     }
@@ -159,12 +161,12 @@ void PaletteDialog::_savePalette() {
     if (paletteName.isEmpty()) {
         QMessageBox::warning(this, tr("Palette"),
             tr("Palette names must be non-empty ASCII and use only letters, "
-               "numbers, spaces, '.', '-', or '_'."));
+                "numbers, spaces, '.', '-', or '_'."));
         return;
     }
 
     QString errorMessage;
-    if (!GUI::PaletteStore::ensureDirectory(errorMessage)) {
+    if (!PaletteStore::ensureDirectory(errorMessage)) {
         QMessageBox::warning(this, tr("Palette"), errorMessage);
         return;
     }
@@ -172,7 +174,7 @@ void PaletteDialog::_savePalette() {
     _palette = _currentPalette();
     QString targetName = paletteName;
     std::filesystem::path destinationPath
-        = GUI::PaletteStore::filePath(targetName);
+        = PaletteStore::filePath(targetName);
     std::error_code existsError;
     const bool destinationExists
         = std::filesystem::exists(destinationPath, existsError) && !existsError;
@@ -184,35 +186,35 @@ void PaletteDialog::_savePalette() {
             QMessageBox::Yes);
         if (choice == QMessageBox::Cancel) return;
         if (choice == QMessageBox::No) {
-            const QString savePath = GUI::showNativeSaveFileDialog(this,
-                tr("Save Palette As"), GUI::PaletteStore::directoryPath(),
+            const QString savePath = showNativeSaveFileDialog(this,
+                tr("Save Palette As"), PaletteStore::directoryPath(),
                 QFileInfo(
-                    GUI::Util::uniqueIndexedPathWithExtension(
-                        GUI::PaletteStore::directoryPath(), targetName, "txt"))
-                    .fileName(),
+                    Util::uniqueIndexedPathWithExtension(
+                        PaletteStore::directoryPath(), targetName, "txt"))
+                .fileName(),
                 tr("Palette Files (*.txt);;All Files (*.*)"));
             if (savePath.isEmpty()) return;
 
             const QString savePathWithExtension = QString::fromStdString(
                 PathUtil::appendExtension(savePath.toStdString(), "txt"));
             QString saveName;
-            if (!GUI::PaletteStore::saveFromDialogPath(savePathWithExtension,
-                    _palette, saveName, destinationPath, errorMessage)) {
+            if (!PaletteStore::saveFromDialogPath(savePathWithExtension,
+                _palette, saveName, destinationPath, errorMessage)) {
                 QMessageBox::warning(this, tr("Palette"),
                     errorMessage);
                 return;
             }
 
             targetName = saveName;
-        } else if (!GUI::PaletteStore::saveNamed(
-                       targetName, _palette, destinationPath, errorMessage)) {
+        } else if (!PaletteStore::saveNamed(
+            targetName, _palette, destinationPath, errorMessage)) {
             QMessageBox::warning(this, tr("Palette"), errorMessage);
             return;
         }
     }
 
     if (!destinationExists
-        && !GUI::PaletteStore::saveNamed(
+        && !PaletteStore::saveNamed(
             targetName, _palette, destinationPath, errorMessage)) {
         QMessageBox::warning(this, tr("Palette"), errorMessage);
         return;
@@ -230,6 +232,6 @@ void PaletteDialog::_refreshButtonState() {
     _ui->colorButton->setEnabled(_ui->paletteTimeline->selectedIndex() >= 0);
     _ui->removeButton->setEnabled(_ui->paletteTimeline->selectedCount() > 0
         && static_cast<int>(_ui->paletteTimeline->stops().size())
-                - _ui->paletteTimeline->selectedCount()
-            >= 2);
+        - _ui->paletteTimeline->selectedCount()
+        >= 2);
 }

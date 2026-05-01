@@ -1,8 +1,8 @@
 #include "CPUInfo.h"
 
-#include "util/StringUtil.h"
-
 #include <libcpuid/libcpuid.h>
+
+#include "util/StringUtil.h"
 
 CPUInfo queryCPUInfo() {
     CPUInfo info{};

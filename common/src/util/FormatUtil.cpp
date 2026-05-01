@@ -2,11 +2,13 @@
 
 #include <cstdint>
 #include <cmath>
-#include <algorithm>
 
-#include <sstream>
+#include <algorithm>
 #include <string>
+#include <string_view>
 #include <iomanip>
+#include <sstream>
+#include <functional>
 
 static const char *sizeUnits[] = { "B", "KB", "MB", "GB", "TB" };
 constexpr int sizeUnitCount = sizeof(sizeUnits) / sizeof(sizeUnits[0]);
@@ -99,12 +101,14 @@ namespace FormatUtil {
         return oss.str();
     }
 
-    std::string uniqueIndexedName(std::string_view baseName,
+    std::string uniqueIndexedName(
+        std::string_view baseName,
         const std::function<bool(std::string_view)> &nameExists,
-        int startIndex) {
+        int startIndex
+    ) {
         if (startIndex < 1) startIndex = 1;
 
-        for (int suffix = startIndex;; ++suffix) {
+        for (int suffix = startIndex;; suffix++) {
             const std::string candidate = formatIndexedName(baseName, suffix);
             if (!nameExists(candidate)) {
                 return candidate;

@@ -1,9 +1,9 @@
 #pragma once
 #include "../KeyValueWriter.h"
 
-#include <iosfwd>
 #include <string>
 #include <variant>
+#include <ostream>
 
 #include "BackendAPI.h"
 

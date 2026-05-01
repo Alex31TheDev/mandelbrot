@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <functional>
 
 namespace FormatUtil {
     template<typename T>

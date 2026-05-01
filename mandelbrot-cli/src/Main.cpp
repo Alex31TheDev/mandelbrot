@@ -7,6 +7,7 @@
 
 #include "BackendAPI.h"
 #include "BackendModule.h"
+using namespace Backend;
 
 #include "args/ArgsParser.h"
 #include "args/ArgsUsage.h"
@@ -18,14 +19,14 @@
 #include "CallbackFormatter.h"
 #include "fullname.h"
 
-static bool saveImage(Backend::Session &session,
+static bool saveImage(Session &session,
     std::optional<int> num = std::nullopt) {
     const std::string baseName = fullname;
     const std::string outName = num
         ? PathUtil::appendSeqnum(baseName, *num)
         : baseName;
 
-    if (const Backend::Status status =
+    if (const Status status =
         session.saveImage(outName, !num, OUT_FILETYPE);
         !status) {
         fprintf(stderr, "%s\n", status.message.c_str());
@@ -35,14 +36,14 @@ static bool saveImage(Backend::Session &session,
     return true;
 }
 
-static bool runOnce(Backend::Session &session, int argc, char **argv) {
-    if (const Backend::Status status = ArgsParser::parse(session, argc, argv);
+static bool runOnce(Session &session, int argc, char **argv) {
+    if (const Status status = ArgsParser::parse(session, argc, argv);
         !status) {
         fprintf(stderr, "%s\n", status.message.c_str());
         return false;
     }
 
-    if (const Backend::Status status = session.render(); !status) {
+    if (const Status status = session.render(); !status) {
         fprintf(stderr, "%s\n", status.message.c_str());
         return false;
     }
@@ -50,7 +51,7 @@ static bool runOnce(Backend::Session &session, int argc, char **argv) {
     return saveImage(session, 1);
 }
 
-static int runRepl(Backend::Session &session, char *progName) {
+static int runRepl(Session &session, char *progName) {
     int fileCounter = 1;
 
     while (true) {
@@ -74,21 +75,19 @@ static int runRepl(Backend::Session &session, char *progName) {
             continue;
         }
 
-        if (const Backend::Status status =
+        if (const Status status =
             ArgsParser::parse(session, parsedArgs.argc, parsedArgs.argv);
             !status) {
             fprintf(stderr, "%s\n", status.message.c_str());
             continue;
         }
 
-        if (const Backend::Status status = session.render(); !status) {
+        if (const Status status = session.render(); !status) {
             fprintf(stderr, "%s\n", status.message.c_str());
             continue;
         }
 
-        if (saveImage(session, fileCounter)) {
-            ++fileCounter;
-        }
+        if (saveImage(session, fileCounter)) fileCounter++;
     }
 
     return 0;
@@ -99,7 +98,7 @@ static std::vector<char *> makeForwardedArgs(int argc, char **argv) {
     forwardedArgs.reserve(static_cast<size_t>(argc));
     forwardedArgs.push_back(argv[0]);
 
-    for (int i = 2; i < argc; ++i) {
+    for (int i = 2; i < argc; i++) {
         forwardedArgs.push_back(argv[i]);
     }
 
@@ -133,7 +132,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    Backend::Session *session = backend.makeSession();
+    Session *session = backend.makeSession();
     if (!session) {
         fprintf(stderr, "Failed to create backend session.\n");
         return 1;

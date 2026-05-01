@@ -7,23 +7,23 @@
 #include <QResizeEvent>
 #include <QUrl>
 
-MarqueeLabel::MarqueeLabel(QWidget* parent)
+MarqueeLabel::MarqueeLabel(QWidget *parent)
     : QLabel(parent) {
     _marqueeTimer.setInterval(125);
     QObject::connect(&_marqueeTimer, &QTimer::timeout, this, [this]() {
         if (_sourceText.isEmpty()) return;
-        ++_marqueeOffset;
+        _marqueeOffset++;
         _updateDisplayedText();
-    });
+        });
     QObject::connect(this, &QLabel::linkActivated, this,
-        [](const QString& link) { QDesktopServices::openUrl(QUrl(link)); });
-    QObject::connect(this, &QLabel::linkHovered, this, [this](const QString& link) {
+        [](const QString &link) { QDesktopServices::openUrl(QUrl(link)); });
+    QObject::connect(this, &QLabel::linkHovered, this, [this](const QString &link) {
         if (link.isEmpty()) {
             unsetCursor();
         } else {
             setCursor(Qt::PointingHandCursor);
         }
-    });
+        });
 }
 
 void MarqueeLabel::setMarqueeEnabled(bool enabled) {
@@ -37,7 +37,7 @@ void MarqueeLabel::setMarqueeIntervalMs(int intervalMs) {
     _marqueeTimer.setInterval(std::max(1, intervalMs));
 }
 
-void MarqueeLabel::setMarqueeSeparator(const QString& separator) {
+void MarqueeLabel::setMarqueeSeparator(const QString &separator) {
     const QString effectiveSeparator = separator.isEmpty() ? " " : separator;
     if (_marqueeSeparator == effectiveSeparator) return;
     _marqueeSeparator = effectiveSeparator;
@@ -51,13 +51,13 @@ void MarqueeLabel::setEmphasisEnabled(bool enabled) {
     _updateDisplayedText();
 }
 
-void MarqueeLabel::setEmphasisColor(const QColor& color) {
+void MarqueeLabel::setEmphasisColor(const QColor &color) {
     if (_emphasisColor == color) return;
     _emphasisColor = color;
     _updateDisplayedText();
 }
 
-void MarqueeLabel::setSourceText(const QString& text) {
+void MarqueeLabel::setSourceText(const QString &text) {
     if (_sourceText == text) {
         _updateDisplayedText();
         return;
@@ -68,7 +68,7 @@ void MarqueeLabel::setSourceText(const QString& text) {
     _updateDisplayedText();
 }
 
-void MarqueeLabel::setLinkPath(const QString& linkPath) {
+void MarqueeLabel::setLinkPath(const QString &linkPath) {
     if (_linkPath == linkPath) {
         _updateDisplayedText();
         return;
@@ -78,7 +78,7 @@ void MarqueeLabel::setLinkPath(const QString& linkPath) {
     _updateDisplayedText();
 }
 
-void MarqueeLabel::setSource(const QString& text, const QString& linkPath) {
+void MarqueeLabel::setSource(const QString &text, const QString &linkPath) {
     const bool sameText = _sourceText == text;
     const bool sameLink = _linkPath == linkPath;
     if (sameText && sameLink) {
@@ -92,7 +92,7 @@ void MarqueeLabel::setSource(const QString& text, const QString& linkPath) {
     _updateDisplayedText();
 }
 
-bool MarqueeLabel::wouldMarquee(const QString& text) const {
+bool MarqueeLabel::wouldMarquee(const QString &text) const {
     if (!_marqueeEnabled || text.isEmpty()) return false;
 
     const int availableWidth = std::max(1, contentsRect().width());
@@ -100,7 +100,7 @@ bool MarqueeLabel::wouldMarquee(const QString& text) const {
     return metrics.horizontalAdvance(text) > availableWidth;
 }
 
-void MarqueeLabel::resizeEvent(QResizeEvent* event) {
+void MarqueeLabel::resizeEvent(QResizeEvent *event) {
     QLabel::resizeEvent(event);
     _updateDisplayedText();
     if (event->size().width() != event->oldSize().width()) {
@@ -108,7 +108,7 @@ void MarqueeLabel::resizeEvent(QResizeEvent* event) {
     }
 }
 
-void MarqueeLabel::changeEvent(QEvent* event) {
+void MarqueeLabel::changeEvent(QEvent *event) {
     QLabel::changeEvent(event);
     switch (event->type()) {
         case QEvent::EnabledChange:
@@ -155,10 +155,10 @@ void MarqueeLabel::_updateDisplayedText() {
     if (!_linkPath.isEmpty()) {
         const QString href = QUrl::fromLocalFile(_linkPath).toString();
         setText(QString("<a href=\"%1\"%2>%3</a>")
-                    .arg(href, emphasisStyle, escapedText));
+            .arg(href, emphasisStyle, escapedText));
     } else if (_emphasisEnabled) {
         setText(QString("<span style=\"color:%1;\">%2</span>")
-                    .arg(_emphasisColor.name(), escapedText));
+            .arg(_emphasisColor.name(), escapedText));
     } else {
         setText(escapedText);
     }

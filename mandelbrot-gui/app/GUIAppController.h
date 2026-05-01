@@ -19,8 +19,10 @@ class GUIAppController final : public QObject {
     Q_OBJECT
 
 public:
-    GUIAppController(GUILocale& locale, AppSettings& settings,
-        QObject* parent = nullptr);
+    GUIAppController(
+        GUILocale &locale, AppSettings &settings,
+        QObject *parent = nullptr
+    );
     ~GUIAppController() override;
 
     bool initialize();
@@ -32,8 +34,8 @@ private slots:
     void _clearSavedSettings();
 
 private:
-    GUILocale& _locale;
-    AppSettings& _settings;
+    GUILocale &_locale;
+    AppSettings &_settings;
     Shortcuts _shortcuts;
     GUISessionState _sessionState;
     RenderController _renderController;
@@ -53,13 +55,15 @@ private:
     void _refreshStatus();
     void _refreshPreviews();
     void _refreshCollections();
-    void _setStatusMessage(const QString& message);
-    void _setStatusSavedPath(const QString& path);
+    void _setStatusMessage(const QString &message);
+    void _setStatusSavedPath(const QString &path);
     bool _loadSelectedBackend();
     void _requestRender(
-        const std::optional<PendingPickAction>& pickAction = std::nullopt);
+        const std::optional<PendingPickAction> &pickAction = std::nullopt
+    );
     [[nodiscard]] std::optional<PendingPickAction> _pendingPickAction(
-        bool hasPickAction, int pickTarget, const QPoint& pickPixel) const;
+        bool hasPickAction, int pickTarget, const QPoint &pickPixel
+    ) const;
     void _initializeSessionState();
     void _positionWindowsForInitialShow();
     QString _defaultBackend() const;
@@ -80,9 +84,13 @@ private:
     void _createNewSinePalette(bool requestRenderOnSuccess);
     void _createNewColorPalette(bool requestRenderOnSuccess);
     bool _loadSineByName(
-        const QString& name, bool requestRenderOnSuccess, QString* errorMessage = nullptr);
+        const QString &name, bool requestRenderOnSuccess,
+        QString *errorMessage = nullptr
+    );
     bool _loadPaletteByName(
-        const QString& name, bool requestRenderOnSuccess, QString* errorMessage = nullptr);
+        const QString &name, bool requestRenderOnSuccess,
+        QString *errorMessage = nullptr
+    );
     bool _confirmDiscardDirtySine();
     bool _confirmDiscardDirtyPalette();
     void _savePersistentState();

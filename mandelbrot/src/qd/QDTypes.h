@@ -42,7 +42,7 @@ namespace QDTypes {
         qd_real scaled = v / pow(qd_real(10.0), exp10);
         while (scaled >= qd_real(10.0)) {
             scaled /= qd_real(10.0);
-            ++exp10;
+            exp10++;
         }
         while (scaled < qd_real(1.0)) {
             scaled *= qd_real(10.0);
@@ -53,7 +53,7 @@ namespace QDTypes {
         std::string digits;
         digits.reserve(digitsCount);
 
-        for (int i = 0; i < digitsCount; ++i) {
+        for (int i = 0; i < digitsCount; i++) {
             int d = static_cast<int>(std::floor(to_double(scaled)));
             d = std::clamp(d, 0, 9);
 
@@ -85,12 +85,12 @@ namespace QDTypes {
     FORCE_INLINE bool parseNumber(qd_number_t &out, const char *text) {
         if (text == nullptr) return false;
 
-        while (std::isspace(static_cast<unsigned char>(*text))) ++text;
+        while (isspace(static_cast<unsigned char>(*text))) text++;
         if (*text == '\0') return false;
 
         std::string trimmed(text);
         while (!trimmed.empty() &&
-            std::isspace(static_cast<unsigned char>(trimmed.back()))) {
+            isspace(static_cast<unsigned char>(trimmed.back()))) {
             trimmed.pop_back();
         }
 

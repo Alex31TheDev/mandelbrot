@@ -23,7 +23,7 @@
 #include "windows/viewport/ViewportHost.h"
 
 namespace Ui {
-class ViewportWindow;
+    class ViewportWindow;
 }
 
 class ViewportWindow final : public QWidget {
@@ -37,7 +37,7 @@ public:
         double scaleY = 1.0;
     };
 
-    explicit ViewportWindow(ViewportHost* host);
+    explicit ViewportWindow(ViewportHost *host);
     ~ViewportWindow() override;
 
     void clearPreviewOffset();
@@ -50,21 +50,21 @@ public:
     [[nodiscard]] std::optional<PreviewTransform> previewTransform() const;
 
 protected:
-    void paintEvent(QPaintEvent*) override;
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
-    void wheelEvent(QWheelEvent* event) override;
-    void keyPressEvent(QKeyEvent* event) override;
-    void keyReleaseEvent(QKeyEvent* event) override;
-    void enterEvent(QEnterEvent*) override;
-    void leaveEvent(QEvent*) override;
-    void resizeEvent(QResizeEvent* event) override;
-    void closeEvent(QCloseEvent* event) override;
+    void paintEvent(QPaintEvent *) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void enterEvent(QEnterEvent *) override;
+    void leaveEvent(QEvent *) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     std::unique_ptr<Ui::ViewportWindow> _ui;
-    ViewportHost* _host = nullptr;
+    ViewportHost *_host = nullptr;
     QTimer _rtZoomTimer;
     QTimer _panRedrawTimer;
     QTimer _zoomOutRedrawTimer;
@@ -75,7 +75,7 @@ private:
     QPoint _panOffset;
     QRect _selectionRect;
     std::optional<QPointF> _rtZoomAnchorPixel;
-    std::chrono::steady_clock::time_point _rtZoomLastStepAt {};
+    std::chrono::steady_clock::time_point _rtZoomLastStepAt{};
     bool _rtZoomZoomIn = true;
     bool _panning = false;
     bool _spacePan = false;
@@ -113,18 +113,18 @@ private:
     void _beginPanInteraction(Qt::MouseButton button);
     void _endPanInteraction();
     void _beginRealtimeZoom(bool zoomIn);
-    bool _handleArrowPanKeyPress(QKeyEvent* event);
-    bool _handleArrowPanKeyRelease(QKeyEvent* event);
+    bool _handleArrowPanKeyPress(QKeyEvent *event);
+    bool _handleArrowPanKeyRelease(QKeyEvent *event);
     void _applyArrowPanStep();
-    void _drawGrid(QPainter& painter);
+    void _drawGrid(QPainter &painter);
     void _updateWindowTitle();
-    QPoint _clampToOutputPixel(const QPointF& pixel) const;
-    QPoint _mapToOutputPixel(const QPoint& logicalPoint) const;
-    QPoint _mapToOutputPixelRaw(const QPoint& logicalPoint) const;
-    QPoint _mapToOutputPixelRaw(const QPointF& logicalPoint) const;
-    QPoint _mapToOutputPixel(const QPointF& logicalPoint) const;
-    QPoint _mapToOutputDelta(const QPoint& logicalDelta) const;
-    QRect _mapToOutputRect(const QRect& logicalRect) const;
+    QPoint _clampToOutputPixel(const QPointF &pixel) const;
+    QPoint _mapToOutputPixel(const QPoint &logicalPoint) const;
+    QPoint _mapToOutputPixelRaw(const QPoint &logicalPoint) const;
+    QPoint _mapToOutputPixelRaw(const QPointF &logicalPoint) const;
+    QPoint _mapToOutputPixel(const QPointF &logicalPoint) const;
+    QPoint _mapToOutputDelta(const QPoint &logicalDelta) const;
+    QRect _mapToOutputRect(const QRect &logicalRect) const;
     NavMode _effectiveMode() const;
     void _updateCursor();
     void _commitPanOffset();

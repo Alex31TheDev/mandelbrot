@@ -100,6 +100,19 @@
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'!=''" Label="BuildPaths">
+    <ProjectOutputRoot>$(ProjectDir)bin\</ProjectOutputRoot>
+    <ProjectIntermediateRoot>$(ProjectDir)bin\obj\</ProjectIntermediateRoot>
+    <OutDir>$(ProjectOutputRoot)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectIntermediateRoot)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
+      <AdditionalOptions>/Fd"$(IntDir)$(ProjectName).pdb" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -164,6 +177,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\BackendModule.h" />
+    <ClInclude Include="src\CrashHandler.h" />
     <ClInclude Include="src\CPUInfo.h" />
     <ClInclude Include="src\parsers\KeyValueParser.h" />
     <ClInclude Include="src\parsers\KeyValueParser_impl.h" />

@@ -72,7 +72,6 @@ namespace MPFRTypes {
                 static_cast<double>(mpfr_get_prec(value)) * MPFRGlobals::LOG10_2))
         ) + MPFRGlobals::STRING_GUARD_DIGITS;
 
-
         char *buffer = nullptr;
         if (mpfr_asprintf(&buffer, "%.*Rg", digits, value) < 0 || !buffer) {
             return "0";
@@ -86,7 +85,7 @@ namespace MPFRTypes {
     FORCE_INLINE bool parseNumber(mpfr_t out, const char *text) {
         if (text == nullptr) return false;
 
-        while (std::isspace(static_cast<unsigned char>(*text))) ++text;
+        while (isspace(static_cast<unsigned char>(*text))) text++;
         if (*text == '\0') return false;
 
         char *end = nullptr;
@@ -94,7 +93,7 @@ namespace MPFRTypes {
         if (end == text) return false;
 
         while (*end != '\0' &&
-            std::isspace(static_cast<unsigned char>(*end))) ++end;
+            isspace(static_cast<unsigned char>(*end))) end++;
 
         if (*end != '\0') return false;
         return mpfr_number_p(out) != 0 || mpfr_zero_p(out) != 0;

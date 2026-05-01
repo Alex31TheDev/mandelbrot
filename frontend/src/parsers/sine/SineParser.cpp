@@ -1,10 +1,11 @@
 #include "SineParser.h"
 
-#include <cmath>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
 #include "BackendAPI.h"
+using namespace Backend;
 
 #include "util/ParserUtil.h"
 
@@ -14,7 +15,7 @@ SineParser::SineParser(const std::string &skipOption)
     : _skipOption(skipOption) {}
 
 bool SineParser::_validate(
-    const Backend::SinePaletteConfig &out,
+    const SinePaletteConfig &out,
     const std::string &context, std::string &err
 ) const {
     if (std::abs(out.freqMult) > 0.0001f) return true;
@@ -25,7 +26,7 @@ bool SineParser::_validate(
 
 bool SineParser::_parseCLI(
     const std::vector<std::string> &args,
-    Backend::SinePaletteConfig &out, std::string &err
+    SinePaletteConfig &out, std::string &err
 ) const {
     out = {};
     err.clear();
@@ -57,7 +58,7 @@ bool SineParser::_parseCLI(
 
 void SineParser::_parseFileConfig(
     const KeyValueMap &values,
-    Backend::SinePaletteConfig &out
+    SinePaletteConfig &out
 ) const {
     if (const auto it = values.find("freqR"); it != values.end()) {
         out.freqR = parseNumber<float>(it->second, out.freqR);
@@ -78,7 +79,7 @@ void SineParser::_parseFileConfig(
 
 bool SineParser::_parseFile(
     const std::string &filePath,
-    Backend::SinePaletteConfig &out, std::string &err
+    SinePaletteConfig &out, std::string &err
 ) {
     const bool parsed = parseKeyValue(filePath, out, err);
     if (!parsed) {
@@ -90,7 +91,7 @@ bool SineParser::_parseFile(
 
 bool SineParser::_handleFileValues(
     const KeyValueMap &values,
-    Backend::SinePaletteConfig &out,
+    SinePaletteConfig &out,
     std::string &
 ) {
     _parseFileConfig(values, out);
@@ -99,7 +100,7 @@ bool SineParser::_handleFileValues(
 
 bool SineParser::parse(
     const std::vector<std::string> &args,
-    Backend::SinePaletteConfig &out, std::string &err
+    SinePaletteConfig &out, std::string &err
 ) {
     if (args.size() == 1 && args[0] != _skipOption) {
         return _parseFile(args[0], out, err);

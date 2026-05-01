@@ -12,22 +12,6 @@
 #include "RenderGlobals.h"
 using namespace RenderGlobals;
 
-#if defined(USE_KF2)
-
-#include "../kf2/KF2Renderer.h"
-
-void renderImage(
-    Image *image,
-    const Backend::Callbacks *callbacks,
-    bool trackProgress, bool trackIterations,
-    OptionalIterationStats iterStats
-) {
-    KF2Renderer::renderImageKF2(
-        image, callbacks, trackProgress, trackIterations, iterStats);
-}
-
-#else
-
 #if defined(USE_SCALAR)
 
 #include "../scalar/ScalarCoords.h"
@@ -143,7 +127,7 @@ struct RowRenderer {
 };
 
 #else
-#error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, USE_MPFR, USE_KF2, USE_QD)"
+#error "No renderer implementation selected. (define USE_SCALAR, USE_VECTORS, USE_MPFR, USE_QD)"
 #endif
 
 constexpr int MIN_THREADING_HEIGHT = 50;
@@ -172,7 +156,7 @@ static void renderStrip(
 
     const unsigned rowWidth = xend - xstart + 1;
 
-    for (unsigned y = ystart; y <= yend; ++y) {
+    for (unsigned y = ystart; y <= yend; y++) {
         size_t pos = static_cast<size_t>(y) * image->strideWidth() +
             static_cast<size_t>(xstart) * Image::STRIDE;
 
@@ -252,7 +236,7 @@ static void renderImageParallel(
 
     int startY = 0;
 
-    for (int i = 0; i < taskCount; ++i) {
+    for (int i = 0; i < taskCount; i++) {
         const int chunkRows = rowsPerTask + (i < extraRows ? 1 : 0),
             endY = startY + chunkRows;
 
@@ -274,7 +258,7 @@ static void renderImageParallel(
     if (trackProgress) progress->complete();
     if (trackIterations) {
         RenderIterationStats mergedStats;
-        for (int i = 0; i < taskCount; ++i) mergedStats.merge(stats[i]);
+        for (int i = 0; i < taskCount; i++) mergedStats.merge(stats[i]);
         if (iterStats) iterStats->get().merge(mergedStats);
 
         emitIterations(callbacks, mergedStats.totalIterations,
@@ -294,4 +278,3 @@ void renderImage(
 
     render(image, callbacks, trackProgress, trackIterations, iterStats);
 }
-#endif

@@ -19,21 +19,23 @@
 #include "app/GUISessionState.h"
 #include "util/GUIUtil.h"
 
+using namespace GUI;
+
 class RenderController final : public QObject {
     Q_OBJECT
 
 public:
-    explicit RenderController(QObject* parent = nullptr);
+    explicit RenderController(QObject *parent = nullptr);
     ~RenderController() override;
 
-    void setAvailableBackends(const QStringList& backendNames);
+    void setAvailableBackends(const QStringList &backendNames);
     void setPreviewDevicePixelRatio(double devicePixelRatio);
-    bool loadBackend(const QString& backendName, QString& errorMessage);
+    bool loadBackend(const QString &backendName, QString &errorMessage);
     void shutdown(bool forceKillOnTimeout = true,
-        int timeoutMs = GUI::Constants::renderShutdownTimeoutMs);
+        int timeoutMs = Constants::renderShutdownTimeoutMs);
 
-    void requestRender(const GUIRenderSnapshot& snapshot,
-        const std::optional<PendingPickAction>& pickAction = std::nullopt);
+    void requestRender(const GUIRenderSnapshot &snapshot,
+        const std::optional<PendingPickAction> &pickAction = std::nullopt);
     void cancelQueuedRenders();
     void freezePreview();
     void markPreviewMotion();
@@ -45,7 +47,7 @@ public:
     [[nodiscard]] bool hasDisplayedViewState() const {
         return _hasDisplayedViewState;
     }
-    [[nodiscard]] const QImage& previewImage() const { return _previewImage; }
+    [[nodiscard]] const QImage &previewImage() const { return _previewImage; }
     [[nodiscard]] bool previewUsesBackendMemory() const {
         return _previewUsesBackendMemory;
     }
@@ -65,44 +67,44 @@ public:
     }
     [[nodiscard]] int currentIterationCount() const;
 
-    bool saveImage(const QString& path, bool appendDate, const QString& type,
-        QString& errorMessage);
-    [[nodiscard]] QImage renderSinePreview(const Backend::SinePaletteConfig& palette,
-        const QSize& widgetSize, double rangeMin, double rangeMax) const;
+    bool saveImage(const QString &path, bool appendDate, const QString &type,
+        QString &errorMessage);
+    [[nodiscard]] QImage renderSinePreview(const Backend::SinePaletteConfig &palette,
+        const QSize &widgetSize, double rangeMin, double rangeMax) const;
     [[nodiscard]] QImage renderPalettePreview(
-        const Backend::PaletteHexConfig& palette) const;
+        const Backend::PaletteHexConfig &palette) const;
 
-    bool pointAtPixel(const GUIRenderSnapshot& snapshot, const QPoint& pixel,
-        QString& realText, QString& imagText, QString& errorMessage);
-    bool panPointByDelta(const GUIRenderSnapshot& snapshot, const QPoint& delta,
-        QString& realText, QString& imagText, QString& errorMessage);
-    bool zoomViewAtPixel(const GUIRenderSnapshot& snapshot, const QPoint& pixel,
-        double scaleMultiplier, ViewTextState& view, QString& errorMessage);
-    bool boxZoomView(const GUIRenderSnapshot& snapshot, const QRect& rect,
-        ViewTextState& view, QString& errorMessage);
-    bool previewPannedViewState(const GUIRenderSnapshot& snapshot,
-        const QPoint& delta, ViewTextState& view, QString& errorMessage);
-    bool previewScaledViewState(const GUIRenderSnapshot& snapshot,
-        const QPoint& pixel, double scaleMultiplier, ViewTextState& view,
-        QString& errorMessage);
-    bool previewBoxZoomViewState(const GUIRenderSnapshot& snapshot,
-        const QRect& rect, ViewTextState& view, QString& errorMessage);
-    bool mapViewPixelToViewPixel(const ViewTextState& sourceView,
-        const ViewTextState& targetView, const QPoint& pixel,
-        QPointF& mappedPixel, QString& errorMessage);
+    bool pointAtPixel(const GUIRenderSnapshot &snapshot, const QPoint &pixel,
+        QString &realText, QString &imagText, QString &errorMessage);
+    bool panPointByDelta(const GUIRenderSnapshot &snapshot, const QPoint &delta,
+        QString &realText, QString &imagText, QString &errorMessage);
+    bool zoomViewAtPixel(const GUIRenderSnapshot &snapshot, const QPoint &pixel,
+        double scaleMultiplier, ViewTextState &view, QString &errorMessage);
+    bool boxZoomView(const GUIRenderSnapshot &snapshot, const QRect &rect,
+        ViewTextState &view, QString &errorMessage);
+    bool previewPannedViewState(const GUIRenderSnapshot &snapshot,
+        const QPoint &delta, ViewTextState &view, QString &errorMessage);
+    bool previewScaledViewState(const GUIRenderSnapshot &snapshot,
+        const QPoint &pixel, double scaleMultiplier, ViewTextState &view,
+        QString &errorMessage);
+    bool previewBoxZoomViewState(const GUIRenderSnapshot &snapshot,
+        const QRect &rect, ViewTextState &view, QString &errorMessage);
+    bool mapViewPixelToViewPixel(const ViewTextState &sourceView,
+        const ViewTextState &targetView, const QPoint &pixel,
+        QPointF &mappedPixel, QString &errorMessage);
 
 signals:
     void previewImageChanged();
     void renderStateChanged();
-    void renderFailed(const QString& message);
-    void automaticBackendSwitchRequested(const QString& backendName,
-        bool hasPickAction, int pickTarget, const QPoint& pickPixel);
+    void renderFailed(const QString &message);
+    void automaticBackendSwitchRequested(const QString &backendName,
+        bool hasPickAction, int pickTarget, const QPoint &pickPixel);
 
 private:
     BackendModule _backend;
-    Backend::Session* _renderSession = nullptr;
-    Backend::Session* _navigationSession = nullptr;
-    Backend::Session* _previewSession = nullptr;
+    Backend::Session *_renderSession = nullptr;
+    Backend::Session *_navigationSession = nullptr;
+    Backend::Session *_previewSession = nullptr;
     Backend::Callbacks _callbacks;
 
     QImage _previewImage;
@@ -113,7 +115,7 @@ private:
     QString _statusText;
     QString _progressText;
     QString _imageMemoryText;
-    QString _viewportFPSText = GUI::Util::defaultViewportFPSText();
+    QString _viewportFPSText = Util::defaultViewportFPSText();
     QString _viewportRenderTimeText;
     QString _pixelsPerSecondText;
     int _progressValue = 0;
@@ -126,8 +128,8 @@ private:
     QString _displayedPointRealText = QStringLiteral("0");
     QString _displayedPointImagText = QStringLiteral("0");
     QString _displayedZoomText;
-    QSize _displayedOutputSize {
-        GUI::Constants::defaultOutputWidth, GUI::Constants::defaultOutputHeight
+    QSize _displayedOutputSize{
+        Constants::defaultOutputWidth, Constants::defaultOutputHeight
     };
     bool _hasDisplayedViewState = false;
 
@@ -136,30 +138,30 @@ private:
     std::mutex _renderMutex;
     std::condition_variable _renderCv;
     bool _renderStopRequested = false;
-    std::atomic_uint64_t _latestRenderRequestId { 0 };
-    std::atomic_uint64_t _callbackRenderRequestId { 0 };
-    std::atomic_uint64_t _backendGeneration { 1 };
-    std::atomic_uint64_t _lastPresentedRenderId { 0 };
-    std::atomic_bool _interactionPreviewFallbackLatched { false };
-    std::atomic_int64_t _lastProgressUIUpdateMs { 0 };
-    std::chrono::steady_clock::time_point _lastPreviewMotionAt {};
+    std::atomic_uint64_t _latestRenderRequestId{ 0 };
+    std::atomic_uint64_t _callbackRenderRequestId{ 0 };
+    std::atomic_uint64_t _backendGeneration{ 1 };
+    std::atomic_uint64_t _lastPresentedRenderId{ 0 };
+    std::atomic_bool _interactionPreviewFallbackLatched{ false };
+    std::atomic_int64_t _lastProgressUIUpdateMs{ 0 };
+    std::chrono::steady_clock::time_point _lastPreviewMotionAt{};
     QTimer _previewStillTimer;
 
     void _bindBackendCallbacks();
     void _startRenderWorker();
     void _finishRenderThread(
         bool forceKillOnTimeout = false, int timeoutMs = 0);
-    bool _ensureBackendReady(QString& errorMessage) const;
-    bool _ensureNavigationSessionReady(QString& errorMessage) const;
-    bool _applyStateToSession(Backend::Session* session,
-        const GUIRenderSnapshot& snapshot,
-        const std::optional<PendingPickAction>& pickAction,
-        QString& errorMessage);
+    bool _ensureBackendReady(QString &errorMessage) const;
+    bool _ensureNavigationSessionReady(QString &errorMessage) const;
+    bool _applyStateToSession(Backend::Session *session,
+        const GUIRenderSnapshot &snapshot,
+        const std::optional<PendingPickAction> &pickAction,
+        QString &errorMessage);
     bool _applyNavigationStateToSession(
-        const GUIRenderSnapshot& snapshot, QString& errorMessage);
+        const GUIRenderSnapshot &snapshot, QString &errorMessage);
     [[nodiscard]] QString _backendForRank(
-        int rank, const QString& currentBackend) const;
+        int rank, const QString &currentBackend) const;
     [[nodiscard]] int _interactionFrameIntervalMs(int fallbackFPS) const;
-    void _applyPreviewDevicePixelRatio(QImage& image) const;
+    void _applyPreviewDevicePixelRatio(QImage &image) const;
     void _tryResumeDirectPreview();
 };

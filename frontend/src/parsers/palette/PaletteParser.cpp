@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "BackendAPI.h"
+using namespace Backend;
 
 #include "util/ParserUtil.h"
 
@@ -16,7 +17,7 @@ PaletteParser::PaletteParser(const std::string &skipOption)
     : _skipOption(skipOption) {}
 
 bool PaletteParser::_isValidEntry(
-    const Backend::PaletteHexEntry &entry
+    const PaletteHexEntry &entry
 ) const {
     bool ok = false;
     parseHexString(entry.color, std::ref(ok));
@@ -24,7 +25,7 @@ bool PaletteParser::_isValidEntry(
 }
 
 bool PaletteParser::_validateConfig(
-    const Backend::PaletteHexConfig &out,
+    const PaletteHexConfig &out,
     const std::string &context, std::string &err
 ) const {
     if (out.totalLength > 0.0f && out.offset >= 0.0f) return true;
@@ -34,7 +35,7 @@ bool PaletteParser::_validateConfig(
 }
 
 bool PaletteParser::_validateEntryCount(
-    const Backend::PaletteHexConfig &out,
+    const PaletteHexConfig &out,
     const std::string &context, std::string &err
 ) const {
     if (out.entries.size() >= 2) return true;
@@ -45,7 +46,7 @@ bool PaletteParser::_validateEntryCount(
 
 bool PaletteParser::_parseCLIEntry(
     const std::string &str,
-    Backend::PaletteHexEntry &out
+    PaletteHexEntry &out
 ) const {
     const size_t split = str.find(':');
 
@@ -70,7 +71,7 @@ bool PaletteParser::_parseCLIEntry(
 
 bool PaletteParser::_parseCLI(
     const std::vector<std::string> &args,
-    Backend::PaletteHexConfig &out, std::string &err
+    PaletteHexConfig &out, std::string &err
 ) const {
     out = {};
     err.clear();
@@ -85,11 +86,11 @@ bool PaletteParser::_parseCLI(
 
     if (!_validateConfig(out, "Palette", err)) return false;
 
-    for (size_t i = 2; i < args.size(); ++i) {
+    for (size_t i = 2; i < args.size(); i++) {
         const std::string &arg = args[i];
         if (arg == _skipOption) continue;
 
-        Backend::PaletteHexEntry entry;
+        PaletteHexEntry entry;
         if (!_parseCLIEntry(arg, entry)) {
             err = "Palette entries must use #RRGGBB or #RRGGBB:length.";
             return false;
@@ -103,7 +104,7 @@ bool PaletteParser::_parseCLI(
 
 void PaletteParser::_parseFileConfig(
     const KeyValueMap &values,
-    Backend::PaletteHexConfig &out
+    PaletteHexConfig &out
 ) const {
     if (const auto it = values.find("totalLength"); it != values.end()) {
         out.totalLength = parseNumber<float>(it->second, out.totalLength);
@@ -122,7 +123,7 @@ void PaletteParser::_parseFileConfig(
 
 bool PaletteParser::_parseFileEntry(
     const KeyValueMap &values,
-    Backend::PaletteHexEntry &entry, std::string &err
+    PaletteHexEntry &entry, std::string &err
 ) const {
     const auto colorIt = values.find("color");
     if (colorIt == values.end()) return false;
@@ -143,7 +144,7 @@ bool PaletteParser::_parseFileEntry(
 
 bool PaletteParser::_parseFile(
     const std::string &filePath,
-    Backend::PaletteHexConfig &out, std::string &err
+    PaletteHexConfig &out, std::string &err
 ) {
     const bool parsed = parseKeyValue(filePath, out, err);
     if (!parsed) {
@@ -156,13 +157,13 @@ bool PaletteParser::_parseFile(
 
 bool PaletteParser::_handleFileValues(
     const KeyValueMap &values,
-    Backend::PaletteHexConfig &out,
+    PaletteHexConfig &out,
     std::string &err
 ) {
     _parseFileConfig(values, out);
 
     err.clear();
-    Backend::PaletteHexEntry entry;
+    PaletteHexEntry entry;
     if (_parseFileEntry(values, entry, err)) {
         out.entries.push_back(entry);
     }
@@ -172,7 +173,7 @@ bool PaletteParser::_handleFileValues(
 
 bool PaletteParser::parse(
     const std::vector<std::string> &args,
-    Backend::PaletteHexConfig &out, std::string &err
+    PaletteHexConfig &out, std::string &err
 ) {
     if (args.size() == 1 && args[0] != _skipOption) {
         return _parseFile(args[0], out, err);

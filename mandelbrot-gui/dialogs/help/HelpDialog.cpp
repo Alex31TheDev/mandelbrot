@@ -2,7 +2,7 @@
 
 #include "ui_HelpDialog.h"
 
-HelpDialog::HelpDialog(QWidget* parent)
+HelpDialog::HelpDialog(QWidget *parent)
     : QDialog(parent)
     , _ui(std::make_unique<Ui::HelpDialog>()) {
     _ui->setupUi(this);
@@ -37,27 +37,27 @@ QString HelpDialog::_buildHelpHtml() const {
         "Views save and load the current location and zoom. Palette and sine-color "
         "presets can be saved, imported, and reused from their editors.");
 
-    const auto section = [](const QString& title, const QString& body) {
+    const auto section = [](const QString &title, const QString &body) {
         return QStringLiteral("<h3>%1</h3><p>%2</p>").arg(title, body);
-    };
+        };
 
     return QStringLiteral(
-               "<!DOCTYPE html>"
-               "<html>"
-               "<head>"
-               "<meta charset=\"utf-8\"/>"
-               "<style>"
-               "body { font-family: 'Segoe UI'; font-size: 9pt; }"
-               "h2 { margin: 0 0 12px 0; }"
-               "h3 { margin: 14px 0 8px 0; }"
-               "p { margin: 0 0 8px 0; white-space: normal; }"
-               "</style>"
-               "</head>"
-               "<body>"
-               "<h2>%1</h2>"
-               "%2%3%4%5%6%7"
-               "</body>"
-               "</html>")
+        "<!DOCTYPE html>"
+        "<html>"
+        "<head>"
+        "<meta charset=\"utf-8\"/>"
+        "<style>"
+        "body { font-family: 'Segoe UI'; font-size: 9pt; }"
+        "h2 { margin: 0 0 12px 0; }"
+        "h3 { margin: 14px 0 8px 0; }"
+        "p { margin: 0 0 8px 0; white-space: normal; }"
+        "</style>"
+        "</head>"
+        "<body>"
+        "<h2>%1</h2>"
+        "%2%3%4%5%6%7"
+        "</body>"
+        "</html>")
         .arg(tr("Using the interface"),
             section(tr("Overview"), overview),
             section(tr("Mouse navigation"), mouse),

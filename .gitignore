@@ -378,5 +378,7 @@ mandelbrot-*.bmp
 mandelbrot_*.png
 mandelbrot_*.bmp
 
-# Clang output
+# Misc
 mandelbrot_app
+tools/*
+!tools/*.*

@@ -7,10 +7,6 @@
 #include "../image/Image.h"
 #include "ThreadPool.h"
 
-#if defined(USE_KF2)
-#include "../kf2/KF2Renderer.h"
-#endif
-
 static std::unique_ptr<ThreadPool<>> _pool;
 
 namespace RenderGlobals {
@@ -53,13 +49,9 @@ namespace RenderGlobals {
     }
 
     void forceKillRenderThreads() {
-#if defined(USE_KF2)
-        KF2Renderer::forceStop();
-#else
         if (!_pool) return;
 
         _pool->forceTerminate();
         _pool.reset(nullptr);
-#endif
     }
 }

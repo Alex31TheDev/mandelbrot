@@ -4,7 +4,10 @@
 #include <filesystem>
 #include <utility>
 
+#include "util/IncludeWin32.h"
+
 #include "BackendAPI.h"
+using namespace Backend;
 
 BackendModule::BackendModule(HMODULE module,
     CreateBackendFunc createSession, DestroyBackendFunc destroySession)
@@ -36,13 +39,13 @@ BackendModule &BackendModule::operator=(BackendModule &&other) noexcept {
     return *this;
 }
 
-Backend::Session *BackendModule::makeSession() {
+Session *BackendModule::makeSession() {
     if (!_createSession || !_destroySession) return nullptr;
 
     SessionPtr session(_createSession(), SessionDeleter{ _destroySession });
     if (!session) return nullptr;
 
-    Backend::Session *rawSession = session.get();
+    Session *rawSession = session.get();
     _sessions.push_back(std::move(session));
     return rawSession;
 }

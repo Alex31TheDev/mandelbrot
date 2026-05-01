@@ -56,7 +56,7 @@ void Shortcuts::reload() {
 
 QKeySequence Shortcuts::sequence(const QString &id) const {
     const auto &items = defs();
-    for (size_t i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); i++) {
         if (items[i].id == id) return _sequences[i];
     }
     return {};
@@ -64,7 +64,7 @@ QKeySequence Shortcuts::sequence(const QString &id) const {
 
 void Shortcuts::setSequence(const QString &id, const QKeySequence &sequence) {
     const auto &items = defs();
-    for (size_t i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); i++) {
         if (items[i].id == id) {
             _sequences[i] = sequence;
             return;
@@ -74,7 +74,7 @@ void Shortcuts::setSequence(const QString &id, const QKeySequence &sequence) {
 
 void Shortcuts::save() {
     const auto &items = defs();
-    for (size_t i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); i++) {
         _settings.setShortcut(
             items[i].id, _sequences[i].toString(QKeySequence::PortableText));
     }
@@ -84,7 +84,7 @@ void Shortcuts::save() {
 QString Shortcuts::duplicateError() const {
     QMap<QString, QString> seen;
     const auto &items = defs();
-    for (size_t i = 0; i < items.size(); ++i) {
+    for (size_t i = 0; i < items.size(); i++) {
         const QKeySequence sequence = _sequences[i];
         if (sequence.isEmpty()) {
             if (items[i].required) {

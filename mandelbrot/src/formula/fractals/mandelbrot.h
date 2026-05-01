@@ -353,7 +353,7 @@ static FORCE_INLINE void wholeDerivative_mandelbrot_mp(MPFRScratch &s) {
     mpfr_set(s.t[0], s.zr, MPFRTypes::ROUNDING);
     mpfr_set(s.t[1], s.zi, MPFRTypes::ROUNDING);
 
-    for (int k = 2; k < wholeN; ++k) {
+    for (int k = 2; k < wholeN; k++) {
         mpfr_mul(s.t[2], s.t[1], s.zi, MPFRTypes::ROUNDING);
 
         mpfr_mul(s.t[3], s.t[0], s.zi, MPFRTypes::ROUNDING);

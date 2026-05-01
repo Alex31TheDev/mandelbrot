@@ -34,8 +34,7 @@ namespace ArgsUsage {
         { "float-avx2", "FloatAVX2" },
         { "doubleavx2", "DoubleAVX2" },
         { "double-avx2", "DoubleAVX2" },
-        { "mpfr", "MPFR" },
-        { "kf2", "KF2" }
+        { "mpfr", "MPFR" }
     };
 
     static std::string makeConfigName(const std::string &suffix) {
@@ -59,12 +58,10 @@ namespace ArgsUsage {
             "  %s - FloatAVX2\n"
             "  %s - DoubleAVX2\n"
             "  %s - MPFR\n"
-            "  %s - KF2\n"
             "\n"
             "Short aliases:\n"
-            "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr, kf2\n",
+            "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr\n",
             progName ? progName : "mandelbrot-cli",
-            prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),
             prefix.c_str(),

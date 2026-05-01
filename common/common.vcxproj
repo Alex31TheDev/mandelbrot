@@ -95,6 +95,19 @@
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'!=''" Label="BuildPaths">
+    <ProjectOutputRoot>$(ProjectDir)bin\</ProjectOutputRoot>
+    <ProjectIntermediateRoot>$(ProjectDir)bin\obj\</ProjectIntermediateRoot>
+    <OutDir>$(ProjectOutputRoot)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectIntermediateRoot)$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
+      <AdditionalOptions>/Fd"$(IntDir)$(ProjectName).pdb" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -167,6 +180,7 @@
     <ClInclude Include="src\util\AssertUtil.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
+    <ClInclude Include="src\util\DateTimeUtil.h" />
     <ClInclude Include="src\util\fnv1a.h" />
     <ClInclude Include="src\util\FormatUtil.h" />
     <ClInclude Include="src\util\FormatUtil_impl.h" />
@@ -184,6 +198,7 @@
   <ItemGroup>
     <ClCompile Include="src\options\ColorMethods.cpp" />
     <ClCompile Include="src\options\FractalTypes.cpp" />
+    <ClCompile Include="src\util\DateTimeUtil.cpp" />
     <ClCompile Include="src\util\FormatUtil.cpp" />
     <ClCompile Include="src\util\NumberUtil.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />

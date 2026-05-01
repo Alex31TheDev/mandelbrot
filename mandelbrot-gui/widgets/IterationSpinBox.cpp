@@ -63,7 +63,7 @@ void IterationSpinBox::wheelEvent(QWheelEvent *event) {
         return;
     }
 
-    for (int i = 0; i < std::abs(steps); ++i) {
+    for (int i = 0; i < std::abs(steps); i++) {
         if (steps > 0) {
             nextValue = std::clamp(
                 nextValue > maximum() / 2 ? maximum() : nextValue * 2,

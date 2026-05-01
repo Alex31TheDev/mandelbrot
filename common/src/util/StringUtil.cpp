@@ -18,9 +18,9 @@ namespace StringUtil {
     std::string toLower(std::string_view str) {
         std::string out(str.size(), '\0');
 
-        for (size_t i = 0; i < str.size(); ++i) {
+        for (size_t i = 0; i < str.size(); i++) {
             out[i] = static_cast<char>(
-                std::tolower(static_cast<unsigned char>(str[i])));
+                tolower(static_cast<unsigned char>(str[i])));
         }
 
         return out;
@@ -29,9 +29,9 @@ namespace StringUtil {
     std::string toUpper(std::string_view str) {
         std::string out(str.size(), '\0');
 
-        for (size_t i = 0; i < str.size(); ++i) {
+        for (size_t i = 0; i < str.size(); i++) {
             out[i] = static_cast<char>(
-                std::toupper(static_cast<unsigned char>(str[i])));
+                toupper(static_cast<unsigned char>(str[i])));
         }
 
         return out;
@@ -39,20 +39,18 @@ namespace StringUtil {
 
     std::string_view trimWhitespace(std::string_view value) {
         size_t begin = 0;
-        while (begin < value.size() &&
-            (value[begin] == ' ' || value[begin] == '\t' ||
-                value[begin] == '\n' || value[begin] == '\r' ||
-                value[begin] == '\f' || value[begin] == '\v')) {
-            ++begin;
-        }
+        while (begin < value.size() && (
+            value[begin] == ' ' || value[begin] == '\t' ||
+            value[begin] == '\n' || value[begin] == '\r' ||
+            value[begin] == '\f' || value[begin] == '\v'
+            )) begin++;
 
         size_t end = value.size();
-        while (end > begin &&
-            (value[end - 1] == ' ' || value[end - 1] == '\t' ||
-                value[end - 1] == '\n' || value[end - 1] == '\r' ||
-                value[end - 1] == '\f' || value[end - 1] == '\v')) {
-            --end;
-        }
+        while (end > begin && (
+            value[end - 1] == ' ' || value[end - 1] == '\t' ||
+            value[end - 1] == '\n' || value[end - 1] == '\r' ||
+            value[end - 1] == '\f' || value[end - 1] == '\v'
+            )) end--;
 
         return value.substr(begin, end - begin);
     }
@@ -60,9 +58,7 @@ namespace StringUtil {
     std::string appendSuffix(std::string_view value,
         std::string_view suffix) {
         if (suffix.empty()) return std::string(value);
-        if (endsWith(value, suffix)) {
-            return std::string(value);
-        }
+        if (endsWith(value, suffix)) return std::string(value);
 
         std::string out;
         out.reserve(value.size() + suffix.size());

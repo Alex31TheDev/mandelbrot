@@ -9,14 +9,12 @@
 #include <QPainterPath>
 #include <QResizeEvent>
 
-namespace {
-const int handleWidth = 12;
-const int handleHeight = 12;
-const int handleHitHalfWidth = 14;
-const int handleHitTopPadding = 14;
-const int handleHitBottomPadding = 20;
-const int hitRepeatTolerance = 3;
-}
+static const int handleWidth = 12;
+static const int handleHeight = 12;
+static const int handleHitHalfWidth = 14;
+static const int handleHitTopPadding = 14;
+static const int handleHitBottomPadding = 20;
+static const int hitRepeatTolerance = 3;
 
 PaletteTimelineWidget::PaletteTimelineWidget(QWidget *parent)
     : QWidget(parent) {
@@ -66,7 +64,7 @@ const std::vector<PaletteStop> &PaletteTimelineWidget::stops() const {
 int PaletteTimelineWidget::selectedIndex() const {
     if (!_primarySelectedId) return -1;
 
-    for (int i = 0; i < static_cast<int>(_stops.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(_stops.size()); i++) {
         if (_stops[i].id == *_primarySelectedId) return i;
     }
     return -1;
@@ -102,7 +100,7 @@ void PaletteTimelineWidget::addStop() {
         double bestEnd = _blendEnds ? _stops.front().pos + 1.0 : 1.0;
         double bestGap = -1.0;
 
-        for (size_t i = 1; i < _stops.size(); ++i) {
+        for (size_t i = 1; i < _stops.size(); i++) {
             const double start = _stops[i - 1].pos;
             const double end = _stops[i].pos;
             const double gap = end - start;
@@ -166,7 +164,7 @@ void PaletteTimelineWidget::evenSpacing() {
     if (_stops.size() < 2) return;
 
     _sortStops();
-    for (size_t i = 0; i < _stops.size(); ++i) {
+    for (size_t i = 0; i < _stops.size(); i++) {
         if (_blendEnds) {
             _stops[i].pos
                 = static_cast<double>(i) / static_cast<double>(_stops.size());
@@ -392,7 +390,7 @@ QColor PaletteTimelineWidget::_sample(double pos) const {
         if (pos >= sorted.back().pos) return sorted.back().color;
     }
 
-    for (size_t i = 0; i + 1 < sorted.size(); ++i) {
+    for (size_t i = 0; i + 1 < sorted.size(); i++) {
         if (pos < sorted[i].pos || pos > sorted[i + 1].pos) continue;
         const double span = std::max(sorted[i + 1].pos - sorted[i].pos, 1e-6);
         const double t = (pos - sorted[i].pos) / span;
@@ -408,7 +406,7 @@ QColor PaletteTimelineWidget::_sample(double pos) const {
 }
 
 int PaletteTimelineWidget::_indexForId(int id) const {
-    for (int i = 0; i < static_cast<int>(_stops.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(_stops.size()); i++) {
         if (_stops[i].id == id) return i;
     }
     return -1;
@@ -424,7 +422,7 @@ std::vector<int> PaletteTimelineWidget::_hitCandidates(const QPoint &point) cons
 
     std::vector<Candidate> candidates;
     candidates.reserve(_stops.size());
-    for (int i = 0; i < static_cast<int>(_stops.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(_stops.size()); i++) {
         const QRect area = _stopHitRect(_stops[i].pos);
         if (!area.contains(point)) continue;
 
@@ -469,7 +467,7 @@ int PaletteTimelineWidget::_hitTest(const QPoint &point) {
     int chosenIndex = candidates.front();
     if (repeatedHit && candidates.size() > 1) {
         int previousOffset = -1;
-        for (int i = 0; i < static_cast<int>(candidates.size()); ++i) {
+        for (int i = 0; i < static_cast<int>(candidates.size()); i++) {
             if (_stops[candidates[i]].id == _lastHitChosenId) {
                 previousOffset = i;
                 break;
@@ -507,7 +505,7 @@ bool PaletteTimelineWidget::_isLockedIndex(int index) const {
 }
 
 bool PaletteTimelineWidget::_isLockedId(int id) const {
-    for (int i = 0; i < static_cast<int>(_stops.size()); ++i) {
+    for (int i = 0; i < static_cast<int>(_stops.size()); i++) {
         if (_stops[i].id == id) return _isLockedIndex(i);
     }
     return false;
@@ -532,7 +530,7 @@ void PaletteTimelineWidget::_normalizeStopLayout() {
     }
 
     if (lastMovable >= firstMovable) {
-        for (int i = firstMovable; i <= lastMovable; ++i) {
+        for (int i = firstMovable; i <= lastMovable; i++) {
             _stops[i].pos = std::max(_stops[i].pos, _stops[i - 1].pos + minGap);
         }
 
@@ -551,7 +549,7 @@ void PaletteTimelineWidget::_normalizeStopLayout() {
                 const double start = minGap;
                 const double end = 1.0 - minGap;
                 const double denom = movableCount + (_blendEnds ? 1.0 : 0.0);
-                for (int i = 0; i < movableCount; ++i) {
+                for (int i = 0; i < movableCount; i++) {
                     _stops[firstMovable + i].pos = start
                         + (end - start) * static_cast<double>(i + 1)
                         / std::max(1.0, denom);
@@ -561,7 +559,7 @@ void PaletteTimelineWidget::_normalizeStopLayout() {
     }
 
     if (!_blendEnds && _stops.size() >= 2) {
-        for (int i = 1; i + 1 < static_cast<int>(_stops.size()); ++i) {
+        for (int i = 1; i + 1 < static_cast<int>(_stops.size()); i++) {
             const double minPos = _stops[i - 1].pos + minGap;
             const double maxPos = _stops[i + 1].pos - minGap;
             _stops[i].pos = minPos > maxPos

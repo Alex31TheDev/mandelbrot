@@ -13,8 +13,9 @@
 #include "ui_SettingsDialog.h"
 #include "util/PathUtil.h"
 
-namespace {
-QString _displayLanguageName(const QString& code) {
+using namespace GUI;
+
+static QString _displayLanguageName(const QString &code) {
     if (code.trimmed().compare("en", Qt::CaseInsensitive) == 0) {
         return QCoreApplication::translate("SettingsDialog", "English (US)");
     }
@@ -30,8 +31,8 @@ QString _displayLanguageName(const QString& code) {
     return name;
 }
 
-std::vector<QString> _availableLanguageCodes() {
-    std::vector<QString> codes { "en" };
+static std::vector<QString> _availableLanguageCodes() {
+    std::vector<QString> codes{ "en" };
     const std::filesystem::path translationsDir
         = PathUtil::executableDir() / "translations";
 
@@ -41,7 +42,7 @@ std::vector<QString> _availableLanguageCodes() {
         return codes;
     }
 
-    for (const auto& entry :
+    for (const auto &entry :
         std::filesystem::directory_iterator(translationsDir, ec)) {
         if (ec || !entry.is_regular_file()) continue;
 
@@ -54,8 +55,8 @@ std::vector<QString> _availableLanguageCodes() {
         const QString code
             = fileName.mid(QString("mandelbrot_").size(),
                 fileName.size() - QString("mandelbrot_").size() - 3)
-                  .trimmed()
-                  .toLower();
+            .trimmed()
+            .toLower();
         if (!code.isEmpty()) codes.push_back(code);
     }
 
@@ -67,15 +68,14 @@ std::vector<QString> _availableLanguageCodes() {
     }
     return codes;
 }
-}  // namespace
 
-SettingsDialog::SettingsDialog(const QString& language, int previewFallbackFPS,
-    const Shortcuts& shortcuts, QWidget* parent)
+SettingsDialog::SettingsDialog(const QString &language, int previewFallbackFPS,
+    const Shortcuts &shortcuts, QWidget *parent)
     : QDialog(parent)
     , _ui(std::make_unique<Ui::SettingsDialog>()) {
     _ui->setupUi(this);
     const std::vector<QString> languages = _availableLanguageCodes();
-    for (const QString& code : languages) {
+    for (const QString &code : languages) {
         _ui->languageCombo->addItem(_displayLanguageName(code), code);
     }
 
@@ -83,8 +83,8 @@ SettingsDialog::SettingsDialog(const QString& language, int previewFallbackFPS,
     _ui->languageCombo->setCurrentIndex(langIndex >= 0 ? langIndex : 0);
     _ui->previewFallbackSpin->setValue(std::max(0, previewFallbackFPS));
 
-    for (const ShortcutDef& def : Shortcuts::defs()) {
-        auto* edit = new QKeySequenceEdit(this);
+    for (const ShortcutDef &def : Shortcuts::defs()) {
+        auto *edit = new QKeySequenceEdit(this);
         edit->setKeySequence(shortcuts.sequence(def.id));
         _ui->shortcutLayout->addRow(Shortcuts::label(def), edit);
         _shortcutEdits.push_back({ def.id, edit });
@@ -99,12 +99,12 @@ QString SettingsDialog::language() const {
 
 int SettingsDialog::previewFallbackFPS() const {
     return _ui ? _ui->previewFallbackSpin->value()
-               : GUI::Constants::defaultInteractionTargetFPS;
+        : Constants::defaultInteractionTargetFPS;
 }
 
-Shortcuts SettingsDialog::shortcuts(AppSettings& settings) const {
+Shortcuts SettingsDialog::shortcuts(AppSettings &settings) const {
     Shortcuts result(settings);
-    for (const auto& [id, edit] : _shortcutEdits) {
+    for (const auto &[id, edit] : _shortcutEdits) {
         result.setSequence(id, edit ? edit->keySequence() : QKeySequence());
     }
     return result;

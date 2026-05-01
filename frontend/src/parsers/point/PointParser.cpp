@@ -1,5 +1,6 @@
 #include "PointParser.h"
 
+#include <string>
 #include <functional>
 
 #include "util/ParserUtil.h"

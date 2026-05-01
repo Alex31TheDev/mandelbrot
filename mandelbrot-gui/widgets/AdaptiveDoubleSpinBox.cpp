@@ -64,9 +64,9 @@ void AdaptiveDoubleSpinBox::_updateDisplayDecimals(const QString &text) {
     }
 
     int typedDecimals = 0;
-    for (int i = decimalIndex + 1; i < text.size(); ++i) {
+    for (int i = decimalIndex + 1; i < text.size(); i++) {
         if (!text[i].isDigit()) break;
-        ++typedDecimals;
+        typedDecimals++;
     }
 
     _displayDecimals = std::max(_defaultDisplayDecimals, typedDecimals);

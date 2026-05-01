@@ -1,27 +1,33 @@
-#include "app/GUIAppController.h"
-#include "locale/GUILocale.h"
-#include "settings/AppSettings.h"
 #include <QIcon>
 #include <QtGui/QGuiApplication>
 #include <QtWidgets/QApplication>
 #include <QStyleFactory>
 
+#include "app/GUIAppController.h"
+#include "locale/GUILocale.h"
+#include "settings/AppSettings.h"
+
 int main(int argc, char *argv[]) {
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
-        Qt::HighDpiScaleFactorRoundingPolicy::Round);
+        Qt::HighDpiScaleFactorRoundingPolicy::Round
+    );
+
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(true);
+
     if (QStyleFactory::keys().contains("windowsvista")) {
         app.setStyle(QStyleFactory::create("windowsvista"));
     }
+
+    app.setWindowIcon(QIcon(":/mandelbrotgui/mandelbrot.ico"));
+
     AppSettings settings;
     GUILocale locale(app);
     locale.setLanguage(settings.language());
-    app.setWindowIcon(QIcon(":/mandelbrotgui/mandelbrot.ico"));
-    auto* controller = new GUIAppController(locale, settings);
-    if (!controller->initialize()) {
-        return 1;
-    }
+
+    auto *controller = new GUIAppController(locale, settings);
+    if (!controller->initialize()) return 1;
+
     controller->show();
     return app.exec();
 }

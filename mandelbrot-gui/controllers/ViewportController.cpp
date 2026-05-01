@@ -7,15 +7,19 @@
 #include "util/NumberUtil.h"
 #include "windows/viewport/ViewportWindow.h"
 
-ViewportController::ViewportController(GUISessionState& sessionState,
-    RenderController& renderController, Shortcuts& shortcuts, QObject* parent)
+using namespace GUI;
+
+ViewportController::ViewportController(
+    GUISessionState &sessionState, RenderController &renderController,
+    Shortcuts &shortcuts, QObject *parent
+)
     : QObject(parent)
     , _sessionState(sessionState)
     , _renderController(renderController)
     , _shortcuts(shortcuts)
     , _mouseText(tr("Mouse: -")) {}
 
-void ViewportController::attachViewport(ViewportWindow* viewport) {
+void ViewportController::attachViewport(ViewportWindow *viewport) {
     _viewport = viewport;
 }
 
@@ -55,20 +59,20 @@ void ViewportController::applyHomeView() {
 }
 
 void ViewportController::scaleAtPixel(
-    const QPoint& pixel, double scaleMultiplier) {
+    const QPoint &pixel, double scaleMultiplier) {
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
     ViewTextState nextView;
     QString error;
     if (!_renderController.zoomViewAtPixel(
-            _snapshot(), _clampPixelToOutput(pixel), scaleMultiplier, nextView,
-            error)) {
+        _snapshot(), _clampPixelToOutput(pixel), scaleMultiplier, nextView,
+        error)) {
         emit statusMessageChanged(error);
         return;
     }
     if (NumberUtil::equalParsedDoubleText(
-            _sessionState.zoomText().toStdString(),
-            nextView.zoomText.toStdString())
+        _sessionState.zoomText().toStdString(),
+        nextView.zoomText.toStdString())
         && _sessionState.pointRealText() == nextView.pointReal
         && _sessionState.pointImagText() == nextView.pointImag) {
         return;
@@ -83,13 +87,13 @@ void ViewportController::scaleAtPixel(
     emit renderRequested();
 }
 
-void ViewportController::zoomAtPixel(const QPoint& pixel, bool zoomIn) {
+void ViewportController::zoomAtPixel(const QPoint &pixel, bool zoomIn) {
     const double factor = _currentZoomFactor(_sessionState.state().zoomRate);
     const double scaleMultiplier = zoomIn ? (1.0 / factor) : factor;
     scaleAtPixel(_clampPixelToOutput(pixel), scaleMultiplier);
 }
 
-void ViewportController::boxZoom(const QRect& selectionRect) {
+void ViewportController::boxZoom(const QRect &selectionRect) {
     const QRect rect = selectionRect.normalized();
     if (rect.width() < 2 || rect.height() < 2) {
         zoomAtPixel(rect.center(), true);
@@ -112,14 +116,14 @@ void ViewportController::boxZoom(const QRect& selectionRect) {
     emit renderRequested();
 }
 
-void ViewportController::panByPixels(const QPoint& delta) {
+void ViewportController::panByPixels(const QPoint &delta) {
     if (delta.isNull()) return;
 
     QString pointReal;
     QString pointImag;
     QString error;
     if (!_renderController.panPointByDelta(
-            _snapshot(), delta, pointReal, pointImag, error)) {
+        _snapshot(), delta, pointReal, pointImag, error)) {
         emit statusMessageChanged(error);
         return;
     }
@@ -131,35 +135,36 @@ void ViewportController::panByPixels(const QPoint& delta) {
     emit renderRequested();
 }
 
-void ViewportController::pickAtPixel(const QPoint& pixel) {
+void ViewportController::pickAtPixel(const QPoint &pixel) {
     const QPoint clampedPixel = _clampPixelToOutput(pixel);
     QString real;
     QString imag;
     QString error;
     if (!_renderController.pointAtPixel(
-            _snapshot(), clampedPixel, real, imag, error)) {
+        _snapshot(), clampedPixel, real, imag, error)) {
         emit statusMessageChanged(error);
         return;
     }
 
     switch (_selectionTarget) {
-    case SelectionTarget::zoomPoint:
-        _sessionState.setPointTexts(real, imag);
-        _sessionState.syncStatePointFromText();
-        break;
-    case SelectionTarget::seedPoint:
-        _sessionState.setSeedTexts(real, imag);
-        _sessionState.syncStateSeedFromText();
-        break;
-    case SelectionTarget::lightPoint: {
-        bool okReal = false;
-        bool okImag = false;
-        const double lightReal = real.toDouble(&okReal);
-        const double lightImag = imag.toDouble(&okImag);
-        if (okReal) _sessionState.mutableState().light.setX(lightReal);
-        if (okImag) _sessionState.mutableState().light.setY(lightImag);
-        break;
-    }
+        case SelectionTarget::zoomPoint:
+            _sessionState.setPointTexts(real, imag);
+            _sessionState.syncStatePointFromText();
+            break;
+        case SelectionTarget::seedPoint:
+            _sessionState.setSeedTexts(real, imag);
+            _sessionState.syncStateSeedFromText();
+            break;
+        case SelectionTarget::lightPoint:
+        {
+            bool okReal = false;
+            bool okImag = false;
+            const double lightReal = real.toDouble(&okReal);
+            const double lightImag = imag.toDouble(&okImag);
+            if (okReal) _sessionState.mutableState().light.setX(lightReal);
+            if (okImag) _sessionState.mutableState().light.setY(lightImag);
+            break;
+        }
     }
 
     emit sessionStateChanged();
@@ -171,20 +176,20 @@ void ViewportController::pickAtPixel(const QPoint& pixel) {
     }
 }
 
-void ViewportController::updateMouseCoords(const QPoint& pixel) {
+void ViewportController::updateMouseCoords(const QPoint &pixel) {
     const QPoint clampedPixel = _clampPixelToOutput(pixel);
     QString real;
     QString imag;
     QString error;
     if (!_renderController.pointAtPixel(_snapshot(), clampedPixel, real, imag, error)) {
         _mouseText = tr("Mouse: %1, %2  |  -")
-                         .arg(clampedPixel.x())
-                         .arg(clampedPixel.y());
+            .arg(clampedPixel.x())
+            .arg(clampedPixel.y());
     } else {
         _mouseText = tr("Mouse: %1, %2  |  %3  %4")
-                         .arg(clampedPixel.x())
-                         .arg(clampedPixel.y())
-                         .arg(real, imag);
+            .arg(clampedPixel.x())
+            .arg(clampedPixel.y())
+            .arg(real, imag);
     }
 
     if (_viewport) _viewport->update();
@@ -226,39 +231,44 @@ void ViewportController::prepareViewportFullscreenTransition() {
     if (_viewport) _viewport->clearPreviewOffset();
 }
 
-void ViewportController::applyViewportOutputSize(const QSize& outputSize) {
+void ViewportController::applyViewportOutputSize(const QSize &outputSize) {
     if (!outputSize.isValid()) return;
     _renderController.markPreviewMotion();
     _sessionState.mutableState().outputWidth = outputSize.width();
     _sessionState.mutableState().outputHeight = outputSize.height();
     if (_viewport && !_viewport->isFullScreen()) {
-        GUI::Util::resizeViewportToImageSize(_viewport, outputSize);
+        Util::resizeViewportToImageSize(_viewport, outputSize);
     }
     emit sessionStateChanged();
     emit renderRequested();
 }
 
 bool ViewportController::previewPannedViewState(
-    const QPoint& delta, ViewTextState& view, QString& errorMessage) {
+    const QPoint &delta, ViewTextState &view, QString &errorMessage
+) {
     return _renderController.previewPannedViewState(
         _snapshot(), delta, view, errorMessage);
 }
 
-bool ViewportController::previewScaledViewState(const QPoint& pixel,
-    double scaleMultiplier, ViewTextState& view, QString& errorMessage) {
+bool ViewportController::previewScaledViewState(
+    const QPoint &pixel, double scaleMultiplier,
+    ViewTextState &view, QString &errorMessage
+) {
     return _renderController.previewScaledViewState(
         _snapshot(), _clampPixelToOutput(pixel), scaleMultiplier, view, errorMessage);
 }
 
 bool ViewportController::previewBoxZoomViewState(
-    const QRect& selectionRect, ViewTextState& view, QString& errorMessage) {
+    const QRect &selectionRect, ViewTextState &view, QString &errorMessage
+) {
     return _renderController.previewBoxZoomViewState(
         _snapshot(), selectionRect.normalized(), view, errorMessage);
 }
 
-bool ViewportController::mapViewPixelToViewPixel(const ViewTextState& sourceView,
-    const ViewTextState& targetView, const QPoint& pixel, QPointF& mappedPixel,
-    QString& errorMessage) {
+bool ViewportController::mapViewPixelToViewPixel(
+    const ViewTextState &sourceView, const ViewTextState &targetView,
+    const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage
+) {
     return _renderController.mapViewPixelToViewPixel(
         sourceView, targetView, pixel, mappedPixel, errorMessage);
 }
@@ -280,14 +290,15 @@ QString ViewportController::viewportStatusText() const {
 int ViewportController::interactionFrameIntervalMs() const {
     const int fps = std::max(1,
         _sessionState.state().interactionTargetFPS > 0
-            ? _sessionState.state().interactionTargetFPS
-            : GUI::Constants::defaultInteractionTargetFPS);
+        ? _sessionState.state().interactionTargetFPS
+        : Constants::defaultInteractionTargetFPS);
     return std::max(
         1, static_cast<int>(std::lround(1000.0 / static_cast<double>(fps))));
 }
 
 bool ViewportController::matchesShortcut(
-    const QString& id, const QKeyEvent* event) const {
+    const QString &id, const QKeyEvent *event
+) const {
     if (!event) return false;
 
     const QKeySequence configured = _shortcuts.sequence(id);
@@ -303,23 +314,23 @@ int ViewportController::panRateValue() const {
 }
 
 double ViewportController::panRateFactor() const {
-    const int clamped = GUI::Util::clampSliderValue(_sessionState.state().panRate);
+    const int clamped = Util::clampSliderValue(_sessionState.state().panRate);
     return std::pow(
-        GUI::Constants::panRateBase, static_cast<double>(clamped - 8));
+        Constants::panRateBase, static_cast<double>(clamped - 8));
 }
 
 double ViewportController::zoomRateFactor() const {
     return _currentZoomFactor(_sessionState.state().zoomRate);
 }
 
-QPoint ViewportController::_clampPixelToOutput(const QPoint& pixel) const {
+QPoint ViewportController::_clampPixelToOutput(const QPoint &pixel) const {
     const QSize size = outputSize();
     return { std::clamp(pixel.x(), 0, std::max(0, size.width() - 1)),
         std::clamp(pixel.y(), 0, std::max(0, size.height() - 1)) };
 }
 
 double ViewportController::_currentZoomFactor(int sliderValue) const {
-    return GUI::Constants::zoomStepTable[GUI::Util::clampSliderValue(sliderValue)];
+    return Constants::zoomStepTable[Util::clampSliderValue(sliderValue)];
 }
 
 GUIRenderSnapshot ViewportController::_snapshot() const {

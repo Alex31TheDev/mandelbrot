@@ -4,10 +4,11 @@
 #include <string>
 
 #include "BackendAPI.h"
+using namespace Backend;
 
 #include "util/FormatUtil.h"
 
-static void printAllocatedImageEvent(const Backend::ImageEvent &event) {
+static void printAllocatedImageEvent(const ImageEvent &event) {
     if (event.downscaling) {
         printf("Supersampling: %.2fx (%dx%d -> %dx%d)\n",
             event.aaScale,
@@ -26,10 +27,10 @@ static void printAllocatedImageEvent(const Backend::ImageEvent &event) {
         FormatUtil::formatBufferSize(event.primaryBytes).c_str());
 }
 
-void CallbackFormatter::bind(Backend::Session &session) const {
-    Backend::Callbacks callbacks;
+void CallbackFormatter::bind(Session &session) const {
+    Callbacks callbacks;
 
-    callbacks.onProgress = [](const Backend::ProgressEvent &event) {
+    callbacks.onProgress = [](const ProgressEvent &event) {
         printf("\r\x1b[KRendering: %3d%% | %.2f pixels/s",
             event.percentage, event.opsPerSecond);
 
@@ -42,13 +43,13 @@ void CallbackFormatter::bind(Backend::Session &session) const {
         fflush(stdout);
         };
 
-    callbacks.onImage = [](const Backend::ImageEvent &event) {
+    callbacks.onImage = [](const ImageEvent &event) {
         switch (event.kind) {
-            case Backend::ImageEventKind::allocated:
+            case ImageEventKind::allocated:
                 printAllocatedImageEvent(event);
                 return;
 
-            case Backend::ImageEventKind::saved:
+            case ImageEventKind::saved:
                 if (event.path) {
                     printf("Successfully saved: %s (%dx%d)\n",
                         event.path, event.outputWidth, event.outputHeight);
@@ -57,9 +58,9 @@ void CallbackFormatter::bind(Backend::Session &session) const {
         }
         };
 
-    callbacks.onInfo = [](const Backend::InfoEvent &event) {
+    callbacks.onInfo = [](const InfoEvent &event) {
         switch (event.kind) {
-            case Backend::InfoEventKind::iterations:
+            case InfoEventKind::iterations:
                 printf("Total iterations: %s | %.2f GI/s\n",
                     FormatUtil::formatNumber(event.totalIterations).c_str(),
                     event.opsPerSecond);
@@ -67,7 +68,7 @@ void CallbackFormatter::bind(Backend::Session &session) const {
         }
         };
 
-    callbacks.onDebug = [](const Backend::DebugEvent &event) {
+    callbacks.onDebug = [](const DebugEvent &event) {
         if (event.message) {
             fprintf(stderr, "%s\n", event.message);
         }

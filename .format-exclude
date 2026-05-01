@@ -1,3 +1,10 @@
-args/argparse.h
-image/stb_image_write.h
-mpfr/mpreal.h
+src/args/argparse.h
+src/image/stb_image_write.h
+src/qd/qdlib/dd_inline.h
+src/qd/qdlib/dd_real.h
+src/qd/qdlib/dd_routines.cpp
+src/qd/qdlib/inline.h
+src/qd/qdlib/qd_config.h
+src/qd/qdlib/qd_inline.h
+src/qd/qdlib/qd_real.h
+src/qd/qdlib/qd_routines.cpp

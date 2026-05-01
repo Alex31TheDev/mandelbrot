@@ -12,7 +12,6 @@
 #include <stdexcept>
 
 #include "argparse.hpp"
-#include "BackendAPI.h"
 
 #include "ArgsUsage.h"
 using namespace ArgsUsage;
@@ -24,6 +23,9 @@ using namespace FractalTypes;
 
 #include "parsers/palette/PaletteParser.h"
 #include "parsers/sine/SineParser.h"
+
+#include "BackendAPI.h"
+using namespace Backend;
 
 #include "util/ParserUtil.h"
 using namespace ParserUtil;
@@ -223,8 +225,8 @@ namespace ArgsParser {
         return false;
     }
 
-    Backend::Status parse(Backend::Session &session, int argc, char **argv) {
-        if (!argv) return Backend::Status::failure("No arguments were provided.");
+    Status parse(Session &session, int argc, char **argv) {
+        if (!argv) return Status::failure("No arguments were provided.");
 
         ParsedArgs args;
         const auto parser = makeParser(argv[0], args);
@@ -232,7 +234,7 @@ namespace ArgsParser {
         try {
             parser->parse_args(argc, argv);
         } catch (const std::exception &err) {
-            return Backend::Status::failure(err.what());
+            return Status::failure(err.what());
         }
 
         if (auto status = session.setImageSize(args.width,
@@ -250,12 +252,12 @@ namespace ArgsParser {
 
         const int colorMethod = parseColorMethod(args.colorMethod);
         if (colorMethod < 0) {
-            return Backend::Status::failure("Unknown color method.");
+            return Status::failure("Unknown color method.");
         }
 
         const int fractalType = parseFractalType(args.fractalType);
         if (fractalType < 0) {
-            return Backend::Status::failure("Unknown fractal type.");
+            return Status::failure("Unknown fractal type.");
         }
 
         session.setFractalMode(args.isJuliaSet, args.isInverse);
@@ -277,12 +279,12 @@ namespace ArgsParser {
             case 0:
             case 1:
             {
-                Backend::SinePaletteConfig sineCfg;
+                SinePaletteConfig sineCfg;
                 std::string err;
 
                 SineParser sineParser(skipOption);
                 if (!sineParser.parse(collectColorArgs(args), sineCfg, err)) {
-                    return Backend::Status::failure(err);
+                    return Status::failure(err);
                 }
 
                 return session.setSinePalette(sineCfg);
@@ -290,12 +292,12 @@ namespace ArgsParser {
 
             case 2:
             {
-                Backend::PaletteHexConfig paletteCfg;
+                PaletteHexConfig paletteCfg;
                 std::string err;
 
                 PaletteParser paletteParser(skipOption);
                 if (!paletteParser.parse(collectColorArgs(args), paletteCfg, err)) {
-                    return Backend::Status::failure(err);
+                    return Status::failure(err);
                 }
 
                 return session.setColorPalette(paletteCfg);
@@ -324,7 +326,7 @@ namespace ArgsParser {
             }
 
             default:
-                return Backend::Status::failure("Unsupported color method.");
+                return Status::failure("Unsupported color method.");
         }
     }
 }

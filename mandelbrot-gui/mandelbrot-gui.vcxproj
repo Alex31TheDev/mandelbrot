@@ -81,11 +81,20 @@
     <QtDeploy>false</QtDeploy>
     <QtDeployDebugRelease>release</QtDeployDebugRelease>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'!=''" Label="BuildPaths">
+    <ProjectOutputRoot>$(ProjectDir)bin\</ProjectOutputRoot>
+    <ProjectIntermediateRoot>$(ProjectDir)bin\obj\</ProjectIntermediateRoot>
+    <OutDir>$(ProjectOutputRoot)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectIntermediateRoot)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\common\src;$(MSBuildProjectDirectory)\..\frontend\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Release|x64'">stdcpp20</LanguageStandard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
+      <AdditionalOptions>/Fd"$(IntDir)$(ProjectName).pdb" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -98,6 +107,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(TargetName).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
@@ -111,9 +121,10 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <FullProgramDatabaseFile>$(OutDir)$(TargetName).pdb</FullProgramDatabaseFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -154,6 +165,7 @@
     <ClCompile Include="services\PointStore.cpp" />
     <ClCompile Include="services\SineStore.cpp" />
     <ClCompile Include="util\GUIUtil.cpp" />
+    <ClCompile Include="EarlyInit.cpp" />
     <ClCompile Include="app\GUIAppController.cpp" />
     <ClCompile Include="controllers\ViewportController.cpp" />
     <ClCompile Include="locale\GUILocale.cpp" />
@@ -224,7 +236,7 @@
   <ItemGroup>
     <Image Include="mandelbrot.ico" />
   </ItemGroup>
-  <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
+  <Target Name="BuildCoreDlls" BeforeTargets="Build" Condition="'$(Platform)'=='x64'" Inputs="@(CoreBuildInput)" Outputs="$(MSBuildThisFileDirectory)..\mandelbrot\bin\x64\$(Configuration) - %(CoreVariant.Identity)\mandelbrot.dll">
     <MSBuild Projects="$(MSBuildThisFileDirectory)..\mandelbrot\mandelbrot.vcxproj" Targets="Build" BuildInParallel="true" Properties="Configuration=$(Configuration) - %(CoreVariant.Identity);Platform=$(Platform)" />
   </Target>
   <Target Name="BundleCoreDlls" AfterTargets="Build">
@@ -236,7 +248,7 @@
     <ItemGroup Condition="'$(Platform)'=='x64'">
       <BundledCore Include="@(CoreVariant)">
         <ConfigName>$(Configuration) - %(Identity)</ConfigName>
-        <SourceDir>$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
+        <SourceDir>$(MSBuildThisFileDirectory)..\mandelbrot\bin\x64\$(Configuration) - %(Identity)\</SourceDir>
       </BundledCore>
     </ItemGroup>
     <Copy SourceFiles="@(BundledCore->'%(SourceDir)mandelbrot.dll')" DestinationFiles="@(BundledCore->'$(BackendOutDir)%(ConfigName).dll')" SkipUnchangedFiles="true" Condition="'@(BundledCore)'!=''" />
@@ -245,7 +257,7 @@
     </ItemGroup>
     <Copy SourceFiles="@(BundledCoreWithPdb->'%(SourceDir)mandelbrot.pdb')" DestinationFiles="@(BundledCoreWithPdb->'$(BackendOutDir)%(ConfigName).pdb')" SkipUnchangedFiles="true" Condition="'@(BundledCoreWithPdb)'!=''" />
     <ItemGroup Condition="'$(Platform)'=='x64'">
-      <BundledSupport Include="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\*.dll" Exclude="$(MSBuildThisFileDirectory)..\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
+      <BundledSupport Include="$(MSBuildThisFileDirectory)..\mandelbrot\bin\x64\$(Configuration) - MPFR\*.dll" Exclude="$(MSBuildThisFileDirectory)..\mandelbrot\bin\x64\$(Configuration) - MPFR\mandelbrot.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(BundledSupport)" DestinationFolder="$(BackendOutDir)" SkipUnchangedFiles="true" Condition="'@(BundledSupport)'!=''" />
   </Target>

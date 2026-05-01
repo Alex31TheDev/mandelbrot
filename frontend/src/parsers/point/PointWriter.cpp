@@ -1,7 +1,9 @@
 #include "PointWriter.h"
 
+#include <string>
 #include <ostream>
 
+#include "PointParser.h"
 #include "util/FormatUtil.h"
 
 PointWriter::PointWriter(const PointConfig &point)

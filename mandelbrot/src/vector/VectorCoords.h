@@ -15,8 +15,8 @@
 
 template<size_t N>
 consteval auto _makeIndexArray() {
-    return[]<std::size_t... Is>(std::index_sequence<Is...>) {
-        return std::array<std::size_t, N + 1>{ { Is..., N } };
+    return[]<size_t... Is>(std::index_sequence<Is...>) {
+        return std::array<size_t, N + 1>{ { Is..., N } };
     }(std::make_index_sequence<N>{});
 }
 

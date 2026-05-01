@@ -49,8 +49,10 @@ namespace ParserUtil {
         return true;
     };
 
-    bool parseBool(std::string_view input,
-        std::optional<std::reference_wrapper<bool>> ok) {
+    bool parseBool(
+        std::string_view input,
+        std::optional<std::reference_wrapper<bool>> ok
+    ) {
         bool valid = false, result = false;
 
         if (!input.empty()) {
@@ -68,8 +70,10 @@ namespace ParserUtil {
     }
 
     std::tuple<uint8_t, uint8_t, uint8_t>
-        parseHexString(std::string_view str,
-            std::optional<std::reference_wrapper<bool>> ok) {
+        parseHexString(
+            std::string_view str,
+            std::optional<std::reference_wrapper<bool>> ok
+        ) {
         if (StringUtil::startsWith(str, "#")) str.remove_prefix(1);
 
         const bool fullHex = (str.size() == 6);

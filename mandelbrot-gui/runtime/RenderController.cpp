@@ -18,21 +18,21 @@
 #include "services/BackendCatalog.h"
 #include "services/PaletteStore.h"
 
-namespace {
-QString stateToString(double value, int precision = 17) {
+using namespace GUI;
+
+static QString stateToString(double value, int precision = 17) {
     return QString::number(value, 'g', precision);
 }
-}
 
-RenderController::RenderController(QObject* parent)
+RenderController::RenderController(QObject *parent)
     : QObject(parent)
-    , _previewImage(GUI::Util::makeBlankViewportImage()) {
-    _displayedZoomText = stateToString(GUI::Constants::homeZoom);
-    _imageMemoryText = GUI::Util::defaultImageMemoryText();
-    _pixelsPerSecondText = GUI::Util::defaultPixelsPerSecondText();
+    , _previewImage(Util::makeBlankViewportImage()) {
+    _displayedZoomText = stateToString(Constants::homeZoom);
+    _imageMemoryText = Util::defaultImageMemoryText();
+    _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
     _lastPreviewMotionAt = std::chrono::steady_clock::now();
     _previewStillTimer.setSingleShot(true);
-    _previewStillTimer.setInterval(GUI::Constants::previewStillMs);
+    _previewStillTimer.setInterval(Constants::previewStillMs);
     connect(&_previewStillTimer, &QTimer::timeout, this,
         &RenderController::_tryResumeDirectPreview);
 }
@@ -42,7 +42,7 @@ RenderController::~RenderController() {
     shutdown(true, 0);
 }
 
-void RenderController::setAvailableBackends(const QStringList& backendNames) {
+void RenderController::setAvailableBackends(const QStringList &backendNames) {
     _backendNames = backendNames;
 }
 
@@ -54,7 +54,7 @@ void RenderController::setPreviewDevicePixelRatio(double devicePixelRatio) {
 }
 
 bool RenderController::loadBackend(
-    const QString& backendName, QString& errorMessage) {
+    const QString &backendName, QString &errorMessage) {
     errorMessage.clear();
     _backendGeneration.fetch_add(1, std::memory_order_acq_rel);
     _callbackRenderRequestId.store(0, std::memory_order_release);
@@ -110,7 +110,7 @@ bool RenderController::loadBackend(
     }
 
     errorMessage = error.empty() ? tr("Failed to load backend.")
-                                 : QString::fromStdString(error);
+        : QString::fromStdString(error);
     freezePreview();
     emit renderStateChanged();
     return false;
@@ -133,8 +133,8 @@ void RenderController::shutdown(bool forceKillOnTimeout, int timeoutMs) {
     freezePreview();
 }
 
-void RenderController::requestRender(const GUIRenderSnapshot& snapshot,
-    const std::optional<PendingPickAction>& pickAction) {
+void RenderController::requestRender(const GUIRenderSnapshot &snapshot,
+    const std::optional<PendingPickAction> &pickAction) {
     if (!_backend || !_renderSession) return;
 
     if (_previewUsesBackendMemory && !_previewImage.isNull()
@@ -149,7 +149,7 @@ void RenderController::requestRender(const GUIRenderSnapshot& snapshot,
         = _latestRenderRequestId.fetch_add(1, std::memory_order_acq_rel) + 1;
     {
         const std::scoped_lock lock(_renderMutex);
-        _queuedRenderRequest = RenderRequest { .state = snapshot.state,
+        _queuedRenderRequest = RenderRequest{ .state = snapshot.state,
             .pointRealText = snapshot.pointRealText,
             .pointImagText = snapshot.pointImagText,
             .zoomText = snapshot.zoomText,
@@ -166,7 +166,7 @@ void RenderController::requestRender(const GUIRenderSnapshot& snapshot,
         _progressCancelled = false;
         _progressValue = 0;
         _progressText = tr("Rendering");
-        _pixelsPerSecondText = GUI::Util::defaultPixelsPerSecondText();
+        _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
         emit renderStateChanged();
     }
 
@@ -194,14 +194,14 @@ void RenderController::cancelQueuedRenders() {
     _progressActive = false;
     _progressCancelled = true;
     _progressText.clear();
-    _pixelsPerSecondText = GUI::Util::defaultPixelsPerSecondText();
+    _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
     _statusText = tr("Render cancelled");
     freezePreview();
     emit renderStateChanged();
 }
 
 void RenderController::freezePreview() {
-    _previewImage = GUI::Util::makeBlankViewportImage();
+    _previewImage = Util::makeBlankViewportImage();
     _previewUsesBackendMemory = false;
     _directFrameDetachedForRender = false;
     _presentingCopiedPreview = false;
@@ -238,8 +238,8 @@ int RenderController::currentIterationCount() const {
     return 0;
 }
 
-bool RenderController::saveImage(const QString& path, bool appendDate,
-    const QString& type, QString& errorMessage) {
+bool RenderController::saveImage(const QString &path, bool appendDate,
+    const QString &type, QString &errorMessage) {
     if (!_ensureBackendReady(errorMessage)) return false;
     if (_previewImage.isNull()) {
         errorMessage = tr("No image is available.");
@@ -255,7 +255,7 @@ bool RenderController::saveImage(const QString& path, bool appendDate,
 }
 
 QImage RenderController::renderSinePreview(
-    const Backend::SinePaletteConfig& palette, const QSize& widgetSize,
+    const Backend::SinePaletteConfig &palette, const QSize &widgetSize,
     double rangeMin, double rangeMax) const {
     if (!_backend || !_previewSession || !widgetSize.isValid()) {
         return {};
@@ -266,19 +266,19 @@ QImage RenderController::renderSinePreview(
 
     const int previewWidth = std::max(1, widgetSize.width() - 12);
     const int previewHeight = std::max(1, widgetSize.height() - 28);
-    return GUI::Util::imageViewToImage(_previewSession->renderSinePreview(
+    return Util::imageViewToImage(_previewSession->renderSinePreview(
         previewWidth, previewHeight, static_cast<float>(rangeMin),
         static_cast<float>(rangeMax)));
 }
 
 QImage RenderController::renderPalettePreview(
-    const Backend::PaletteHexConfig& palette) const {
-    return GUI::PaletteStore::makePreviewImage(_previewSession, palette, 256, 20);
+    const Backend::PaletteHexConfig &palette) const {
+    return PaletteStore::makePreviewImage(_previewSession, palette, 256, 20);
 }
 
-bool RenderController::pointAtPixel(const GUIRenderSnapshot& snapshot,
-    const QPoint& pixel, QString& realText, QString& imagText,
-    QString& errorMessage) {
+bool RenderController::pointAtPixel(const GUIRenderSnapshot &snapshot,
+    const QPoint &pixel, QString &realText, QString &imagText,
+    QString &errorMessage) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     std::string real;
@@ -295,9 +295,9 @@ bool RenderController::pointAtPixel(const GUIRenderSnapshot& snapshot,
     return true;
 }
 
-bool RenderController::panPointByDelta(const GUIRenderSnapshot& snapshot,
-    const QPoint& delta, QString& realText, QString& imagText,
-    QString& errorMessage) {
+bool RenderController::panPointByDelta(const GUIRenderSnapshot &snapshot,
+    const QPoint &delta, QString &realText, QString &imagText,
+    QString &errorMessage) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     std::string real;
@@ -314,9 +314,9 @@ bool RenderController::panPointByDelta(const GUIRenderSnapshot& snapshot,
     return true;
 }
 
-bool RenderController::zoomViewAtPixel(const GUIRenderSnapshot& snapshot,
-    const QPoint& pixel, double scaleMultiplier, ViewTextState& view,
-    QString& errorMessage) {
+bool RenderController::zoomViewAtPixel(const GUIRenderSnapshot &snapshot,
+    const QPoint &pixel, double scaleMultiplier, ViewTextState &view,
+    QString &errorMessage) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     std::string zoom;
@@ -338,8 +338,8 @@ bool RenderController::zoomViewAtPixel(const GUIRenderSnapshot& snapshot,
     return true;
 }
 
-bool RenderController::boxZoomView(const GUIRenderSnapshot& snapshot,
-    const QRect& rect, ViewTextState& view, QString& errorMessage) {
+bool RenderController::boxZoomView(const GUIRenderSnapshot &snapshot,
+    const QRect &rect, ViewTextState &view, QString &errorMessage) {
     if (!_applyNavigationStateToSession(snapshot, errorMessage)) return false;
 
     const QRect normalized = rect.normalized();
@@ -363,8 +363,8 @@ bool RenderController::boxZoomView(const GUIRenderSnapshot& snapshot,
     return true;
 }
 
-bool RenderController::previewPannedViewState(const GUIRenderSnapshot& snapshot,
-    const QPoint& delta, ViewTextState& view, QString& errorMessage) {
+bool RenderController::previewPannedViewState(const GUIRenderSnapshot &snapshot,
+    const QPoint &delta, ViewTextState &view, QString &errorMessage) {
     view = { .pointReal = snapshot.pointRealText,
         .pointImag = snapshot.pointImagText,
         .zoomText = snapshot.zoomText,
@@ -388,9 +388,9 @@ bool RenderController::previewPannedViewState(const GUIRenderSnapshot& snapshot,
     return true;
 }
 
-bool RenderController::previewScaledViewState(const GUIRenderSnapshot& snapshot,
-    const QPoint& pixel, double scaleMultiplier, ViewTextState& view,
-    QString& errorMessage) {
+bool RenderController::previewScaledViewState(const GUIRenderSnapshot &snapshot,
+    const QPoint &pixel, double scaleMultiplier, ViewTextState &view,
+    QString &errorMessage) {
     if (NumberUtil::almostEqual(scaleMultiplier, 1.0)) {
         view = { .pointReal = snapshot.pointRealText,
             .pointImag = snapshot.pointImagText,
@@ -406,8 +406,8 @@ bool RenderController::previewScaledViewState(const GUIRenderSnapshot& snapshot,
 }
 
 bool RenderController::previewBoxZoomViewState(
-    const GUIRenderSnapshot& snapshot, const QRect& rect, ViewTextState& view,
-    QString& errorMessage) {
+    const GUIRenderSnapshot &snapshot, const QRect &rect, ViewTextState &view,
+    QString &errorMessage) {
     const QRect normalized = rect.normalized();
     if (normalized.width() < 2 || normalized.height() < 2) {
         view = { .pointReal = snapshot.pointRealText,
@@ -423,17 +423,17 @@ bool RenderController::previewBoxZoomViewState(
     return boxZoomView(snapshot, normalized, view, errorMessage);
 }
 
-bool RenderController::mapViewPixelToViewPixel(const ViewTextState& sourceView,
-    const ViewTextState& targetView, const QPoint& pixel, QPointF& mappedPixel,
-    QString& errorMessage) {
+bool RenderController::mapViewPixelToViewPixel(const ViewTextState &sourceView,
+    const ViewTextState &targetView, const QPoint &pixel, QPointF &mappedPixel,
+    QString &errorMessage) {
     if (!_ensureNavigationSessionReady(errorMessage)) return false;
 
-    Backend::ViewportState source { .outputWidth = sourceView.outputSize.width(),
+    Backend::ViewportState source{ .outputWidth = sourceView.outputSize.width(),
         .outputHeight = sourceView.outputSize.height(),
         .pointReal = sourceView.pointReal.toStdString(),
         .pointImag = sourceView.pointImag.toStdString(),
         .zoom = sourceView.zoomText.toStdString() };
-    Backend::ViewportState target { .outputWidth = targetView.outputSize.width(),
+    Backend::ViewportState target{ .outputWidth = targetView.outputSize.width(),
         .outputHeight = targetView.outputSize.height(),
         .pointReal = targetView.pointReal.toStdString(),
         .pointImag = targetView.pointImag.toStdString(),
@@ -458,130 +458,130 @@ void RenderController::_bindBackendCallbacks() {
         = _backendGeneration.load(std::memory_order_acquire);
 
     _callbacks.onProgress = [this, backendGeneration](
-                                const Backend::ProgressEvent& event) {
-        if (backendGeneration
-            != _backendGeneration.load(std::memory_order_acquire)) {
-            return;
-        }
-        const uint64_t renderId
-            = _callbackRenderRequestId.load(std::memory_order_acquire);
-        if (renderId == 0) return;
-
-        const auto now = std::chrono::steady_clock::now();
-        const int64_t nowMs
-            = std::chrono::duration_cast<std::chrono::milliseconds>(
-                now.time_since_epoch())
-                  .count();
-        if (!event.completed && event.percentage < 100) {
-            const int64_t lastMs
-                = _lastProgressUIUpdateMs.load(std::memory_order_acquire);
-            if (lastMs > 0 && (nowMs - lastMs) < 33) {
-                return;
-            }
-        }
-        _lastProgressUIUpdateMs.store(nowMs, std::memory_order_release);
-
-        const QString progress = QStringLiteral("%1%").arg(event.percentage);
-        const QString pixelsPerSecond = GUI::Util::formatPixelsPerSecondText(
-            QString::fromStdString(
-                FormatUtil::formatBigNumber(event.opsPerSecond)));
-
-        QMetaObject::invokeMethod(this,
-            [this, progress, pixelsPerSecond, renderId, backendGeneration]() {
-                if (backendGeneration
-                    != _backendGeneration.load(std::memory_order_acquire)) {
-                    return;
-                }
-                if (renderId
-                    != _callbackRenderRequestId.load(
-                        std::memory_order_acquire)) {
-                    return;
-                }
-
-                _progressText = progress;
-                _progressValue = std::clamp(
-                    progress.left(progress.size() - 1).toInt(), 0, 100);
-                _progressActive = true;
-                _progressCancelled = false;
-                _pixelsPerSecondText = pixelsPerSecond;
-                emit renderStateChanged();
-            });
-    };
-
-    _callbacks.onImage = [this, backendGeneration](
-                             const Backend::ImageEvent& event) {
-        if (backendGeneration
-            != _backendGeneration.load(std::memory_order_acquire)) {
-            return;
-        }
-        if (event.kind == Backend::ImageEventKind::allocated) {
-            const QString imageMemoryText
-                = GUI::Util::formatImageMemoryText(event);
-            QMetaObject::invokeMethod(this,
-                [this, imageMemoryText, backendGeneration]() {
-                    if (backendGeneration
-                        != _backendGeneration.load(
-                            std::memory_order_acquire)) {
-                        return;
-                    }
-
-                    _imageMemoryText = imageMemoryText;
-                    emit renderStateChanged();
-                });
-        }
-    };
-
-    _callbacks.onInfo = [this, backendGeneration](
-                            const Backend::InfoEvent& event) {
-        if (backendGeneration
-            != _backendGeneration.load(std::memory_order_acquire)) {
-            return;
-        }
-        const uint64_t renderId
-            = _callbackRenderRequestId.load(std::memory_order_acquire);
-        if (renderId == 0) return;
-
-        const QString text = tr("Iterations: %1 | %2 GI/s")
-                                 .arg(QString::fromStdString(
-                                          FormatUtil::formatNumber(
-                                              event.totalIterations)),
-                                     QString::number(
-                                         event.opsPerSecond, 'f', 2));
-
-        QMetaObject::invokeMethod(this,
-            [this, text, renderId, backendGeneration]() {
-                if (backendGeneration
-                    != _backendGeneration.load(std::memory_order_acquire)) {
-                    return;
-                }
-                if (renderId
-                    != _callbackRenderRequestId.load(
-                        std::memory_order_acquire)) {
-                    return;
-                }
-
-                _statusText = text;
-                emit renderStateChanged();
-            });
-    };
-
-    _callbacks.onDebug = [this, backendGeneration](
-                             const Backend::DebugEvent& event) {
-        if (backendGeneration
-            != _backendGeneration.load(std::memory_order_acquire)) {
-            return;
-        }
-        if (!event.message) return;
-        const QString message = QString::fromUtf8(event.message);
-        QMetaObject::invokeMethod(this, [this, message, backendGeneration]() {
+        const Backend::ProgressEvent &event) {
             if (backendGeneration
                 != _backendGeneration.load(std::memory_order_acquire)) {
                 return;
             }
-            _statusText = message;
-            emit renderStateChanged();
-        });
-    };
+            const uint64_t renderId
+                = _callbackRenderRequestId.load(std::memory_order_acquire);
+            if (renderId == 0) return;
+
+            const auto now = std::chrono::steady_clock::now();
+            const int64_t nowMs
+                = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    now.time_since_epoch())
+                .count();
+            if (!event.completed && event.percentage < 100) {
+                const int64_t lastMs
+                    = _lastProgressUIUpdateMs.load(std::memory_order_acquire);
+                if (lastMs > 0 && (nowMs - lastMs) < 33) {
+                    return;
+                }
+            }
+            _lastProgressUIUpdateMs.store(nowMs, std::memory_order_release);
+
+            const QString progress = QStringLiteral("%1%").arg(event.percentage);
+            const QString pixelsPerSecond = Util::formatPixelsPerSecondText(
+                QString::fromStdString(
+                    FormatUtil::formatBigNumber(event.opsPerSecond)));
+
+            QMetaObject::invokeMethod(this,
+                [this, progress, pixelsPerSecond, renderId, backendGeneration]() {
+                    if (backendGeneration
+                        != _backendGeneration.load(std::memory_order_acquire)) {
+                        return;
+                    }
+                    if (renderId
+                        != _callbackRenderRequestId.load(
+                            std::memory_order_acquire)) {
+                        return;
+                    }
+
+                    _progressText = progress;
+                    _progressValue = std::clamp(
+                        progress.left(progress.size() - 1).toInt(), 0, 100);
+                    _progressActive = true;
+                    _progressCancelled = false;
+                    _pixelsPerSecondText = pixelsPerSecond;
+                    emit renderStateChanged();
+                });
+        };
+
+    _callbacks.onImage = [this, backendGeneration](
+        const Backend::ImageEvent &event) {
+            if (backendGeneration
+                != _backendGeneration.load(std::memory_order_acquire)) {
+                return;
+            }
+            if (event.kind == Backend::ImageEventKind::allocated) {
+                const QString imageMemoryText
+                    = Util::formatImageMemoryText(event);
+                QMetaObject::invokeMethod(this,
+                    [this, imageMemoryText, backendGeneration]() {
+                        if (backendGeneration
+                            != _backendGeneration.load(
+                                std::memory_order_acquire)) {
+                            return;
+                        }
+
+                        _imageMemoryText = imageMemoryText;
+                        emit renderStateChanged();
+                    });
+            }
+        };
+
+    _callbacks.onInfo = [this, backendGeneration](
+        const Backend::InfoEvent &event) {
+            if (backendGeneration
+                != _backendGeneration.load(std::memory_order_acquire)) {
+                return;
+            }
+            const uint64_t renderId
+                = _callbackRenderRequestId.load(std::memory_order_acquire);
+            if (renderId == 0) return;
+
+            const QString text = tr("Iterations: %1 | %2 GI/s")
+                .arg(QString::fromStdString(
+                    FormatUtil::formatNumber(
+                        event.totalIterations)),
+                    QString::number(
+                        event.opsPerSecond, 'f', 2));
+
+            QMetaObject::invokeMethod(this,
+                [this, text, renderId, backendGeneration]() {
+                    if (backendGeneration
+                        != _backendGeneration.load(std::memory_order_acquire)) {
+                        return;
+                    }
+                    if (renderId
+                        != _callbackRenderRequestId.load(
+                            std::memory_order_acquire)) {
+                        return;
+                    }
+
+                    _statusText = text;
+                    emit renderStateChanged();
+                });
+        };
+
+    _callbacks.onDebug = [this, backendGeneration](
+        const Backend::DebugEvent &event) {
+            if (backendGeneration
+                != _backendGeneration.load(std::memory_order_acquire)) {
+                return;
+            }
+            if (!event.message) return;
+            const QString message = QString::fromUtf8(event.message);
+            QMetaObject::invokeMethod(this, [this, message, backendGeneration]() {
+                if (backendGeneration
+                    != _backendGeneration.load(std::memory_order_acquire)) {
+                    return;
+                }
+                _statusText = message;
+                emit renderStateChanged();
+                });
+        };
 
     _renderSession->setCallbacks(_callbacks);
 }
@@ -605,7 +605,7 @@ void RenderController::_startRenderWorker() {
                 _renderCv.wait(lock, [this]() {
                     return _renderStopRequested
                         || _queuedRenderRequest.has_value();
-                });
+                    });
 
                 if (_renderStopRequested) break;
                 if (backendGeneration
@@ -618,7 +618,7 @@ void RenderController::_startRenderWorker() {
             }
 
             if (_interactionPreviewFallbackLatched.load(
-                    std::memory_order_acquire)) {
+                std::memory_order_acquire)) {
                 std::unique_lock lock(_renderMutex);
                 _renderCv.wait_for(lock,
                     std::chrono::milliseconds(_interactionFrameIntervalMs(
@@ -655,10 +655,10 @@ void RenderController::_startRenderWorker() {
                 _progressCancelled = false;
                 _progressValue = 0;
                 _progressText = tr("Rendering");
-                _pixelsPerSecondText = GUI::Util::defaultPixelsPerSecondText();
+                _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
                 _lastProgressUIUpdateMs.store(0, std::memory_order_release);
                 emit renderStateChanged();
-            });
+                });
 
             QString error;
             int rank = 0;
@@ -668,13 +668,13 @@ void RenderController::_startRenderWorker() {
             auto renderStart = std::chrono::steady_clock::now();
             auto renderEnd = renderStart;
             if (!_applyStateToSession(_renderSession,
-                    GUIRenderSnapshot { .state = request.state,
-                        .pointRealText = request.pointRealText,
-                        .pointImagText = request.pointImagText,
-                        .zoomText = request.zoomText,
-                        .seedRealText = request.seedRealText,
-                        .seedImagText = request.seedImagText },
-                    request.pickAction, error)) {
+                GUIRenderSnapshot{ .state = request.state,
+                    .pointRealText = request.pointRealText,
+                    .pointImagText = request.pointImagText,
+                    .zoomText = request.zoomText,
+                    .seedRealText = request.seedRealText,
+                    .seedImagText = request.seedImagText },
+                request.pickAction, error)) {
                 status = Backend::Status::failure(error.toStdString());
             } else {
                 rank = _renderSession->precisionRank();
@@ -690,9 +690,9 @@ void RenderController::_startRenderWorker() {
             }
 
             const bool staleRequest = backendGeneration
-                    != _backendGeneration.load(std::memory_order_acquire)
+                != _backendGeneration.load(std::memory_order_acquire)
                 || request.id
-                    != _callbackRenderRequestId.load(std::memory_order_acquire);
+                != _callbackRenderRequestId.load(std::memory_order_acquire);
             if (staleRequest) {
                 continue;
             }
@@ -723,7 +723,7 @@ void RenderController::_startRenderWorker() {
                         _progressCancelled = false;
                         _progressValue = 0;
                         _progressText.clear();
-                        _pixelsPerSecondText = GUI::Util::defaultPixelsPerSecondText();
+                        _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
                         _statusText = failureMessage;
                         emit renderStateChanged();
                         emit renderFailed(failureMessage);
@@ -736,7 +736,7 @@ void RenderController::_startRenderWorker() {
                 && targetBackend != request.state.backend) {
                 QMetaObject::invokeMethod(this,
                     [this, targetBackend, pick = request.pickAction,
-                        requestId = request.id, backendGeneration]() {
+                    requestId = request.id, backendGeneration]() {
                         if (backendGeneration
                             != _backendGeneration.load(
                                 std::memory_order_acquire)) {
@@ -751,7 +751,7 @@ void RenderController::_startRenderWorker() {
                         emit automaticBackendSwitchRequested(targetBackend,
                             pick.has_value(),
                             pick ? static_cast<int>(pick->target)
-                                 : static_cast<int>(SelectionTarget::zoomPoint),
+                            : static_cast<int>(SelectionTarget::zoomPoint),
                             pick ? pick->pixel : QPoint());
                     });
                 continue;
@@ -768,8 +768,8 @@ void RenderController::_startRenderWorker() {
             const int fallbackFPS = std::max(0, request.state.interactionTargetFPS);
             const int targetFrameMs = fallbackFPS > 0
                 ? std::max(1,
-                      static_cast<int>(std::lround(
-                          1000.0 / static_cast<double>(fallbackFPS))))
+                    static_cast<int>(std::lround(
+                        1000.0 / static_cast<double>(fallbackFPS))))
                 : INT_MAX;
             const int recoveryFrameMs
                 = fallbackFPS > 0 ? std::max(1, targetFrameMs / 2) : INT_MAX;
@@ -787,7 +787,7 @@ void RenderController::_startRenderWorker() {
 
             QMetaObject::invokeMethod(this,
                 [this, view, previewFallbackLatched, renderFPS, renderMs,
-                    backendGeneration, request]() {
+                backendGeneration, request]() {
                     if (backendGeneration
                         != _backendGeneration.load(std::memory_order_acquire)) {
                         return;
@@ -811,7 +811,7 @@ void RenderController::_startRenderWorker() {
                         _progressValue = 0;
                         _progressText.clear();
                     }
-                    _viewportFPSText = GUI::Util::formatViewportFPSText(renderFPS);
+                    _viewportFPSText = Util::formatViewportFPSText(renderFPS);
                     _viewportRenderTimeText = QString::fromStdString(
                         FormatUtil::formatDuration(renderMs));
 
@@ -826,12 +826,12 @@ void RenderController::_startRenderWorker() {
                     }
 
                     if (presentDirect) {
-                        _previewImage = GUI::Util::wrapImageViewToImage(view);
+                        _previewImage = Util::wrapImageViewToImage(view);
                         _previewUsesBackendMemory = true;
                         _directFrameDetachedForRender = false;
                         _presentingCopiedPreview = false;
                     } else if (presentPreview) {
-                        _previewImage = GUI::Util::imageViewToImage(view);
+                        _previewImage = Util::imageViewToImage(view);
                         _previewUsesBackendMemory = false;
                         _directFrameDetachedForRender = false;
                         _presentingCopiedPreview = true;
@@ -857,7 +857,7 @@ void RenderController::_startRenderWorker() {
                 },
                 Qt::BlockingQueuedConnection);
         }
-    });
+        });
 }
 
 void RenderController::_finishRenderThread(
@@ -882,7 +882,7 @@ void RenderController::_finishRenderThread(
             const DWORD waitResult = WaitForSingleObject(renderThreadHandle,
                 waitMs <= 0 ? 0u : static_cast<DWORD>(waitMs));
             return waitResult == WAIT_OBJECT_0;
-        };
+            };
         const auto waitForThreadWithEvents = [&](int totalWaitMs) {
             if (!renderThreadHandle) return true;
 
@@ -907,7 +907,7 @@ void RenderController::_finishRenderThread(
                     return waitForThread(0);
                 }
             }
-        };
+            };
 
         const int boundedWaitMs = std::max(0, timeoutMs);
         bool stopped = waitForThreadWithEvents(boundedWaitMs);
@@ -942,54 +942,54 @@ void RenderController::_finishRenderThread(
     _progressCancelled = false;
     _progressValue = 0;
     _progressText.clear();
-    _pixelsPerSecondText = GUI::Util::defaultPixelsPerSecondText();
+    _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
 }
 
-bool RenderController::_ensureBackendReady(QString& errorMessage) const {
+bool RenderController::_ensureBackendReady(QString &errorMessage) const {
     if (_backend && _renderSession) return true;
     errorMessage = tr("Backend not loaded.");
     return false;
 }
 
-bool RenderController::_ensureNavigationSessionReady(QString& errorMessage) const {
+bool RenderController::_ensureNavigationSessionReady(QString &errorMessage) const {
     if (_navigationSession) return true;
     errorMessage = tr("Navigation session unavailable.");
     return false;
 }
 
-bool RenderController::_applyStateToSession(Backend::Session* session,
-    const GUIRenderSnapshot& snapshot,
-    const std::optional<PendingPickAction>& pickAction,
-    QString& errorMessage) {
+bool RenderController::_applyStateToSession(Backend::Session *session,
+    const GUIRenderSnapshot &snapshot,
+    const std::optional<PendingPickAction> &pickAction,
+    QString &errorMessage) {
     if (!session) {
         errorMessage = tr("Backend session unavailable.");
         return false;
     }
 
-    auto failIfNeeded = [&errorMessage](const Backend::Status& status) {
+    auto failIfNeeded = [&errorMessage](const Backend::Status &status) {
         if (status) return false;
         errorMessage = QString::fromStdString(status.message);
         return true;
-    };
+        };
 
     if (failIfNeeded(session->setImageSize(
-            snapshot.state.outputWidth, snapshot.state.outputHeight,
-            snapshot.state.aaPixels))) {
+        snapshot.state.outputWidth, snapshot.state.outputHeight,
+        snapshot.state.aaPixels))) {
         return false;
     }
     session->setUseThreads(snapshot.state.useThreads);
     if (failIfNeeded(
-            session->setZoom(snapshot.state.iterations, snapshot.zoomText.toStdString()))) {
+        session->setZoom(snapshot.state.iterations, snapshot.zoomText.toStdString()))) {
         return false;
     }
     if (failIfNeeded(session->setPoint(
-            snapshot.pointRealText.toStdString(),
-            snapshot.pointImagText.toStdString()))) {
+        snapshot.pointRealText.toStdString(),
+        snapshot.pointImagText.toStdString()))) {
         return false;
     }
     if (failIfNeeded(session->setSeed(
-            snapshot.seedRealText.toStdString(),
-            snapshot.seedImagText.toStdString()))) {
+        snapshot.seedRealText.toStdString(),
+        snapshot.seedImagText.toStdString()))) {
         return false;
     }
     if (failIfNeeded(session->setFractalType(snapshot.state.fractalType))) {
@@ -997,7 +997,7 @@ bool RenderController::_applyStateToSession(Backend::Session* session,
     }
     session->setFractalMode(snapshot.state.julia, snapshot.state.inverse);
     if (failIfNeeded(session->setFractalExponent(
-            stateToString(snapshot.state.exponent).toStdString()))) {
+        stateToString(snapshot.state.exponent).toStdString()))) {
         return false;
     }
     if (failIfNeeded(session->setColorMethod(snapshot.state.colorMethod))) {
@@ -1010,8 +1010,8 @@ bool RenderController::_applyStateToSession(Backend::Session* session,
         return false;
     }
     if (failIfNeeded(session->setLight(
-            static_cast<float>(snapshot.state.light.x()),
-            static_cast<float>(snapshot.state.light.y())))) {
+        static_cast<float>(snapshot.state.light.x()),
+        static_cast<float>(snapshot.state.light.y())))) {
         return false;
     }
     if (failIfNeeded(session->setLightColor(snapshot.state.lightColor))) {
@@ -1022,31 +1022,31 @@ bool RenderController::_applyStateToSession(Backend::Session* session,
 
     Backend::Status status;
     switch (pickAction->target) {
-    case SelectionTarget::zoomPoint:
-        status = session->setPoint(pickAction->pixel.x(), pickAction->pixel.y());
-        break;
-    case SelectionTarget::seedPoint:
-        status = session->setSeed(pickAction->pixel.x(), pickAction->pixel.y());
-        break;
-    case SelectionTarget::lightPoint:
-        status = session->setLight(pickAction->pixel.x(), pickAction->pixel.y());
-        break;
+        case SelectionTarget::zoomPoint:
+            status = session->setPoint(pickAction->pixel.x(), pickAction->pixel.y());
+            break;
+        case SelectionTarget::seedPoint:
+            status = session->setSeed(pickAction->pixel.x(), pickAction->pixel.y());
+            break;
+        case SelectionTarget::lightPoint:
+            status = session->setLight(pickAction->pixel.x(), pickAction->pixel.y());
+            break;
     }
     return !failIfNeeded(status);
 }
 
 bool RenderController::_applyNavigationStateToSession(
-    const GUIRenderSnapshot& snapshot, QString& errorMessage) {
+    const GUIRenderSnapshot &snapshot, QString &errorMessage) {
     if (!_ensureNavigationSessionReady(errorMessage)) return false;
     return _applyStateToSession(_navigationSession, snapshot, std::nullopt, errorMessage);
 }
 
 QString RenderController::_backendForRank(
-    int rank, const QString& currentBackend) const {
+    int rank, const QString &currentBackend) const {
     if (_backendNames.isEmpty()) return QString();
 
     const int targetPrecision = std::clamp(rank, 0, 3);
-    const int currentType = GUI::BackendCatalog::typeRank(currentBackend);
+    const int currentType = BackendCatalog::typeRank(currentBackend);
 
     QString fallback;
     int fallbackPrecision = -1;
@@ -1055,11 +1055,11 @@ QString RenderController::_backendForRank(
     int bestPenalty = INT_MAX;
     int bestTypeDist = INT_MAX;
 
-    for (const QString& backendName : _backendNames) {
+    for (const QString &backendName : _backendNames) {
         const QString name = backendName.trimmed();
-        const int precision = GUI::BackendCatalog::precisionRank(name);
+        const int precision = BackendCatalog::precisionRank(name);
         const int typeDist
-            = std::abs(GUI::BackendCatalog::typeRank(name) - currentType);
+            = std::abs(BackendCatalog::typeRank(name) - currentType);
 
         if (precision > fallbackPrecision
             || (precision == fallbackPrecision
@@ -1085,13 +1085,13 @@ QString RenderController::_backendForRank(
 
 int RenderController::_interactionFrameIntervalMs(int fallbackFPS) const {
     const int fps = std::max(1, fallbackFPS > 0 ? fallbackFPS
-                                                : GUI::Constants::
-                                                      defaultInteractionTargetFPS);
+        : Constants::
+        defaultInteractionTargetFPS);
     return std::max(
         1, static_cast<int>(std::lround(1000.0 / static_cast<double>(fps))));
 }
 
-void RenderController::_applyPreviewDevicePixelRatio(QImage& image) const {
+void RenderController::_applyPreviewDevicePixelRatio(QImage &image) const {
     if (!image.isNull()) {
         image.setDevicePixelRatio(_previewDevicePixelRatio);
     }
@@ -1114,7 +1114,7 @@ void RenderController::_tryResumeDirectPreview() {
 
     const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - _lastPreviewMotionAt);
-    if (elapsed.count() < GUI::Constants::previewStillMs) {
+    if (elapsed.count() < Constants::previewStillMs) {
         _previewStillTimer.start();
         return;
     }
@@ -1126,7 +1126,7 @@ void RenderController::_tryResumeDirectPreview() {
 
     QImage releasedImage;
     _previewImage.swap(releasedImage);
-    _previewImage = GUI::Util::wrapImageViewToImage(view);
+    _previewImage = Util::wrapImageViewToImage(view);
     _previewUsesBackendMemory = true;
     _directFrameDetachedForRender = false;
     _presentingCopiedPreview = false;

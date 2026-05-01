@@ -35,7 +35,7 @@ VectorColorPalette::VectorColorPalette(const ScalarColorPalette &palette) {
     _G.resize(_n);
     _B.resize(_n);
 
-    for (size_t i = 0; i < _n; ++i) {
+    for (size_t i = 0; i < _n; i++) {
         _R[i] = palette._colors[i].R;
         _G[i] = palette._colors[i].G;
         _B[i] = palette._colors[i].B;

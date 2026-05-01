@@ -25,7 +25,7 @@ constexpr _CLASS_NAME::cqueue(
     _alloc{ alloc }, _capacity{ other._capacity } {
     resizeIfRequired(other._length);
 
-    for (size_type i = 0; i < other.size(); ++i) {
+    for (size_type i = 0; i < other.size(); i++) {
         push_back(other[i]);
     }
 }
@@ -86,7 +86,7 @@ void _CLASS_NAME::resize(size_type len) {
     pointer tmp = alloc_traits::allocate(_alloc, len);
 
     if constexpr (std::is_nothrow_move_constructible<T>::value) {
-        for (size_type i = 0; i < _length; ++i) {
+        for (size_type i = 0; i < _length; i++) {
             const size_type index = getUncheckedIndex(i);
             alloc_traits::construct(_alloc, tmp + i, std::move(_data[index]));
         }
@@ -94,7 +94,7 @@ void _CLASS_NAME::resize(size_type len) {
         size_type pos = 0;
 
         try {
-            for (pos = 0; pos < _length; ++pos) {
+            for (pos = 0; pos < _length; pos++) {
                 const size_type index = getUncheckedIndex(pos);
                 alloc_traits::construct(_alloc, tmp + pos, _data[index]);
             }
@@ -108,7 +108,7 @@ void _CLASS_NAME::resize(size_type len) {
         }
     }
 
-    for (size_type j = 0; j < _length; ++j) {
+    for (size_type j = 0; j < _length; j++) {
         const size_type index = getUncheckedIndex(j);
         alloc_traits::destroy(_alloc, _data + index);
     }
@@ -177,7 +177,7 @@ swap(cqueue &other) noexcept {
 
 _CLASS_TEMPLATE
 void _CLASS_NAME::clear() noexcept {
-    for (size_type i = 0; i < _length; ++i) {
+    for (size_type i = 0; i < _length; i++) {
         const size_type index = getUncheckedIndex(i);
         alloc_traits::destroy(_alloc, _data + index);
     }
@@ -202,7 +202,7 @@ constexpr void _CLASS_NAME::push_back(const T &val) {
     const size_type index = getUncheckedIndex(_length);
     alloc_traits::construct(_alloc, _data + index, val);
 
-    ++_length;
+    _length++;
 }
 
 _CLASS_TEMPLATE
@@ -212,7 +212,7 @@ constexpr void _CLASS_NAME::push_back(T &&val) {
     const size_type index = getUncheckedIndex(_length);
     alloc_traits::construct(_alloc, _data + index, std::move(val));
 
-    ++_length;
+    _length++;
 }
 
 _CLASS_TEMPLATE
@@ -224,7 +224,7 @@ constexpr void _CLASS_NAME::push_front(const T &val) {
     alloc_traits::construct(_alloc, _data + index, val);
 
     _front = index;
-    ++_length;
+    _length++;
 }
 
 _CLASS_TEMPLATE
@@ -236,7 +236,7 @@ constexpr void _CLASS_NAME::push_front(T &&val) {
     alloc_traits::construct(_alloc, _data + index, std::move(val));
 
     _front = index;
-    ++_length;
+    _length++;
 }
 
 _CLASS_TEMPLATE
@@ -248,7 +248,7 @@ constexpr auto _CLASS_NAME::emplace_back(Args&&... args) -> reference {
     alloc_traits::construct(_alloc, _data + index,
         std::forward<Args>(args)...);
 
-    ++_length;
+    _length++;
     return _data[index];
 }
 
@@ -263,7 +263,7 @@ constexpr auto _CLASS_NAME::emplace_front(Args&&... args) -> reference {
         std::forward<Args>(args)...);
     _front = index;
 
-    ++_length;
+    _length++;
     return _data[index];
 }
 

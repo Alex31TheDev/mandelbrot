@@ -6,7 +6,9 @@
 #include "app/GUIConstants.h"
 #include "util/NumberUtil.h"
 
-ViewportWindow::ViewportWindow(ViewportHost* host)
+using namespace GUI;
+
+ViewportWindow::ViewportWindow(ViewportHost *host)
     : QWidget(nullptr)
     , _ui(std::make_unique<Ui::ViewportWindow>())
     , _host(host) {
@@ -20,7 +22,7 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
     QObject::connect(&_rtZoomTimer, &QTimer::timeout, this, [this]() {
         _syncRealtimeZoomTimerInterval();
         _applyRealtimeZoomStep(false);
-    });
+        });
 
     _panRedrawTimer.setTimerType(Qt::PreciseTimer);
     _panRedrawTimer.setSingleShot(true);
@@ -33,7 +35,7 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
             _syncPanRedrawTimerInterval();
             _panRedrawTimer.start();
         }
-    });
+        });
 
     _zoomOutRedrawTimer.setTimerType(Qt::PreciseTimer);
     _zoomOutRedrawTimer.setSingleShot(true);
@@ -45,14 +47,14 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
         if (_zoomOutDragActive && _zoomOutPendingCommit) {
             _zoomOutRedrawTimer.start();
         }
-    });
+        });
 
     _arrowPanTimer.setTimerType(Qt::PreciseTimer);
     _arrowPanTimer.setInterval(interactionTickIntervalMs);
     QObject::connect(&_arrowPanTimer, &QTimer::timeout, this, [this]() {
         _syncArrowPanTimerInterval();
         _applyArrowPanStep();
-    });
+        });
 
     _fullscreenResizeTimer.setTimerType(Qt::PreciseTimer);
     _fullscreenResizeTimer.setSingleShot(true);
@@ -61,7 +63,7 @@ ViewportWindow::ViewportWindow(ViewportHost* host)
         if (_fullscreenTransitionPending) {
             finalizeFullscreenTransition();
         }
-    });
+        });
 }
 
 ViewportWindow::~ViewportWindow() = default;
@@ -106,7 +108,7 @@ ViewTextState ViewportWindow::targetPreviewView() const {
         QString error;
         ViewTextState pannedView;
         if (_host->previewPannedViewState(
-                _mapToOutputDelta(_panOffset), pannedView, error)) {
+            _mapToOutputDelta(_panOffset), pannedView, error)) {
             view = pannedView;
         } else {
             view.valid = false;
@@ -120,20 +122,8 @@ ViewTextState ViewportWindow::targetPreviewView() const {
         const QPoint outputCenter
             = _mapToOutputPixel(QPoint(width() / 2, height() / 2));
         if (_host->previewScaledViewState(
-                outputCenter, _zoomOutPreviewScale, scaledView, error)) {
+            outputCenter, _zoomOutPreviewScale, scaledView, error)) {
             view = scaledView;
-        } else {
-            view.valid = false;
-            return view;
-        }
-    }
-
-    if (!_selectionRect.isNull()) {
-        QString error;
-        ViewTextState boxZoomView;
-        if (_host->previewBoxZoomViewState(
-                _mapToOutputRect(_selectionRect.normalized()), boxZoomView, error)) {
-            view = boxZoomView;
         } else {
             view.valid = false;
             return view;
@@ -174,7 +164,7 @@ ViewportWindow::previewTransform() const {
     QPointF sourceBottom;
     QString error;
     if (!_host->mapViewPixelToViewPixel(
-            sourceView, targetView, QPoint(0, targetMidY), sourceLeft, error)
+        sourceView, targetView, QPoint(0, targetMidY), sourceLeft, error)
         || !_host->mapViewPixelToViewPixel(sourceView, targetView,
             QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY),
             sourceRight, error)
@@ -186,18 +176,18 @@ ViewportWindow::previewTransform() const {
         return std::nullopt;
     }
 
-    const auto sourceToLogical = [&](const QPointF& pixel) {
+    const auto sourceToLogical = [&](const QPointF &pixel) {
         return QPointF(pixel.x() * logicalSize.width()
-                / std::max(1, sourceView.outputSize.width()),
+            / std::max(1, sourceView.outputSize.width()),
             pixel.y() * logicalSize.height()
-                / std::max(1, sourceView.outputSize.height()));
-    };
-    const auto targetToLogical = [&](const QPoint& pixel) {
+            / std::max(1, sourceView.outputSize.height()));
+        };
+    const auto targetToLogical = [&](const QPoint &pixel) {
         return QPointF(static_cast<double>(pixel.x()) * logicalSize.width()
-                / std::max(1, targetView.outputSize.width()),
+            / std::max(1, targetView.outputSize.width()),
             static_cast<double>(pixel.y()) * logicalSize.height()
-                / std::max(1, targetView.outputSize.height()));
-    };
+            / std::max(1, targetView.outputSize.height()));
+        };
 
     const QPointF sourceLeftLogical = sourceToLogical(sourceLeft);
     const QPointF sourceRightLogical = sourceToLogical(sourceRight);
@@ -247,15 +237,15 @@ ViewportWindow::previewTransform() const {
         return std::nullopt;
     }
 
-    return PreviewTransform { center, translation, scaleX, scaleY };
+    return PreviewTransform{ center, translation, scaleX, scaleY };
 }
 
-void ViewportWindow::paintEvent(QPaintEvent*) {
+void ViewportWindow::paintEvent(QPaintEvent *) {
     _updateWindowTitle();
     QPainter painter(this);
     painter.fillRect(rect(), Qt::black);
 
-    const QImage& image = _host->previewImage();
+    const QImage &image = _host->previewImage();
     if (!image.isNull()) {
         const bool selectionPreviewActive = !_selectionRect.isNull();
         const bool usePreviewFallback
@@ -266,7 +256,7 @@ void ViewportWindow::paintEvent(QPaintEvent*) {
             : std::nullopt;
         const bool transformedPreview = availableTransform.has_value();
         const QImage drawImage = (transformedPreview
-                                     && _host->previewUsesBackendMemory())
+            && _host->previewUsesBackendMemory())
             ? image.copy()
             : image;
         if (availableTransform) {
@@ -300,10 +290,10 @@ void ViewportWindow::paintEvent(QPaintEvent*) {
     constexpr int overlayPaddingY = 6;
     const QFontMetrics metrics = painter.fontMetrics();
     const QString maxPrecisionMouseLine = "Mouse: 999999, 999999  |  "
-                                          "-1.7976931348623157e+308  "
-                                          "-1.7976931348623157e+308";
+        "-1.7976931348623157e+308  "
+        "-1.7976931348623157e+308";
     int overlayTextWidth = metrics.horizontalAdvance(maxPrecisionMouseLine);
-    for (const QString& line : statusText.split('\n')) {
+    for (const QString &line : statusText.split('\n')) {
         overlayTextWidth
             = std::max(overlayTextWidth, metrics.horizontalAdvance(line));
     }
@@ -324,11 +314,11 @@ void ViewportWindow::paintEvent(QPaintEvent*) {
 
     painter.setPen(QColor(230, 230, 230));
     painter.drawText(overlayRect.adjusted(overlayPaddingX, overlayPaddingY,
-                         -overlayPaddingX, -overlayPaddingY),
+        -overlayPaddingX, -overlayPaddingY),
         Qt::AlignTop | Qt::AlignLeft, statusText);
 }
 
-void ViewportWindow::mousePressEvent(QMouseEvent* event) {
+void ViewportWindow::mousePressEvent(QMouseEvent *event) {
     _lastMousePos = event->position().toPoint();
     _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
 
@@ -385,7 +375,7 @@ void ViewportWindow::mousePressEvent(QMouseEvent* event) {
     }
 }
 
-void ViewportWindow::mouseMoveEvent(QMouseEvent* event) {
+void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
     _lastMousePos = event->position().toPoint();
     _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
 
@@ -401,9 +391,8 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent* event) {
         const int dragMagnitude = std::abs(delta.x()) + std::abs(delta.y());
         if (dragMagnitude > 0) {
             _zoomOutDragMoved = true;
-            const double zoomFactor
-                = _host ? _host->zoomRateFactor()
-                        : GUI::Constants::zoomStepTable[8];
+            const double zoomFactor = _host ? _host->zoomRateFactor()
+                : Constants::zoomStepTable[8];
             const double zoomOutDragPixelsPerStep = 12.0;
             const double stepScale = std::pow(zoomFactor,
                 static_cast<double>(dragMagnitude) / zoomOutDragPixelsPerStep);
@@ -424,7 +413,7 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
-void ViewportWindow::mouseReleaseEvent(QMouseEvent* event) {
+void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
     _lastMousePos = event->position().toPoint();
     _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
 
@@ -493,7 +482,7 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent* event) {
     }
 }
 
-void ViewportWindow::wheelEvent(QWheelEvent* event) {
+void ViewportWindow::wheelEvent(QWheelEvent *event) {
     _lastMousePos = event->position().toPoint();
     _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
 
@@ -557,7 +546,7 @@ void ViewportWindow::wheelEvent(QWheelEvent* event) {
     _host->adjustIterationsBy(delta);
 }
 
-void ViewportWindow::keyPressEvent(QKeyEvent* event) {
+void ViewportWindow::keyPressEvent(QKeyEvent *event) {
     if (!event->isAutoRepeat()
         && (event->key() == Qt::Key_Shift || event->key() == Qt::Key_Control)) {
         _refreshActiveInteractionTimers();
@@ -622,7 +611,7 @@ void ViewportWindow::keyPressEvent(QKeyEvent* event) {
     QWidget::keyPressEvent(event);
 }
 
-void ViewportWindow::keyReleaseEvent(QKeyEvent* event) {
+void ViewportWindow::keyReleaseEvent(QKeyEvent *event) {
     if (!event->isAutoRepeat()
         && (event->key() == Qt::Key_Shift || event->key() == Qt::Key_Control)) {
         _refreshActiveInteractionTimers();
@@ -649,24 +638,24 @@ void ViewportWindow::keyReleaseEvent(QKeyEvent* event) {
     _updateCursor();
 }
 
-void ViewportWindow::enterEvent(QEnterEvent*) {
+void ViewportWindow::enterEvent(QEnterEvent *) {
     _updateCursor();
 }
 
-void ViewportWindow::leaveEvent(QEvent*) {
+void ViewportWindow::leaveEvent(QEvent *) {
     if (_host) {
         _host->clearMouseCoords();
     }
 }
 
-void ViewportWindow::resizeEvent(QResizeEvent* event) {
+void ViewportWindow::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
     if (_fullscreenTransitionPending) {
         _fullscreenResizeTimer.start();
     }
 }
 
-void ViewportWindow::closeEvent(QCloseEvent* event) {
+void ViewportWindow::closeEvent(QCloseEvent *event) {
     _rtZoomTimer.stop();
     _rtZoomLastStepAt = {};
     _panRedrawTimer.stop();
@@ -682,13 +671,13 @@ void ViewportWindow::closeEvent(QCloseEvent* event) {
 
 void ViewportWindow::cycleGridMode() {
     int idx = 0;
-    while (idx < static_cast<int>(GUI::Constants::gridModes.size())
-        && GUI::Constants::gridModes[idx] != _gridDivisions) {
-        ++idx;
+    while (idx < static_cast<int>(Constants::gridModes.size())
+        && Constants::gridModes[idx] != _gridDivisions) {
+        idx++;
     }
-    idx = (idx + 1) % static_cast<int>(GUI::Constants::gridModes.size());
+    idx = (idx + 1) % static_cast<int>(Constants::gridModes.size());
 
-    _gridDivisions = GUI::Constants::gridModes[idx];
+    _gridDivisions = Constants::gridModes[idx];
     update();
 }
 
@@ -766,8 +755,8 @@ int ViewportWindow::_baseInteractionTickIntervalMs() const {
 
 int ViewportWindow::_precisionInteractionTickIntervalMs() const {
     return _precisionModifierActive()
-        ? GUI::Constants::precisionInteractionDelayMs
-                                      : _baseInteractionTickIntervalMs();
+        ? Constants::precisionInteractionDelayMs
+        : _baseInteractionTickIntervalMs();
 }
 
 void ViewportWindow::_syncPanRedrawTimerInterval() {
@@ -858,7 +847,7 @@ void ViewportWindow::_beginRealtimeZoom(bool zoomIn) {
     _rtZoomTimer.start();
 }
 
-bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent* event) {
+bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent *event) {
     if (!_host || _effectiveMode() != NavMode::pan) {
         return false;
     }
@@ -867,22 +856,22 @@ bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent* event) {
         return false;
     }
 
-    bool* pressed = nullptr;
+    bool *pressed = nullptr;
     switch (event->key()) {
-    case Qt::Key_Left:
-        pressed = &_arrowPanLeft;
-        break;
-    case Qt::Key_Right:
-        pressed = &_arrowPanRight;
-        break;
-    case Qt::Key_Up:
-        pressed = &_arrowPanUp;
-        break;
-    case Qt::Key_Down:
-        pressed = &_arrowPanDown;
-        break;
-    default:
-        return false;
+        case Qt::Key_Left:
+            pressed = &_arrowPanLeft;
+            break;
+        case Qt::Key_Right:
+            pressed = &_arrowPanRight;
+            break;
+        case Qt::Key_Up:
+            pressed = &_arrowPanUp;
+            break;
+        case Qt::Key_Down:
+            pressed = &_arrowPanDown;
+            break;
+        default:
+            return false;
     }
 
     if (event->isAutoRepeat()) {
@@ -902,23 +891,23 @@ bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent* event) {
     return true;
 }
 
-bool ViewportWindow::_handleArrowPanKeyRelease(QKeyEvent* event) {
-    bool* pressed = nullptr;
+bool ViewportWindow::_handleArrowPanKeyRelease(QKeyEvent *event) {
+    bool *pressed = nullptr;
     switch (event->key()) {
-    case Qt::Key_Left:
-        pressed = &_arrowPanLeft;
-        break;
-    case Qt::Key_Right:
-        pressed = &_arrowPanRight;
-        break;
-    case Qt::Key_Up:
-        pressed = &_arrowPanUp;
-        break;
-    case Qt::Key_Down:
-        pressed = &_arrowPanDown;
-        break;
-    default:
-        return false;
+        case Qt::Key_Left:
+            pressed = &_arrowPanLeft;
+            break;
+        case Qt::Key_Right:
+            pressed = &_arrowPanRight;
+            break;
+        case Qt::Key_Up:
+            pressed = &_arrowPanUp;
+            break;
+        case Qt::Key_Down:
+            pressed = &_arrowPanDown;
+            break;
+        default:
+            return false;
     }
 
     if (event->isAutoRepeat()) {
@@ -967,14 +956,14 @@ void ViewportWindow::_applyArrowPanStep() {
     }
     if (_speedModifierActive()) {
         step = std::max(1,
-                static_cast<int>(std::lround(
+            static_cast<int>(std::lround(
                 static_cast<double>(step)
-                * GUI::Constants::boostedPanSpeedFactor)));
+                * Constants::boostedPanSpeedFactor)));
     }
     _host->panByPixels(QPoint(xDir * step, yDir * step));
 }
 
-void ViewportWindow::_drawGrid(QPainter& painter) {
+void ViewportWindow::_drawGrid(QPainter &painter) {
     if (_gridDivisions <= 1) return;
 
     const QRect area = rect();
@@ -984,7 +973,7 @@ void ViewportWindow::_drawGrid(QPainter& painter) {
     painter.setRenderHint(QPainter::Antialiasing, false);
     painter.setPen(QPen(QColor(255, 255, 255, 110), 1.0));
 
-    for (int i = 1; i < _gridDivisions; ++i) {
+    for (int i = 1; i < _gridDivisions; i++) {
         const int x = static_cast<int>(std::lround(
             static_cast<double>(area.width()) * i / _gridDivisions));
         const int y = static_cast<int>(std::lround(
@@ -1003,10 +992,10 @@ void ViewportWindow::_updateWindowTitle() {
     }
 
     setWindowTitle(_usePreviewFallback() ? tr("Viewport (Preview)")
-                                         : tr("Viewport (Direct)"));
+        : tr("Viewport (Direct)"));
 }
 
-QPoint ViewportWindow::_clampToOutputPixel(const QPointF& pixel) const {
+QPoint ViewportWindow::_clampToOutputPixel(const QPointF &pixel) const {
     const QSize outputSize = _host->outputSize();
     return { std::clamp(static_cast<int>(std::lround(pixel.x())), 0,
                  std::max(0, outputSize.width() - 1)),
@@ -1014,15 +1003,15 @@ QPoint ViewportWindow::_clampToOutputPixel(const QPointF& pixel) const {
             std::max(0, outputSize.height() - 1)) };
 }
 
-QPoint ViewportWindow::_mapToOutputPixel(const QPoint& logicalPoint) const {
+QPoint ViewportWindow::_mapToOutputPixel(const QPoint &logicalPoint) const {
     return _mapToOutputPixelRaw(logicalPoint);
 }
 
-QPoint ViewportWindow::_mapToOutputPixelRaw(const QPoint& logicalPoint) const {
+QPoint ViewportWindow::_mapToOutputPixelRaw(const QPoint &logicalPoint) const {
     return _mapToOutputPixelRaw(QPointF(logicalPoint));
 }
 
-QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF& logicalPoint) const {
+QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF &logicalPoint) const {
     const QSize logicalSize = size();
     const QSize outputSize = _host->outputSize();
     if (logicalSize.width() <= 0 || logicalSize.height() <= 0) {
@@ -1040,11 +1029,11 @@ QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF& logicalPoint) const {
             std::max(0, outputSize.height() - 1)) };
 }
 
-QPoint ViewportWindow::_mapToOutputPixel(const QPointF& logicalPoint) const {
+QPoint ViewportWindow::_mapToOutputPixel(const QPointF &logicalPoint) const {
     return _mapToOutputPixel(logicalPoint.toPoint());
 }
 
-QPoint ViewportWindow::_mapToOutputDelta(const QPoint& logicalDelta) const {
+QPoint ViewportWindow::_mapToOutputDelta(const QPoint &logicalDelta) const {
     const QSize logicalSize = size();
     const QSize outputSize = _host->outputSize();
     if (logicalSize.width() <= 0 || logicalSize.height() <= 0) {
@@ -1057,7 +1046,7 @@ QPoint ViewportWindow::_mapToOutputDelta(const QPoint& logicalDelta) const {
             * outputSize.height() / std::max(1, logicalSize.height()))) };
 }
 
-QRect ViewportWindow::_mapToOutputRect(const QRect& logicalRect) const {
+QRect ViewportWindow::_mapToOutputRect(const QRect &logicalRect) const {
     const QPoint topLeft = _mapToOutputPixel(logicalRect.topLeft());
     const QPoint bottomRight = _mapToOutputPixel(logicalRect.bottomRight());
     return QRect(topLeft, bottomRight).normalized();
@@ -1081,13 +1070,13 @@ void ViewportWindow::_updateCursor() {
     }
 
     switch (_effectiveMode()) {
-    case NavMode::realtimeZoom:
-    case NavMode::zoom:
-        setCursor(Qt::CrossCursor);
-        break;
-    case NavMode::pan:
-        setCursor(Qt::OpenHandCursor);
-        break;
+        case NavMode::realtimeZoom:
+        case NavMode::zoom:
+            setCursor(Qt::CrossCursor);
+            break;
+        case NavMode::pan:
+            setCursor(Qt::OpenHandCursor);
+            break;
     }
 }
 
@@ -1173,7 +1162,7 @@ void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {
 
     double panFactor = std::max(0.1, _host->panRateFactor());
     if (_speedModifierActive()) {
-        panFactor *= GUI::Constants::boostedPanSpeedFactor;
+        panFactor *= Constants::boostedPanSpeedFactor;
     }
     const double followPixelsPerSecond = 32.0 * panFactor * 60.0;
     const double maxStep
@@ -1189,7 +1178,7 @@ void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {
     const QSize output = _host->outputSize();
     _rtZoomAnchorPixel
         = QPointF(std::clamp(anchorPixel.x(), 0.0,
-                      static_cast<double>(std::max(0, output.width() - 1))),
+            static_cast<double>(std::max(0, output.width() - 1))),
             std::clamp(anchorPixel.y(), 0.0,
                 static_cast<double>(std::max(0, output.height() - 1))));
 }

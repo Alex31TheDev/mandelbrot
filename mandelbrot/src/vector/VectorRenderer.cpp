@@ -570,7 +570,7 @@ FORCE_INLINE void recordIterationStats_vec(
     alignas(SIMD_FULL_ALIGNMENT) scalar_full_t iterLanes[SIMD_FULL_WIDTH];
     SIMD_STORE_F(iterLanes, iter);
 
-    for (int lane = 0; lane < validWidth; ++lane) {
+    for (int lane = 0; lane < validWidth; lane++) {
         const int64_t pixelIter = static_cast<int64_t>(
             std::min<scalar_full_t>(
                 iterLanes[lane],

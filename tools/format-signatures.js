@@ -377,7 +377,7 @@ function formatFile(filePath, check) {
         index = endIndex + 1;
     }
 
-    const newText = `${output.join(newline)}${newline}`,
+    const newText = output.join(newline),
         changed = newText !== oldText;
 
     if (changed && !check) {
@@ -422,7 +422,7 @@ async function parseArgs() {
         process.exit(0);
     }
 
-    let repoRoot = parsed.values["repo-root"] ? path.resolve(parsed.values["repo-root"]) : getRepoRoot();
+    let repoRoot = path.resolve(parsed.values["repo-root"] || getRepoRoot());
 
     if (!parsed.values["repo-root"] && !parsed.values.yes) {
         repoRoot = await confirmRepoRoot(repoRoot);
@@ -444,11 +444,9 @@ async function parseArgs() {
 }
 
 function getTargetFiles(args) {
-    const sourceRootPaths = args.sourceRoots.filter(entry => fs.existsSync(entry));
-
-    const scanPaths = args.paths.length > 0 ? args.paths : sourceRootPaths;
-
-    const excludePaths = loadExcludePaths(args.excludeFile, sourceRootPaths);
+    const sourceRootPaths = args.sourceRoots.filter(entry => fs.existsSync(entry)),
+        scanPaths = args.paths.length > 0 ? args.paths : sourceRootPaths,
+        excludePaths = loadExcludePaths(args.excludeFile, sourceRootPaths);
 
     const files = new Set();
 

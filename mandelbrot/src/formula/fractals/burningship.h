@@ -172,7 +172,7 @@ static FORCE_INLINE void wholeDerivative_burningship_mp(MPFRScratch &s) {
     mpfr_set(s.t[4], s.t[2], MPFRTypes::ROUNDING);
     mpfr_set(s.t[5], s.t[3], MPFRTypes::ROUNDING);
 
-    for (int k = 2; k < wholeN; ++k) {
+    for (int k = 2; k < wholeN; k++) {
         mpfr_mul(s.t[6], s.t[5], s.t[3], MPFRTypes::ROUNDING);
 
         mpfr_mul(s.t[7], s.t[4], s.t[3], MPFRTypes::ROUNDING);

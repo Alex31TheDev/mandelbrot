@@ -1,7 +1,7 @@
 {
     const int pairCount = count / 2;
 
-    for (int pairIdx = 0; pairIdx < pairCount; ++pairIdx) {
+    for (int pairIdx = 0; pairIdx < pairCount; pairIdx++) {
         const simd_full_mask_t anyStartActive = SIMD_OR_MASK_F(
             SIMD_OR_MASK_F(active1, active2),
             SIMD_OR_MASK_F(active3, active4)

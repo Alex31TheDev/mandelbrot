@@ -14,6 +14,7 @@
 #include <fstream>
 
 #include "BackendAPI.h"
+using namespace Backend;
 
 #include "util/WarningUtil.h"
 
@@ -245,15 +246,15 @@ bool Image::saveToFile(
     const bool result = writeToStream(fout, type);
     fout.close();
 
-    if (result) _emitImageEvent(Backend::ImageEventKind::saved, absPath.c_str());
+    if (result) _emitImageEvent(ImageEventKind::saved, absPath.c_str());
 
     return result;
 }
 
-void Image::_emitImageEvent(Backend::ImageEventKind kind, const char *path) const {
+void Image::_emitImageEvent(ImageEventKind kind, const char *path) const {
     if (!_callbacks || !_callbacks->onImage) return;
 
-    const Backend::ImageEvent event = {
+    const ImageEvent event = {
         .kind = kind,
         .aaScale = _aaScale,
         .aspect = _aspect,
@@ -302,7 +303,7 @@ bool Image::_allocate(int32_t width, int32_t height) {
         _outputPixels = std::make_unique<uint8_t[]>(_outputSize);
     }
 
-    _emitImageEvent(Backend::ImageEventKind::allocated);
+    _emitImageEvent(ImageEventKind::allocated);
 
     return true;
 }

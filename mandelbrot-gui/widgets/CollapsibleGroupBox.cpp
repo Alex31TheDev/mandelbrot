@@ -1,38 +1,11 @@
 #include "CollapsibleGroupBox.h"
 
 #include <QApplication>
-#include <QLayout>
 #include <QPalette>
 
-static void setLayoutItemsEnabled(QLayout *layout, bool enabled) {
-    if (!layout) return;
+#include "util/GUIUtil.h"
 
-    for (int i = 0; i < layout->count(); ++i) {
-        QLayoutItem *item = layout->itemAt(i);
-        if (!item) continue;
-
-        if (QWidget *widget = item->widget()) {
-            widget->setEnabled(enabled);
-        } else if (QLayout *childLayout = item->layout()) {
-            setLayoutItemsEnabled(childLayout, enabled);
-        }
-    }
-}
-
-static void setLayoutItemsVisible(QLayout *layout, bool visible) {
-    if (!layout) return;
-
-    for (int i = 0; i < layout->count(); ++i) {
-        QLayoutItem *item = layout->itemAt(i);
-        if (!item) continue;
-
-        if (QWidget *widget = item->widget()) {
-            widget->setVisible(visible);
-        } else if (QLayout *childLayout = item->layout()) {
-            setLayoutItemsVisible(childLayout, visible);
-        }
-    }
-}
+using namespace GUI;
 
 CollapsibleGroupBox::CollapsibleGroupBox(QWidget *parent)
     : QGroupBox(parent) {
@@ -56,7 +29,7 @@ void CollapsibleGroupBox::_init() {
 
 void CollapsibleGroupBox::applyExpandedState(bool expanded) {
     if (QLayout *boxLayout = layout()) {
-        setLayoutItemsVisible(boxLayout, expanded);
+        Util::setLayoutItemsVisible(boxLayout, expanded);
     }
 
     QPalette pal = palette();
@@ -68,7 +41,7 @@ void CollapsibleGroupBox::applyExpandedState(bool expanded) {
 }
 
 void CollapsibleGroupBox::setContentEnabled(bool enabled) {
-    setLayoutItemsEnabled(layout(), enabled);
+    Util::setLayoutItemsEnabled(layout(), enabled);
     setEnabled(true);
 
     QPalette pal = palette();

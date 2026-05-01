@@ -4,7 +4,7 @@
 
 #include "ui_AboutDialog.h"
 
-AboutDialog::AboutDialog(const QIcon& icon, QWidget* parent)
+AboutDialog::AboutDialog(const QIcon &icon, QWidget *parent)
     : QDialog(parent)
     , _ui(std::make_unique<Ui::AboutDialog>()) {
     _ui->setupUi(this);

@@ -1,9 +1,12 @@
 #include "SineWriter.h"
 
-#include <ostream>
 #include <string>
+#include <ostream>
 
-SineWriter::SineWriter(const Backend::SinePaletteConfig &palette)
+#include "BackendAPI.h"
+using namespace Backend;
+
+SineWriter::SineWriter(const SinePaletteConfig &palette)
     : _palette(palette) {}
 
 bool SineWriter::write(const std::string &filePath, std::string &err) const {

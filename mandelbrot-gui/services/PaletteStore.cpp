@@ -13,359 +13,368 @@
 #include "util/NumberUtil.h"
 #include "util/PathUtil.h"
 
-Backend::PaletteHexConfig GUI::PaletteStore::makeNewConfig() {
-    Backend::PaletteHexConfig palette;
-    palette.totalLength = 1.0f;
-    palette.offset = 0.0f;
-    palette.blendEnds = true;
-    palette.entries = { { "#000000", 1.0f }, { "#FFFFFF", 1.0f } };
-    return palette;
-}
+#include "BackendAPI.h"
+using namespace Backend;
 
-bool GUI::PaletteStore::sameConfig(
-    const Backend::PaletteHexConfig& a, const Backend::PaletteHexConfig& b) {
-    if (!NumberUtil::almostEqual(a.totalLength, b.totalLength)
-        || !NumberUtil::almostEqual(a.offset, b.offset)
-        || a.blendEnds != b.blendEnds || a.entries.size() != b.entries.size()) {
-        return false;
+using namespace GUI;
+
+namespace GUI::PaletteStore {
+    static double paletteSegmentLengthSum(const PaletteHexConfig &palette) {
+        if (palette.entries.empty()) return 0.0;
+
+        const size_t segmentCount = palette.blendEnds ? palette.entries.size()
+            : palette.entries.size() - 1;
+
+        double total = 0.0;
+        for (size_t i = 0; i < segmentCount; i++) {
+            total += std::max(0.0f, palette.entries[i].length);
+        }
+
+        return total;
     }
 
-    for (size_t i = 0; i < a.entries.size(); ++i) {
-        if (!NumberUtil::almostEqual(a.entries[i].length, b.entries[i].length)
-            || QString::fromStdString(a.entries[i].color)
-                    .compare(QString::fromStdString(b.entries[i].color),
-                        Qt::CaseInsensitive)
-                != 0) {
+    PaletteHexConfig makeNewConfig() {
+        PaletteHexConfig palette;
+        palette.totalLength = 1.0f;
+        palette.offset = 0.0f;
+        palette.blendEnds = true;
+        palette.entries = { { "#000000", 1.0f }, { "#FFFFFF", 1.0f } };
+        return palette;
+    }
+
+    bool sameConfig(
+        const PaletteHexConfig &a, const PaletteHexConfig &b) {
+        if (!NumberUtil::almostEqual(a.totalLength, b.totalLength)
+            || !NumberUtil::almostEqual(a.offset, b.offset)
+            || a.blendEnds != b.blendEnds
+            || a.entries.size() != b.entries.size()) {
             return false;
         }
+
+        for (size_t i = 0; i < a.entries.size(); i++) {
+            if (!NumberUtil::almostEqual(a.entries[i].length, b.entries[i].length)
+                || QString::fromStdString(a.entries[i].color)
+                .compare(QString::fromStdString(b.entries[i].color),
+                    Qt::CaseInsensitive)
+                != 0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    return true;
-}
+    std::filesystem::path directoryPath() {
+        return PathUtil::executableDir() / "palettes";
+    }
 
-std::filesystem::path GUI::PaletteStore::directoryPath() {
-    return PathUtil::executableDir() / "palettes";
-}
+    std::filesystem::path filePath(const QString &name) {
+        return directoryPath()
+            / std::filesystem::path((name + ".txt").toStdString());
+    }
 
-std::filesystem::path GUI::PaletteStore::filePath(const QString& name) {
-    return directoryPath()
-        / std::filesystem::path((name + ".txt").toStdString());
-}
+    bool ensureDirectory(QString &errorMessage) {
+        errorMessage.clear();
 
-bool GUI::PaletteStore::ensureDirectory(QString& errorMessage) {
-    errorMessage.clear();
+        std::error_code ec;
+        std::filesystem::create_directories(directoryPath(), ec);
+        if (!ec) return true;
 
-    std::error_code ec;
-    std::filesystem::create_directories(directoryPath(), ec);
-    if (!ec) return true;
-
-    errorMessage = QCoreApplication::translate(
-                       "PaletteStore", "Failed to create palette directory: %1")
-                       .arg(QString::fromStdString(ec.message()));
-    return false;
-}
-
-QString GUI::PaletteStore::normalizeName(const QString& name) {
-    return name.trimmed();
-}
-
-bool GUI::PaletteStore::isValidName(const QString& name) {
-    const QString trimmed = normalizeName(name);
-    if (trimmed.isEmpty()) return false;
-    if (trimmed == "." || trimmed == "..") return false;
-
-    for (const QChar ch : trimmed) {
-        if (ch.unicode() > 0x7F) return false;
-        if (ch.isLetterOrNumber()) continue;
-        if (ch == ' ' || ch == '_' || ch == '-' || ch == '.') continue;
+        errorMessage = QCoreApplication::translate(
+            "PaletteStore", "Failed to create palette directory: %1")
+            .arg(QString::fromStdString(ec.message()));
         return false;
     }
 
-    return true;
-}
-
-QString GUI::PaletteStore::sanitizeName(const QString& name) {
-    QString sanitized = normalizeName(name);
-    for (QChar& ch : sanitized) {
-        const bool allowed = ch.unicode() <= 0x7F
-            && (ch.isLetterOrNumber() || ch == ' ' || ch == '_' || ch == '-'
-                || ch == '.');
-        if (!allowed) ch = '_';
+    QString normalizeName(const QString &name) {
+        return name.trimmed();
     }
 
-    sanitized = sanitized.simplified();
-    if (sanitized.isEmpty() || sanitized == "." || sanitized == "..") {
-        sanitized = QCoreApplication::translate("PaletteStore", "palette");
+    bool isValidName(const QString &name) {
+        const QString trimmed = normalizeName(name);
+        if (trimmed.isEmpty()) return false;
+        if (trimmed == "." || trimmed == "..") return false;
+
+        for (const QChar ch : trimmed) {
+            if (ch.unicode() > 0x7F) return false;
+            if (ch.isLetterOrNumber()) continue;
+            if (ch == ' ' || ch == '_' || ch == '-' || ch == '.') continue;
+            return false;
+        }
+
+        return true;
     }
 
-    return sanitized;
-}
+    QString sanitizeName(const QString &name) {
+        QString sanitized = normalizeName(name);
+        for (QChar &ch : sanitized) {
+            const bool allowed = ch.unicode() <= 0x7F
+                && (ch.isLetterOrNumber() || ch == ' ' || ch == '_' || ch == '-'
+                    || ch == '.');
+            if (!allowed) ch = '_';
+        }
 
-QStringList GUI::PaletteStore::listNames() {
-    QStringList names;
-    std::error_code ec;
-    const std::filesystem::path dir = directoryPath();
-    if (!std::filesystem::exists(dir, ec) || ec) {
-        return names;
-    }
+        sanitized = sanitized.simplified();
+        if (sanitized.isEmpty() || sanitized == "." || sanitized == "..") {
+            sanitized = QCoreApplication::translate("PaletteStore", "palette");
+        }
 
-    for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
-        if (ec) break;
-        if (!entry.is_regular_file()) continue;
-
-        const std::filesystem::path path = entry.path();
-        if (path.extension() != ".txt") continue;
-        names.push_back(QString::fromStdWString(path.stem().wstring()));
-    }
-
-    names.removeDuplicates();
-    std::sort(
-        names.begin(), names.end(), [](const QString& a, const QString& b) {
-            if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
-            if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
-            return a.compare(b, Qt::CaseInsensitive) < 0;
-        });
-    return names;
-}
-
-QString GUI::PaletteStore::uniqueName(
-    const QString& baseName, const QStringList& existingNames) {
-    const QString sanitized = sanitizeName(baseName);
-    if (!existingNames.contains(sanitized, Qt::CaseInsensitive)) {
         return sanitized;
     }
 
-    for (int suffix = 2;; ++suffix) {
-        const QString candidate = QString("%1 %2").arg(sanitized).arg(suffix);
-        if (!existingNames.contains(candidate, Qt::CaseInsensitive)) {
-            return candidate;
+    QStringList listNames() {
+        QStringList names;
+        std::error_code ec;
+        const std::filesystem::path dir = directoryPath();
+        if (!std::filesystem::exists(dir, ec) || ec) {
+            return names;
+        }
+
+        for (const auto &entry : std::filesystem::directory_iterator(dir, ec)) {
+            if (ec) break;
+            if (!entry.is_regular_file()) continue;
+
+            const std::filesystem::path path = entry.path();
+            if (path.extension() != ".txt") continue;
+            names.push_back(QString::fromStdWString(path.stem().wstring()));
+        }
+
+        names.removeDuplicates();
+        std::sort(
+            names.begin(), names.end(), [](const QString &a, const QString &b) {
+                if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
+                if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
+                return a.compare(b, Qt::CaseInsensitive) < 0;
+            });
+        return names;
+    }
+
+    QString uniqueName(
+        const QString &baseName, const QStringList &existingNames) {
+        const QString sanitized = sanitizeName(baseName);
+        if (!existingNames.contains(sanitized, Qt::CaseInsensitive)) {
+            return sanitized;
+        }
+
+        for (int suffix = 2;; suffix++) {
+            const QString candidate = QString("%1 %2").arg(sanitized).arg(suffix);
+            if (!existingNames.contains(candidate, Qt::CaseInsensitive)) {
+                return candidate;
+            }
         }
     }
-}
 
-bool GUI::PaletteStore::loadFromPath(const std::filesystem::path& path,
-    Backend::PaletteHexConfig& palette, QString& errorMessage) {
-    PaletteParser parser("-");
-    std::string err;
-    if (parser.parse({ path.string() }, palette, err)) {
-        errorMessage.clear();
-        return true;
+    bool loadFromPath(const std::filesystem::path &path,
+        PaletteHexConfig &palette, QString &errorMessage) {
+        PaletteParser parser("-");
+        std::string err;
+        if (parser.parse({ path.string() }, palette, err)) {
+            errorMessage.clear();
+            return true;
+        }
+
+        errorMessage = QString::fromStdString(err);
+        return false;
     }
 
-    errorMessage = QString::fromStdString(err);
-    return false;
-}
+    bool saveToPath(const std::filesystem::path &path,
+        const PaletteHexConfig &palette, QString &errorMessage) {
+        PaletteWriter writer(palette);
+        std::string err;
+        if (writer.write(path.string(), err)) {
+            errorMessage.clear();
+            return true;
+        }
 
-bool GUI::PaletteStore::saveToPath(const std::filesystem::path& path,
-    const Backend::PaletteHexConfig& palette, QString& errorMessage) {
-    PaletteWriter writer(palette);
-    std::string err;
-    if (writer.write(path.string(), err)) {
-        errorMessage.clear();
-        return true;
+        errorMessage = QString::fromStdString(err);
+        return false;
     }
 
-    errorMessage = QString::fromStdString(err);
-    return false;
-}
+    bool loadNamed(const QString &name,
+        PaletteHexConfig &palette, QString &errorMessage) {
+        const QString normalizedName = normalizeName(name);
+        if (normalizedName.isEmpty()) {
+            errorMessage = QCoreApplication::translate(
+                "PaletteStore", "Palette name is empty.");
+            return false;
+        }
 
-bool GUI::PaletteStore::loadNamed(const QString& name,
-    Backend::PaletteHexConfig& palette, QString& errorMessage) {
-    const QString normalizedName = normalizeName(name);
-    if (normalizedName.isEmpty()) {
+        const std::filesystem::path sourcePath = filePath(normalizedName);
+        if (std::filesystem::exists(sourcePath)) {
+            return loadFromPath(sourcePath, palette, errorMessage);
+        }
+
         errorMessage = QCoreApplication::translate(
-            "PaletteStore", "Palette name is empty.");
+            "PaletteStore", "Palette not found: %1")
+            .arg(normalizedName);
         return false;
     }
 
-    const std::filesystem::path sourcePath = filePath(normalizedName);
-    if (std::filesystem::exists(sourcePath)) {
-        return loadFromPath(sourcePath, palette, errorMessage);
+    bool importFromPath(const std::filesystem::path &sourcePath,
+        float totalLength, float offset, QString &importedName,
+        PaletteHexConfig &palette,
+        std::filesystem::path &destinationPath, QString &errorMessage) {
+        PaletteHexConfig loaded;
+        if (!loadFromPath(sourcePath, loaded, errorMessage)) return false;
+
+        loaded.totalLength = totalLength;
+        loaded.offset = offset;
+
+        if (!ensureDirectory(errorMessage)) return false;
+
+        importedName = uniqueName(
+            QFileInfo(QString::fromStdWString(sourcePath.wstring()))
+            .completeBaseName(),
+            listNames());
+        destinationPath = filePath(importedName);
+        if (!saveToPath(destinationPath, loaded, errorMessage)) return false;
+
+        palette = loaded;
+        return true;
     }
 
-    errorMessage = QCoreApplication::translate(
-                       "PaletteStore", "Palette not found: %1")
-                       .arg(normalizedName);
-    return false;
-}
+    bool saveNamed(const QString &name,
+        const PaletteHexConfig &palette,
+        std::filesystem::path &destinationPath, QString &errorMessage) {
+        const QString normalizedName = normalizeName(name);
+        if (!isValidName(normalizedName)) {
+            errorMessage = QCoreApplication::translate("PaletteStore",
+                "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
+            return false;
+        }
 
-bool GUI::PaletteStore::importFromPath(const std::filesystem::path& sourcePath,
-    float totalLength, float offset, QString& importedName,
-    Backend::PaletteHexConfig& palette, std::filesystem::path& destinationPath,
-    QString& errorMessage) {
-    Backend::PaletteHexConfig loaded;
-    if (!loadFromPath(sourcePath, loaded, errorMessage)) return false;
+        if (!ensureDirectory(errorMessage)) return false;
 
-    loaded.totalLength = totalLength;
-    loaded.offset = offset;
-
-    if (!ensureDirectory(errorMessage)) return false;
-
-    importedName = uniqueName(
-        QFileInfo(QString::fromStdWString(sourcePath.wstring())).completeBaseName(),
-        listNames());
-    destinationPath = filePath(importedName);
-    if (!saveToPath(destinationPath, loaded, errorMessage)) return false;
-
-    palette = loaded;
-    return true;
-}
-
-bool GUI::PaletteStore::saveNamed(const QString& name,
-    const Backend::PaletteHexConfig& palette,
-    std::filesystem::path& destinationPath, QString& errorMessage) {
-    const QString normalizedName = normalizeName(name);
-    if (!isValidName(normalizedName)) {
-        errorMessage = QCoreApplication::translate("PaletteStore",
-            "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
-        return false;
+        destinationPath = filePath(normalizedName);
+        return saveToPath(destinationPath, palette, errorMessage);
     }
 
-    if (!ensureDirectory(errorMessage)) return false;
+    bool saveFromDialogPath(const QString &savePath,
+        const PaletteHexConfig &palette, QString &savedName,
+        std::filesystem::path &destinationPath, QString &errorMessage) {
+        const QString savePathWithExtension = QString::fromStdString(
+            PathUtil::appendExtension(savePath.toStdString(), "txt"));
+        savedName = normalizeName(
+            QFileInfo(savePathWithExtension).completeBaseName());
+        if (!isValidName(savedName)) {
+            errorMessage = QCoreApplication::translate("PaletteStore",
+                "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
+            return false;
+        }
 
-    destinationPath = filePath(normalizedName);
-    return saveToPath(destinationPath, palette, errorMessage);
-}
-
-bool GUI::PaletteStore::saveFromDialogPath(const QString& savePath,
-    const Backend::PaletteHexConfig& palette, QString& savedName,
-    std::filesystem::path& destinationPath, QString& errorMessage) {
-    const QString savePathWithExtension = QString::fromStdString(
-        PathUtil::appendExtension(savePath.toStdString(), "txt"));
-    savedName = normalizeName(
-        QFileInfo(savePathWithExtension).completeBaseName());
-    if (!isValidName(savedName)) {
-        errorMessage = QCoreApplication::translate("PaletteStore",
-            "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
-        return false;
+        return saveNamed(savedName, palette, destinationPath, errorMessage);
     }
 
-    return saveNamed(savedName, palette, destinationPath, errorMessage);
-}
+    QImage makePreviewImage(Session *session,
+        const PaletteHexConfig &palette, int width, int height) {
+        if (!session || width <= 0 || height <= 0) return {};
+        if (const Status status = session->setColorPalette(palette);
+            !status) {
+            return {};
+        }
 
-static double paletteSegmentLengthSum(
-    const Backend::PaletteHexConfig& palette) {
-    if (palette.entries.empty()) return 0.0;
-
-    const size_t segmentCount = palette.blendEnds ? palette.entries.size()
-                                                  : palette.entries.size() - 1;
-
-    double total = 0.0;
-    for (size_t i = 0; i < segmentCount; ++i) {
-        total += std::max(0.0f, palette.entries[i].length);
+        return Util::imageViewToImage(
+            session->renderPalettePreview(width, height));
     }
 
-    return total;
-}
+    std::vector<PaletteStop> configToStops(
+        const PaletteHexConfig &palette) {
+        std::vector<PaletteStop> stops;
+        if (palette.entries.empty()) return stops;
 
-QImage GUI::PaletteStore::makePreviewImage(Backend::Session* session,
-    const Backend::PaletteHexConfig& palette, int width, int height) {
-    if (!session || width <= 0 || height <= 0) return {};
-    if (const Backend::Status status = session->setColorPalette(palette); !status) {
-        return {};
-    }
+        double accum = 0.0;
+        const double segmentSum = paletteSegmentLengthSum(palette);
+        const bool useEqualSpacing = segmentSum <= 0.0;
+        const size_t stopCount = palette.entries.size();
+        int nextId = 1;
 
-    return GUI::Util::imageViewToImage(
-        session->renderPalettePreview(width, height));
-}
+        if (!palette.blendEnds && palette.entries.size() >= 2) {
+            for (size_t i = 0; i + 1 < palette.entries.size(); i++) {
+                const auto &entry = palette.entries[i];
+                stops.push_back({ nextId++,
+                    useEqualSpacing ? static_cast<double>(i)
+                            / std::max<size_t>(1, palette.entries.size() - 1)
+                                    : std::clamp(accum / segmentSum, 0.0, 1.0),
+                    QColor(QString::fromStdString(entry.color)) });
+                accum += std::max(0.0f, entry.length);
+            }
 
-std::vector<PaletteStop> GUI::PaletteStore::configToStops(
-    const Backend::PaletteHexConfig& palette) {
-    std::vector<PaletteStop> stops;
-    if (palette.entries.empty()) return stops;
+            stops.push_back({ nextId++, 1.0,
+                QColor(QString::fromStdString(palette.entries.back().color)) });
+            return stops;
+        }
 
-    double accum = 0.0;
-    const double segmentSum = paletteSegmentLengthSum(palette);
-    const bool useEqualSpacing = segmentSum <= 0.0;
-    const size_t stopCount = palette.entries.size();
-    int nextId = 1;
-
-    if (!palette.blendEnds && palette.entries.size() >= 2) {
-        for (size_t i = 0; i + 1 < palette.entries.size(); ++i) {
-            const auto& entry = palette.entries[i];
+        for (const auto &entry : palette.entries) {
             stops.push_back({ nextId++,
-                useEqualSpacing ? static_cast<double>(i)
-                        / std::max<size_t>(1, palette.entries.size() - 1)
+                useEqualSpacing ? static_cast<double>(stops.size())
+                        / std::max<size_t>(1, stopCount)
                                 : std::clamp(accum / segmentSum, 0.0, 1.0),
                 QColor(QString::fromStdString(entry.color)) });
             accum += std::max(0.0f, entry.length);
         }
 
-        stops.push_back({ nextId++, 1.0,
-            QColor(QString::fromStdString(palette.entries.back().color)) });
+        if (stops.size() == 1) {
+            stops.push_back({ nextId++, 1.0, stops.front().color });
+        }
+
         return stops;
     }
 
-    for (const auto& entry : palette.entries) {
-        stops.push_back({ nextId++,
-            useEqualSpacing ? static_cast<double>(stops.size())
-                    / std::max<size_t>(1, stopCount)
-                            : std::clamp(accum / segmentSum, 0.0, 1.0),
-            QColor(QString::fromStdString(entry.color)) });
-        accum += std::max(0.0f, entry.length);
-    }
+    PaletteHexConfig stopsToConfig(
+        const std::vector<PaletteStop> &stops, float totalLength, float offset,
+        bool blendEnds) {
+        const double loopEndpointEpsilon = 1e-4;
+        PaletteHexConfig palette;
+        palette.totalLength = totalLength;
+        palette.offset = offset;
+        palette.blendEnds = blendEnds;
 
-    if (stops.size() == 1) {
-        stops.push_back({ nextId++, 1.0, stops.front().color });
-    }
+        if (stops.size() < 2) {
+            const auto fallback = makeNewConfig();
+            palette.entries = fallback.entries;
+            return palette;
+        }
 
-    return stops;
-}
+        std::vector<PaletteStop> sorted = stops;
+        std::sort(sorted.begin(), sorted.end(),
+            [](const PaletteStop &a, const PaletteStop &b) {
+                return a.pos < b.pos;
+            });
 
-Backend::PaletteHexConfig GUI::PaletteStore::stopsToConfig(
-    const std::vector<PaletteStop>& stops, float totalLength, float offset,
-    bool blendEnds) {
-    const double loopEndpointEpsilon = 1e-4;
-    Backend::PaletteHexConfig palette;
-    palette.totalLength = totalLength;
-    palette.offset = offset;
-    palette.blendEnds = blendEnds;
+        if (blendEnds && sorted.size() >= 2 && sorted.back().pos >= 1.0) {
+            const double minPos = std::min(
+                1.0 - loopEndpointEpsilon,
+                sorted[sorted.size() - 2].pos + loopEndpointEpsilon);
+            sorted.back().pos = minPos;
+        }
 
-    if (stops.size() < 2) {
-        const auto fallback = makeNewConfig();
-        palette.entries = fallback.entries;
-        return palette;
-    }
+        if (!blendEnds) {
+            for (size_t i = 0; i + 1 < sorted.size(); i++) {
+                const double start = std::clamp(sorted[i].pos, 0.0, 1.0);
+                const double end = std::clamp(sorted[i + 1].pos, 0.0, 1.0);
+                const double len = std::max((end - start) * totalLength, 0.0001);
 
-    std::vector<PaletteStop> sorted = stops;
-    std::sort(sorted.begin(), sorted.end(),
-        [](const PaletteStop& a, const PaletteStop& b) {
-            return a.pos < b.pos;
-        });
+                palette.entries.push_back(
+                    { sorted[i].color.name(QColor::HexRgb).toStdString(),
+                        static_cast<float>(len) });
+            }
 
-    if (blendEnds && sorted.size() >= 2 && sorted.back().pos >= 1.0) {
-        const double minPos = std::min(
-            1.0 - loopEndpointEpsilon,
-            sorted[sorted.size() - 2].pos + loopEndpointEpsilon);
-        sorted.back().pos = minPos;
-    }
+            palette.entries.push_back(
+                { sorted.back().color.name(QColor::HexRgb).toStdString(), 0.0f });
+            return palette;
+        }
 
-    if (!blendEnds) {
-        for (size_t i = 0; i + 1 < sorted.size(); ++i) {
-            const double start = std::clamp(sorted[i].pos, 0.0, 1.0);
-            const double end = std::clamp(sorted[i + 1].pos, 0.0, 1.0);
-            const double len = std::max((end - start) * totalLength, 0.0001);
+        for (size_t i = 0; i < sorted.size(); i++) {
+            const size_t next = (i + 1) % sorted.size();
+            double len = sorted[next].pos - sorted[i].pos;
+            if (next == 0) len += 1.0;
+            len = std::max(len * totalLength, 0.0001);
 
             palette.entries.push_back(
                 { sorted[i].color.name(QColor::HexRgb).toStdString(),
                     static_cast<float>(len) });
         }
 
-        palette.entries.push_back(
-            { sorted.back().color.name(QColor::HexRgb).toStdString(), 0.0f });
         return palette;
     }
-
-    for (size_t i = 0; i < sorted.size(); ++i) {
-        const size_t next = (i + 1) % sorted.size();
-        double len = sorted[next].pos - sorted[i].pos;
-        if (next == 0) len += 1.0;
-        len = std::max(len * totalLength, 0.0001);
-
-        palette.entries.push_back(
-            { sorted[i].color.name(QColor::HexRgb).toStdString(),
-                static_cast<float>(len) });
-    }
-
-    return palette;
 }

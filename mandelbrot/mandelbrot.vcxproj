@@ -45,10 +45,6 @@
       <Configuration>Debug - MPFR</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug - KF2|x64">
-      <Configuration>Debug - KF2</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug - QD|x64">
       <Configuration>Debug - QD</Configuration>
       <Platform>x64</Platform>
@@ -97,10 +93,6 @@
       <Configuration>Release - MPFR</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release - KF2|x64">
-      <Configuration>Release - KF2</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Release - QD|x64">
       <Configuration>Release - QD</Configuration>
       <Platform>x64</Platform>
@@ -122,13 +114,6 @@
     <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MPFR|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-    <InterproceduralOptimization>false</InterproceduralOptimization>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - KF2|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
@@ -217,14 +202,6 @@
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>true</InterproceduralOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - KF2|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 2025</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-    <InterproceduralOptimization>true</InterproceduralOptimization>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - QD|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -302,6 +279,17 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
+      <AdditionalOptions>/Fd"$(IntDir)$(ProjectName).pdb" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <FullProgramDatabaseFile>$(OutDir)$(TargetName).pdb</FullProgramDatabaseFile>
+    </Link>
+  </ItemDefinitionGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
@@ -310,9 +298,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MPFR|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - KF2|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug - QD|x64'" Label="PropertySheets">
@@ -361,9 +346,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - MPFR|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - KF2|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - QD|x64'" Label="PropertySheets">
@@ -437,11 +419,6 @@
     <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - KF2|x64'">
-    <OutDir>$(MSBuildThisFileDirectory)..\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
-    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug - QD|x64'">
     <OutDir>$(MSBuildThisFileDirectory)..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
@@ -502,11 +479,6 @@
     <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - KF2|x64'">
-    <OutDir>$(MSBuildThisFileDirectory)..\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
-    <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - QD|x64'">
     <OutDir>$(MSBuildThisFileDirectory)..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
@@ -557,6 +529,12 @@
     <IntDir>$(MSBuildThisFileDirectory)..\bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <CodeAnalysisRuleSet>rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'!=''" Label="BuildPaths">
+    <ProjectOutputRoot>$(ProjectDir)bin\</ProjectOutputRoot>
+    <ProjectIntermediateRoot>$(ProjectDir)bin\obj\</ProjectIntermediateRoot>
+    <OutDir>$(ProjectOutputRoot)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectIntermediateRoot)$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - FloatScalar|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -578,24 +556,6 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_MPFR;USE_DOUBLES;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mpfr.lib;gmp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - KF2|x64'">
-    <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions);USE_KF2;USE_MPFR;USE_DOUBLES;KF_SIMD=2;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -726,7 +686,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InterproceduralOptimization>MultiFile</InterproceduralOptimization>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -741,26 +701,15 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_DOUBLES;USE_VECTORS;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <Optimization>MaxSpeedHighLevel</Optimization>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <InterproceduralOptimization>MultiFile</InterproceduralOptimization>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - DoubleAVX512|x64'">
@@ -826,31 +775,6 @@
       <WarningLevel>Level4</WarningLevel>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_MPFR;USE_DOUBLES;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <Optimization>MaxSpeedHighLevel</Optimization>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <FunctionLevelLinking>false</FunctionLevelLinking>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <FullProgramDatabaseFile>$(OutDir)$(Configuration).pdb</FullProgramDatabaseFile>
-      <AdditionalDependencies>mpfr.lib;gmp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - KF2|x64'">
-    <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions);USE_KF2;USE_MPFR;USE_DOUBLES;KF_SIMD=2;__SSE2__;__SSE4_2__;__AVX2__</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -1103,10 +1027,6 @@
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\mpfr\CommonDefs.h" />
     <ClInclude Include="src\mpfr\MPFRTypes.h" />
-    <ClInclude Include="src\kf2\CommonDefs.h" />
-    <ClInclude Include="src\kf2\KF2Coords.h" />
-    <ClInclude Include="src\kf2\KF2Globals.h" />
-    <ClInclude Include="src\kf2\KF2Renderer.h" />
     <ClInclude Include="src\mpfr\ThreadLocalPool.h" />
     <ClInclude Include="src\mpfr\ThreadLocalPool_impl.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
@@ -1197,40 +1117,6 @@
     <ClCompile Include="src\scalar\ScalarRenderer.cpp" />
     <ClCompile Include="src\vector\VectorRenderer.cpp" />
   </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug - KF2|x64' Or '$(Configuration)|$(Platform)'=='Release - KF2|x64'">
-    <ClCompile Include="src\kf2\KF2Coords.cpp" />
-    <ClCompile Include="src\kf2\KF2Compat.cpp" />
-    <ClCompile Include="src\kf2\KF2Globals.cpp" />
-    <ClCompile Include="src\kf2\KF2Renderer.cpp" />
-    <ClCompile Include="src\kf2\common\bitmap.cpp" />
-    <ClCompile Include="src\kf2\common\matrix.cpp" />
-    <ClCompile Include="src\kf2\common\parallell.cpp" />
-    <ClCompile Include="src\kf2\common\StringVector.cpp" />
-    <ClCompile Include="src\kf2\common\timer.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\calculate_perturbation.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\calculate_reference.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\calculate_reference_threaded.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\CDecNumber.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\CFixedFloat.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\cmdline.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\floatexp_approximation.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\fraktal_sft.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\gradient.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\hybrid.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\nanomb1_perturbation.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\nanomb1_reference.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\nanomb2_perturbation.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\nanomb2_reference.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\Parameter.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\reference.cpp">
-      <ObjectFileName>$(IntDir)kf2-fraktal_sft-reference.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="src\kf2\fraktal_sft\render.cpp" />
-    <ClCompile Include="src\kf2\fraktal_sft\Settings.cpp" />
-    <ClCompile Include="src\kf2\formula\miscellaneous.cpp">
-      <ObjectFileName>$(IntDir)kf2-formula-miscellaneous.obj</ObjectFileName>
-    </ClCompile>
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\common.vcxproj">
       <Project>{3152A3CB-1150-412C-A89F-5CE415183276}</Project>
@@ -1241,7 +1127,6 @@
       <SetConfiguration Condition="'$(Configuration)'=='Debug - FloatAVX512'">Configuration=Debug</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Debug - DoubleAVX512'">Configuration=Debug</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Debug - MPFR'">Configuration=Debug</SetConfiguration>
-      <SetConfiguration Condition="'$(Configuration)'=='Debug - KF2'">Configuration=Debug</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Debug - QD'">Configuration=Debug</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Release - FloatScalar'">Configuration=Release</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Release - DoubleScalar'">Configuration=Release</SetConfiguration>
@@ -1250,7 +1135,6 @@
       <SetConfiguration Condition="'$(Configuration)'=='Release - FloatAVX512'">Configuration=Release</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Release - DoubleAVX512'">Configuration=Release</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Release - MPFR'">Configuration=Release</SetConfiguration>
-      <SetConfiguration Condition="'$(Configuration)'=='Release - KF2'">Configuration=Release</SetConfiguration>
       <SetConfiguration Condition="'$(Configuration)'=='Release - QD'">Configuration=Release</SetConfiguration>
       <SetPlatform Condition="'$(Platform)'=='x64'">Platform=x64</SetPlatform>
       <SetPlatform Condition="'$(Platform)'=='Win32'">Platform=Win32</SetPlatform>
