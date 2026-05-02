@@ -29,7 +29,6 @@ public:
 
 private slots:
     void _requestRenderFromControls();
-    void _requestRenderFromModel();
     void _clearSavedSettings();
 
 private:
@@ -65,6 +64,7 @@ private:
     [[nodiscard]] std::optional<GUI::PendingPickAction> _pendingPickAction(
         bool hasPickAction, int pickTarget, const QPoint &pickPixel
     ) const;
+    void _applyViewportScalePercent(float scalePercent);
     void _initializeSessionState();
     void _positionWindowsForInitialShow();
     QString _defaultBackend() const;
@@ -103,5 +103,5 @@ private:
     ) const;
     [[nodiscard]] std::filesystem::path _sineRecoveryPath(const QString &name) const;
     void _savePersistentState();
-    void _closeAllWindows();
+    void _closeAllWindows(bool skipDirtyViewPrompt = false);
 };

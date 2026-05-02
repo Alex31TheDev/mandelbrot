@@ -1,12 +1,11 @@
 #pragma once
 
+#include <iterator>
 #include <sstream>
 #include <iomanip>
 
 namespace FormatUtil::_impl {
     inline const char *bigNumberUnits[] = { "", "K", "M", "G", "T" };
-    constexpr int bigNumberUnitCount =
-        sizeof(bigNumberUnits) / sizeof(bigNumberUnits[0]);
 }
 
 namespace FormatUtil {
@@ -80,13 +79,13 @@ namespace FormatUtil {
         }
 
         int unitIdx = 0;
-        while (count >= 1000.0 && unitIdx < _impl::bigNumberUnitCount - 1) {
+        while (count >= 1000.0 && unitIdx < std::size(_impl::bigNumberUnits) - 1) {
             count /= 1000.0;
             unitIdx++;
         }
 
         count = std::round(count);
-        if (count >= 1000.0 && unitIdx < _impl::bigNumberUnitCount - 1) {
+        if (count >= 1000.0 && unitIdx < std::size(_impl::bigNumberUnits) - 1) {
             count /= 1000.0;
             unitIdx++;
             count = std::round(count);

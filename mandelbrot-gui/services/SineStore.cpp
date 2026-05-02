@@ -62,7 +62,8 @@ namespace GUI::SineStore {
                 if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
                 if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
                 return a.compare(b, Qt::CaseInsensitive) < 0;
-            });
+            }
+        );
         return names;
     }
 

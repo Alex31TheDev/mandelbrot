@@ -22,7 +22,7 @@ namespace GUI {
     [[nodiscard]] std::vector<NativeDialogFilter> parseNativeDialogFilters(
         const QString &filters
     );
-    [[nodiscard]] QString showNativeSaveFileDialog(QWidget *parent,
+    [[nodiscard]] QString showNativeSaveDialog(QWidget *parent,
         const QString &title, const std::filesystem::path &directory,
         const QString &suggestedFileName, const QString &filters,
         QString *selectedFilter = nullptr);

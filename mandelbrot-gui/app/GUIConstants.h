@@ -1,9 +1,10 @@
 #pragma once
 
 #include <array>
+#include <string>
 
 namespace GUI::Constants {
-    inline const char *const defaultBackendType = "FloatAVX2";
+    inline const std::string defaultBackendType = "FloatAVX2";
 
     inline const int defaultInteractionTargetFPS = 30;
     inline const int previewStillMs = 5000;

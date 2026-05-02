@@ -9,9 +9,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QApplication>
-#include <QScreen>
 #include <QWidget>
-#include <QWindow>
 
 #include "widgets/AdaptiveDoubleSpinBox.h"
 
@@ -257,18 +255,6 @@ namespace GUI::Util {
         return image;
     }
 
-    double effectiveDevicePixelRatio(const QWidget *widget) {
-        if (!widget) return 1.0;
-
-        if (const QWindow *window = widget->windowHandle()) {
-            return std::max(1.0, window->devicePixelRatio());
-        }
-        if (const QScreen *screen = widget->screen()) {
-            return std::max(1.0, screen->devicePixelRatio());
-        }
-        return std::max(1.0, widget->devicePixelRatioF());
-    }
-
     void setAdaptiveSpinValue(QDoubleSpinBox *spinBox, double value) {
         if (!spinBox) return;
 
@@ -280,21 +266,4 @@ namespace GUI::Util {
         spinBox->setValue(value);
     }
 
-    void resizeViewportToImageSize(QWidget *viewport, const QSize &imageSize) {
-        if (!viewport || !imageSize.isValid()) return;
-
-        const double dpr = effectiveDevicePixelRatio(viewport);
-        const QSize logicalSize(
-            std::max(1,
-                static_cast<int>(
-                    std::lround(static_cast<double>(imageSize.width()) / dpr))),
-            std::max(1,
-                static_cast<int>(std::lround(
-                    static_cast<double>(imageSize.height()) / dpr))));
-
-        viewport->showNormal();
-        viewport->setMinimumSize(logicalSize);
-        viewport->setMaximumSize(logicalSize);
-        viewport->resize(logicalSize);
-    }
 }

@@ -76,6 +76,7 @@ signals:
     void saveImageRequested();
     void quickSaveRequested();
     void viewportResizeRequested();
+    void viewportScaleChanged(float scalePercent);
     void saveViewRequested();
     void loadViewRequested();
     void settingsRequested();
@@ -102,7 +103,7 @@ signals:
     void savePaletteRequested();
     void paletteEditorRequested();
     void lightColorChangeRequested();
-    void closeRequested();
+    void closeRequested(bool skipDirtyViewPrompt);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -129,6 +130,7 @@ private:
     QSize _lastOutputSize{
         GUI::Constants::defaultOutputWidth, GUI::Constants::defaultOutputHeight
     };
+    bool _aspectReferenceInitialized = false;
     bool _windowSettingsRestored = false;
     bool _closeAllowed = false;
     bool _pointViewDirty = false;

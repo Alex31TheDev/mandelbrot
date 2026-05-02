@@ -37,6 +37,7 @@ namespace GUI {
         bool inverse = false;
         int outputWidth = Constants::defaultOutputWidth;
         int outputHeight = Constants::defaultOutputHeight;
+        float viewportScalePercent = 100.0f;
         int panRate = 8;
         int zoomRate = 8;
         int interactionTargetFPS = Constants::defaultInteractionTargetFPS;
@@ -51,7 +52,7 @@ namespace GUI {
         QString sineName = "default";
         SinePaletteConfig sinePalette;
         QString paletteName = "default";
-        PaletteHexConfig palette;
+        PaletteRGBConfig palette;
     };
 
     struct PendingPickAction {

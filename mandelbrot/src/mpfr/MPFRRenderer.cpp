@@ -34,12 +34,12 @@ using namespace ScalarGlobals;
 
 static thread_local MPFRScratch scratch;
 
-static FORCE_INLINE MPFRScratch &getScratch() {
+FORCE_INLINE MPFRScratch &getScratch() {
     scratch.ensureReady();
     return scratch;
 }
 
-static FORCE_INLINE void complexInverse_mp(
+FORCE_INLINE void complexInverse_mp(
     mpfr_t cr, mpfr_t ci, MPFRScratch &s
 ) {
     mpfr_sqr(s.t[0], cr, MPFRTypes::ROUNDING);

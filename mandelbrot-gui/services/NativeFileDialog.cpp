@@ -47,7 +47,7 @@ namespace GUI {
         return parsed;
     }
 
-    QString showNativeSaveFileDialog(
+    QString showNativeSaveDialog(
         QWidget *parent, const QString &title,
         const std::filesystem::path &directory, const QString &suggestedFileName,
         const QString &filters, QString *selectedFilter
@@ -71,7 +71,8 @@ namespace GUI {
         dialog->SetTitle(reinterpret_cast<LPCWSTR>(title.utf16()));
         if (!suggestedFileName.isEmpty()) {
             dialog->SetFileName(
-                reinterpret_cast<LPCWSTR>(suggestedFileName.utf16()));
+                reinterpret_cast<LPCWSTR>(suggestedFileName.utf16())
+            );
         }
 
         std::vector<std::wstring> filterNames;
@@ -84,12 +85,14 @@ namespace GUI {
             filterNames.push_back(filter.displayText.toStdWString());
             filterPatterns.push_back(filter.patternText.toStdWString());
             filterSpecs.push_back(
-                { filterNames.back().c_str(), filterPatterns.back().c_str() });
+                { filterNames.back().c_str(), filterPatterns.back().c_str() }
+            );
         }
 
         if (!filterSpecs.empty()) {
             dialog->SetFileTypes(
-                static_cast<UINT>(filterSpecs.size()), filterSpecs.data());
+                static_cast<UINT>(filterSpecs.size()), filterSpecs.data()
+            );
             dialog->SetFileTypeIndex(1);
             const QString defaultExt
                 = defaultExtensionFromPattern(parsedFilters.front().patternText);
@@ -205,11 +208,13 @@ namespace GUI {
             filterNames.push_back(filter.displayText.toStdWString());
             filterPatterns.push_back(filter.patternText.toStdWString());
             filterSpecs.push_back(
-                { filterNames.back().c_str(), filterPatterns.back().c_str() });
+                { filterNames.back().c_str(), filterPatterns.back().c_str() }
+            );
         }
         if (!filterSpecs.empty()) {
             dialog->SetFileTypes(
-                static_cast<UINT>(filterSpecs.size()), filterSpecs.data());
+                static_cast<UINT>(filterSpecs.size()), filterSpecs.data()
+            );
             dialog->SetFileTypeIndex(1);
         }
 
@@ -409,16 +414,18 @@ namespace GUI {
         const QString saveImageFilters = QCoreApplication::translate(
             "NativeFileDialog",
             "PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)");
-        result.path = showNativeSaveFileDialog(parent, saveImageTitle, savesDir,
+        result.path = showNativeSaveDialog(parent, saveImageTitle, savesDir,
             suggestedFile, saveImageFilters, &selectedFilter);
         if (result.path.isEmpty()) return std::nullopt;
 
         const QMessageBox::StandardButton appendDateChoice
             = QMessageBox::question(parent, saveImageTitle,
                 QCoreApplication::translate(
-                    "NativeFileDialog", "Append date to filename?"),
+                    "NativeFileDialog", "Append date to filename?"
+                ),
                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
-                QMessageBox::Yes);
+                QMessageBox::Yes
+            );
         if (appendDateChoice == QMessageBox::Cancel) return std::nullopt;
         result.appendDate = appendDateChoice == QMessageBox::Yes;
 

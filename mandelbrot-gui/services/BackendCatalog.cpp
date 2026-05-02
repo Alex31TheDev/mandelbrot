@@ -64,7 +64,8 @@ namespace GUI {
                 if (precisionA != precisionB) return precisionA < precisionB;
 
                 return a.compare(b, Qt::CaseInsensitive) < 0;
-            });
+            }
+        );
         if (names.isEmpty()) {
             errorMessage = QCoreApplication::translate(
                 "BackendCatalog",

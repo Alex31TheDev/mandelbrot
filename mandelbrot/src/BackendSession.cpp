@@ -202,11 +202,13 @@ public:
 #if defined(USE_MPFR)
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
         MPFRGlobals::initMPFR(MPFRGlobals::precisionDigits());
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 #endif
     }
 
@@ -299,7 +301,8 @@ public:
 #if defined(USE_MPFR)
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
         setZoomPoints(
             static_cast<scalar_full_t>(
                 mpfr_get_d(MPFRGlobals::point_r_mp, MPFRTypes::ROUNDING)),
@@ -311,7 +314,8 @@ public:
 #elif defined(USE_QD)
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
         setZoomPoints(
             static_cast<scalar_full_t>(to_double(QDGlobals::point_r_qd)),
             static_cast<scalar_full_t>(to_double(QDGlobals::point_i_qd)),
@@ -660,14 +664,17 @@ public:
         VectorGlobals::initVectors();
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
         MPFRGlobals::initMPFR(MPFRGlobals::precisionDigits());
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         RenderIterationStats iterStats;
         renderImage(_image.get(), &_callbacks,
@@ -757,11 +764,13 @@ private:
 #if defined(USE_MPFR)
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
         MPFRGlobals::initMPFR(MPFRGlobals::precisionDigits());
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 #endif
 
         return true;
@@ -774,6 +783,12 @@ private:
             return Status::success();
         }
 
+#if defined(USE_VECTORS)
+        constexpr bool simdSafe = true;
+#else
+        constexpr bool simdSafe = false;
+#endif
+
         const bool needsNewImage = !_image ||
             _image->outputWidth() != outputWidth ||
             _image->outputHeight() != outputHeight ||
@@ -781,7 +796,7 @@ private:
 
         if (needsNewImage) {
             if (auto image = Image::create(outputWidth, outputHeight,
-                true, aaPixels); !image) {
+                simdSafe, aaPixels); !image) {
                 return makeFailure("Failed to allocate image.");
             } else {
                 _image = std::move(image);
@@ -829,7 +844,8 @@ private:
 
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         mpfr_t realMp, imagMp;
         mpfr_inits2(MPFRTypes::precisionBits,
@@ -849,7 +865,8 @@ private:
 
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         qd_real realQD, imagQD;
         getOutputCenterPoint_qd(realQD, imagQD, pixelX, pixelY);
@@ -880,7 +897,8 @@ private:
 
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         mpfr_t realMp, imagMp;
         mpfr_inits2(MPFRTypes::precisionBits,
@@ -900,7 +918,8 @@ private:
 
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         qd_real realQD, imagQD;
         getPanCenterPoint_qd(realQD, imagQD, deltaX, deltaY);
@@ -1111,7 +1130,8 @@ private:
 #if defined(USE_MPFR)
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         mpfr_t centerRealMp, centerImagMp;
         mpfr_inits2(MPFRTypes::precisionBits,
@@ -1128,7 +1148,8 @@ private:
 #elif defined(USE_QD)
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         qd_real centerReal;
         qd_real centerImag;
@@ -1210,7 +1231,8 @@ private:
 #if defined(USE_MPFR)
         MPFRGlobals::initMPFRValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         mpfr_t realMp, imagMp, xMp, yMp;
         mpfr_inits2(MPFRTypes::precisionBits,
@@ -1231,7 +1253,8 @@ private:
 #elif defined(USE_QD)
         QDGlobals::initQDValues(
             _pointReal.c_str(), _pointImag.c_str(), _zoomValue.c_str(),
-            _seedReal.c_str(), _seedImag.c_str());
+            _seedReal.c_str(), _seedImag.c_str()
+        );
 
         qd_real realQD, imagQD, xQD, yQD;
         if (!QDTypes::parseNumber(realQD, real.c_str()) ||

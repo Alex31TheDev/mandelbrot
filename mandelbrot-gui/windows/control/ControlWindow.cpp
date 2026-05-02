@@ -69,8 +69,6 @@ void ControlWindow::_buildUI() {
         _ui->controlLayout->setSizeConstraint(QLayout::SetMinimumSize);
     }
     _ui->controlScrollArea->setStyleSheet(QString());
-    _ui->controlScrollArea->setVerticalScrollBarPolicy(
-        Qt::ScrollBarPolicy::ScrollBarAlwaysOn);
 
     if (QScrollBar *scrollBar = _ui->controlScrollArea->verticalScrollBar()) {
         scrollBar->setStyleSheet(QString());
@@ -295,6 +293,20 @@ void ControlWindow::_connectUI() {
         [this](int) { _updateAspectLinkedSizes(true); });
     connect(_ui->outputHeightSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int) { _updateAspectLinkedSizes(false); });
+    connect(_ui->viewportScaleSpin,
+        QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+        [this](double value) {
+            const float scalePercent = std::max(1.0f, static_cast<float>(value));
+            emit viewportScaleChanged(scalePercent);
+        });
+    connect(_ui->preserveRatioCheck, &QCheckBox::toggled, this,
+        [this](bool checked) {
+            if (!checked) return;
+            _lastOutputSize = QSize(
+                std::max(1, _ui->outputWidthSpin->value()),
+                std::max(1, _ui->outputHeightSpin->value()));
+            _aspectReferenceInitialized = true;
+        });
 
     connect(_ui->calculateButton, &QPushButton::clicked, this,
         &ControlWindow::renderRequested);
@@ -305,7 +317,13 @@ void ControlWindow::_connectUI() {
     connect(_ui->saveButton, &QPushButton::clicked, this,
         &ControlWindow::saveImageRequested);
     connect(_ui->resizeButton, &QPushButton::clicked, this,
-        &ControlWindow::viewportResizeRequested);
+        [this]() {
+            _lastOutputSize = QSize(
+                std::max(1, _ui->outputWidthSpin->value()),
+                std::max(1, _ui->outputHeightSpin->value()));
+            _aspectReferenceInitialized = true;
+            emit viewportResizeRequested();
+        });
     connect(_ui->savePointButton, &QPushButton::clicked, this,
         &ControlWindow::saveViewRequested);
     connect(_ui->loadPointButton, &QPushButton::clicked, this,
@@ -428,6 +446,7 @@ void ControlWindow::setSessionState(
     const QSignalBlocker pickTargetBlocker(_ui->pickTargetCombo);
     const QSignalBlocker widthBlocker(_ui->outputWidthSpin);
     const QSignalBlocker heightBlocker(_ui->outputHeightSpin);
+    const QSignalBlocker viewportScaleBlocker(_ui->viewportScaleSpin);
 
     _ui->backendCombo->setCurrentText(sessionState.state().backend);
     _ui->iterationsSpin->setValue(sessionState.state().iterations);
@@ -478,8 +497,12 @@ void ControlWindow::setSessionState(
         _ui->paletteOffsetSpin, sessionState.state().palette.offset);
     _ui->outputWidthSpin->setValue(sessionState.state().outputWidth);
     _ui->outputHeightSpin->setValue(sessionState.state().outputHeight);
-    _lastOutputSize = QSize(
-        sessionState.state().outputWidth, sessionState.state().outputHeight);
+    _ui->viewportScaleSpin->setValue(static_cast<double>(std::max(
+        1.0f, sessionState.state().viewportScalePercent)));
+    if (!_aspectReferenceInitialized || !state.preserveRatio) {
+        _lastOutputSize = QSize(state.outputWidth, state.outputHeight);
+        _aspectReferenceInitialized = true;
+    }
     _ui->colorMethodCombo->setCurrentIndex(
         static_cast<int>(sessionState.state().colorMethod));
     _ui->fractalCombo->setCurrentIndex(
@@ -525,6 +548,8 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
         paletteStops, paletteTotalLength, paletteOffset, state.palette.blendEnds);
     state.outputWidth = _ui->outputWidthSpin->value();
     state.outputHeight = _ui->outputHeightSpin->value();
+    state.viewportScalePercent = std::max(
+        1.0f, static_cast<float>(_ui->viewportScaleSpin->value()));
 
     QString sineName = _ui->sineCombo->currentData().toString();
     if (sineName.isEmpty()) {
@@ -665,22 +690,33 @@ bool ControlWindow::eventFilter(QObject *watched, QEvent *event) {
     }
 
     QLineEdit *iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit *>();
-    if (iterationsEdit && watched == iterationsEdit
-        && event->type() == QEvent::KeyPress) {
+    if (iterationsEdit && watched == iterationsEdit && event->type() == QEvent::KeyPress) {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
-        const QString text = iterationsEdit->text().trimmed();
-        if (text.compare(
-            _ui->iterationsSpin->specialValueText(), Qt::CaseInsensitive)
-            == 0) {
-            const bool printableInput = !keyEvent->text().isEmpty()
-                && !keyEvent->text().at(0).isSpace()
-                && !(keyEvent->modifiers()
-                    & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier));
-            if (keyEvent->key() == Qt::Key_Backspace
-                || keyEvent->key() == Qt::Key_Delete || printableInput) {
-                iterationsEdit->selectAll();
-            }
+
+        const QString autoText = _ui->iterationsSpin->specialValueText().trimmed();
+        const bool showingAuto = !autoText.isEmpty()
+            && iterationsEdit->text().trimmed().compare(autoText, Qt::CaseInsensitive) == 0;
+        if (!showingAuto) {
+            return QMainWindow::eventFilter(watched, event);
         }
+
+        const bool isBackspaceOrDelete = keyEvent->key() == Qt::Key_Backspace
+            || keyEvent->key() == Qt::Key_Delete;
+        if (isBackspaceOrDelete) {
+            iterationsEdit->clear();
+            event->accept();
+            return true;
+        }
+
+        const bool hasEditBlockingModifier = (keyEvent->modifiers()
+            & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))
+            != Qt::NoModifier;
+        const QString keyText = keyEvent->text();
+
+        const bool isPrintableInsert = !hasEditBlockingModifier
+            && keyText.size() == 1 && keyText.at(0).isPrint()
+            && !keyText.at(0).isSpace();
+        if (isPrintableInsert) iterationsEdit->clear();
     }
 
     return QMainWindow::eventFilter(watched, event);
@@ -705,7 +741,9 @@ void ControlWindow::changeEvent(QEvent *event) {
 void ControlWindow::closeEvent(QCloseEvent *event) {
     if (!_closeAllowed) {
         event->ignore();
-        emit closeRequested();
+        const bool skipDirtyViewPrompt
+            = (QApplication::keyboardModifiers() & Qt::ShiftModifier) != 0;
+        emit closeRequested(skipDirtyViewPrompt);
         return;
     }
 
@@ -787,97 +825,76 @@ void ControlWindow::_updateControlWindowSize() {
         _ui->controlScrollContent->updateGeometry();
     }
 
-    QSize target = sizeHint().expandedTo(minimumSizeHint());
-    const QSize packedTarget = minimumSizeHint().expandedTo(QSize(1, 1));
+    const QSize minimumHint = minimumSizeHint().expandedTo(QSize(1, 1));
+    const QSize baseTarget = sizeHint().expandedTo(minimumHint);
     const QMargins outerMargins = outerLayout ? outerLayout->contentsMargins() : QMargins();
-    const int scrollBarExtent = controlScrollBarExtent(_ui->controlScrollArea);
-    const int scrollAreaFrameWidth = _ui->controlScrollArea
-        ? (_ui->controlScrollArea->frameWidth() * 2)
-        : 0;
-    int controlContentHeight = 0;
-    int defaultVisibleContentHeight = 0;
-    int packedWidth = packedTarget.width();
+    const int outerHorizontalMargins = outerMargins.left() + outerMargins.right();
+    const int scrollAreaNonContentWidth = controlScrollBarExtent(_ui->controlScrollArea)
+        + (_ui->controlScrollArea ? (_ui->controlScrollArea->frameWidth() * 2) : 0);
+
     const QSize contentSize = _ui->controlScrollContent->sizeHint().expandedTo(
         _ui->controlScrollContent->minimumSizeHint());
-    const QSize contentMinSize
-        = _ui->controlScrollContent->minimumSizeHint().expandedTo(QSize(1, 1));
-    const QSize layoutMinSize = _ui->controlLayout
-        ? _ui->controlLayout->minimumSize()
-        : QSize();
     const int controlContentMinWidth = std::max(
-        { contentSize.width(), contentMinSize.width(), layoutMinSize.width(),
+        { contentSize.width(), _ui->controlScrollContent->minimumSizeHint().width(),
+            _ui->controlLayout ? _ui->controlLayout->minimumSize().width() : 0,
             _ui->controlScrollContent->width() });
-    controlContentHeight = contentSize.height();
-    const QMargins contentMargins = _ui->controlScrollContent->contentsMargins();
-    defaultVisibleContentHeight = std::max(
-        0, _ui->viewportGroup->geometry().bottom() + 1 + contentMargins.bottom());
-    target.setWidth(std::max(target.width(),
-        controlContentMinWidth + outerMargins.left() + outerMargins.right()
-        + scrollBarExtent + scrollAreaFrameWidth));
-    packedWidth = std::max(packedWidth,
-        controlContentMinWidth + outerMargins.left() + outerMargins.right()
-        + scrollBarExtent + scrollAreaFrameWidth);
+    const int controlContentHeight = contentSize.height();
+    const int defaultVisibleContentHeight = std::max(0,
+        _ui->viewportGroup->geometry().bottom() + 1
+        + _ui->controlScrollContent->contentsMargins().bottom());
 
-    _ui->controlScrollArea->setMinimumWidth(
-        std::max(1, controlContentMinWidth + scrollBarExtent + scrollAreaFrameWidth));
+    _ui->controlScrollArea->setMinimumWidth(1);
 
     int fixedPanelsMinWidth = 0;
+    int fixedPanelsHeight = 0;
+    int visibleWidgets = 0;
     if (outerLayout) {
+        const QMargins margins = outerLayout->contentsMargins();
+        fixedPanelsHeight = margins.top() + margins.bottom();
         for (int i = 0; i < outerLayout->count(); i++) {
             QLayoutItem *item = outerLayout->itemAt(i);
             QWidget *widget = item ? item->widget() : nullptr;
-            if (!widget || widget == _ui->controlScrollArea) continue;
+            if (!widget) continue;
+
+            visibleWidgets++;
+            if (widget == _ui->controlScrollArea) continue;
             fixedPanelsMinWidth = std::max(fixedPanelsMinWidth, item->minimumSize().width());
             fixedPanelsMinWidth
                 = std::max(fixedPanelsMinWidth, widget->minimumSizeHint().width());
+            fixedPanelsHeight += item->sizeHint().height();
         }
+        fixedPanelsHeight += std::max(0, visibleWidgets - 1) * outerLayout->spacing();
     }
-    packedWidth = std::max(packedWidth,
-        fixedPanelsMinWidth + outerMargins.left() + outerMargins.right());
+    const int minimumWidthForFixedPanels
+        = std::max(1, fixedPanelsMinWidth + outerHorizontalMargins);
+    const int desiredWidth = std::max(
+        { baseTarget.width(), minimumHint.width(),
+            controlContentMinWidth + outerHorizontalMargins + scrollAreaNonContentWidth,
+            minimumWidthForFixedPanels });
 
-    const int minHeight = std::max(1, minimumSizeHint().height());
-    const int effectiveMinWidth = std::max({ 1, packedWidth, target.width() });
-    setMinimumWidth(effectiveMinWidth);
+    const int minHeight = minimumHint.height();
+    setMinimumWidth(minimumWidthForFixedPanels);
     setMaximumWidth(QWIDGETSIZE_MAX);
     setMinimumHeight(minHeight);
     setMaximumHeight(QWIDGETSIZE_MAX);
 
     if (!_controlWindowSized) {
-        int fixedPanelsHeight = 0;
-        if (outerLayout) {
-            const QMargins margins = outerLayout->contentsMargins();
-            fixedPanelsHeight += margins.top() + margins.bottom();
-
-            int visibleWidgets = 0;
-            for (int i = 0; i < outerLayout->count(); i++) {
-                QLayoutItem *item = outerLayout->itemAt(i);
-                QWidget *widget = item ? item->widget() : nullptr;
-                if (!widget) continue;
-
-                visibleWidgets++;
-                if (widget == _ui->controlScrollArea) continue;
-                fixedPanelsHeight += item->sizeHint().height();
-            }
-            fixedPanelsHeight += std::max(0, visibleWidgets - 1) * outerLayout->spacing();
-        }
-
         const int desiredContentHeight = defaultVisibleContentHeight > 0
             ? defaultVisibleContentHeight
             : controlContentHeight;
         int desiredHeight
             = std::max(minHeight, fixedPanelsHeight + desiredContentHeight);
-        if (const QScreen *screen = (windowHandle() && windowHandle()->screen())
-            ? windowHandle()->screen()
+        if (const QScreen *screen = (windowHandle() && windowHandle()->screen()) ? windowHandle()->screen()
             : (this->screen() ? this->screen() : QApplication::primaryScreen())) {
-            const int maxOnScreenHeight = std::max(
-                minHeight,
-                screen->availableGeometry().height() - controlWindowScreenPadding);
+            const int maxOnScreenHeight = std::max(minHeight,
+                screen->availableGeometry().height() - controlWindowScreenPadding
+            );
             desiredHeight = std::min(desiredHeight, maxOnScreenHeight);
         }
 
-        resize(effectiveMinWidth, desiredHeight);
-    } else if (width() < effectiveMinWidth) {
-        resize(effectiveMinWidth, height());
+        resize(desiredWidth, desiredHeight);
+    } else if (width() < minimumWidthForFixedPanels) {
+        resize(minimumWidthForFixedPanels, height());
     }
 
     _updateStatusRightEdgeAlignment();
@@ -900,7 +917,6 @@ void ControlWindow::_updateAspectLinkedSizes(bool widthChanged) {
                 * referenceHeight / referenceWidth)));
         const QSignalBlocker blocker(_ui->outputHeightSpin);
         _ui->outputHeightSpin->setValue(newHeight);
-        _lastOutputSize = QSize(currentWidth, newHeight);
         return;
     }
 
@@ -909,7 +925,6 @@ void ControlWindow::_updateAspectLinkedSizes(bool widthChanged) {
             * referenceWidth / referenceHeight)));
     const QSignalBlocker blocker(_ui->outputWidthSpin);
     _ui->outputWidthSpin->setValue(newWidth);
-    _lastOutputSize = QSize(newWidth, currentHeight);
 }
 
 void ControlWindow::_updateStatusRightEdgeAlignment() {

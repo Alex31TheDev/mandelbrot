@@ -177,11 +177,11 @@ typedef mpfr_param_t number_param_t;
 
 #include "mpfr/MPFRScratch.h"
 
-static FORCE_INLINE void setSign_mp(mpfr_t out, mpfr_srcptr in) {
+FORCE_INLINE void setSign_mp(mpfr_t out, mpfr_srcptr in) {
     mpfr_set_si(out, mpfr_sgn(in), MPFRTypes::ROUNDING);
 }
 
-static FORCE_INLINE void initFormulaConstants_mp(MPFRScratch &s) {
+FORCE_INLINE void initFormulaConstants_mp(MPFRScratch &s) {
     mpfr_set_d(s.nVal, static_cast<double>(ScalarGlobals::N), MPFRTypes::ROUNDING);
     mpfr_sub_d(s.nMinus1, s.nVal, 1.0, MPFRTypes::ROUNDING);
     mpfr_mul_d(s.halfN, s.nVal, 0.5, MPFRTypes::ROUNDING);
@@ -191,10 +191,8 @@ static FORCE_INLINE void initFormulaConstants_mp(MPFRScratch &s) {
     mpfr_set_d(s.lightI, static_cast<double>(ScalarGlobals::light_i), MPFRTypes::ROUNDING);
 }
 
-static FORCE_INLINE void wholeFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
-    mpfr_srcptr pzr, mpfr_srcptr pzi, MPFRScratch &s) {
-    const int wholeN = static_cast<int>(ScalarGlobals::N);
-
+FORCE_INLINE void wholePowerCore_mp(mpfr_srcptr pzr, mpfr_srcptr pzi,
+    int N, MPFRScratch &s) {
     mpfr_set(s.t[2], pzr, MPFRTypes::ROUNDING);
     mpfr_set(s.t[3], pzi, MPFRTypes::ROUNDING);
 
@@ -203,7 +201,7 @@ static FORCE_INLINE void wholeFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
     mpfr_mul(s.t[6], s.t[4], s.t[4], MPFRTypes::ROUNDING);
     mpfr_mul(s.t[7], s.t[5], s.t[5], MPFRTypes::ROUNDING);
 
-    for (int k = wholeN - 1; k > 0; k >>= 1) {
+    for (int k = N - 1; k > 0; k >>= 1) {
         if ((k & 1) == 1) {
             mpfr_mul(s.t[8], s.t[2], s.t[5], MPFRTypes::ROUNDING);
 
@@ -223,25 +221,22 @@ static FORCE_INLINE void wholeFormulaCore_mp(mpfr_srcptr cr, mpfr_srcptr ci,
         mpfr_mul(s.t[7], s.t[5], s.t[5], MPFRTypes::ROUNDING);
     }
 
-    mpfr_add(s.zr, s.t[2], cr, MPFRTypes::ROUNDING);
-    mpfr_add(s.zi, s.t[3], ci, MPFRTypes::ROUNDING);
+    mpfr_set(s.zr, s.t[2], MPFRTypes::ROUNDING);
+    mpfr_set(s.zi, s.t[3], MPFRTypes::ROUNDING);
 }
 
-static FORCE_INLINE void fractionalFormulaCore_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    mpfr_srcptr pzr, mpfr_srcptr pzi, MPFRScratch &s
+FORCE_INLINE void fractionalPowerCore_mp(
+    mpfr_srcptr pzr, mpfr_srcptr pzi,
+    mpfr_srcptr N, mpfr_srcptr halfN, MPFRScratch &s
 ) {
-    mpfr_pow(s.t[2], s.mag, s.halfN, MPFRTypes::ROUNDING);
+    mpfr_pow(s.t[2], s.mag, halfN, MPFRTypes::ROUNDING);
     mpfr_atan2(s.t[3], pzi, pzr, MPFRTypes::ROUNDING);
-    mpfr_mul(s.t[3], s.t[3], s.nVal, MPFRTypes::ROUNDING);
+    mpfr_mul(s.t[3], s.t[3], N, MPFRTypes::ROUNDING);
 
     mpfr_sin_cos(s.t[4], s.t[5], s.t[3], MPFRTypes::ROUNDING);
 
-    mpfr_mul(s.t[6], s.t[2], s.t[5], MPFRTypes::ROUNDING);
-    mpfr_mul(s.t[7], s.t[2], s.t[4], MPFRTypes::ROUNDING);
-
-    mpfr_add(s.zr, s.t[6], cr, MPFRTypes::ROUNDING);
-    mpfr_add(s.zi, s.t[7], ci, MPFRTypes::ROUNDING);
+    mpfr_mul(s.zr, s.t[2], s.t[5], MPFRTypes::ROUNDING);
+    mpfr_mul(s.zi, s.t[2], s.t[4], MPFRTypes::ROUNDING);
 }
 
 #endif

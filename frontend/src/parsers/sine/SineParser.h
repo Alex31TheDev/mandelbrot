@@ -17,8 +17,8 @@ public:
 private:
     std::string _skipOption;
 
-    bool _validate(const Backend::SinePaletteConfig &out,
-        const std::string &context, std::string &err) const;
+    static bool _validate(const Backend::SinePaletteConfig &out,
+        const std::string &context, std::string &err);
 
     bool _parseCLI(const std::vector<std::string> &args,
         Backend::SinePaletteConfig &out, std::string &err) const;

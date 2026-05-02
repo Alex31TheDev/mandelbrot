@@ -1,1 +1,27 @@
+#include "AppVersion.h"
+
 IDI_APP_ICON ICON "mandelbrot.ico"
+
+1 VERSIONINFO
+FILEVERSION MANDELBROT_GUI_VERSION_MAJOR, MANDELBROT_GUI_VERSION_MINOR, MANDELBROT_GUI_VERSION_PATCH, 0
+PRODUCTVERSION MANDELBROT_GUI_VERSION_MAJOR, MANDELBROT_GUI_VERSION_MINOR, MANDELBROT_GUI_VERSION_PATCH, 0
+FILEOS 0x4
+FILETYPE 0x0
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Mandelbrot GUI\0"
+            VALUE "FileVersion", MANDELBROT_GUI_VERSION "\0"
+            VALUE "InternalName", "mandelbrot-gui\0"
+            VALUE "OriginalFilename", "mandelbrot-gui.exe\0"
+            VALUE "ProductName", "Mandelbrot GUI\0"
+            VALUE "ProductVersion", MANDELBROT_GUI_VERSION "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END

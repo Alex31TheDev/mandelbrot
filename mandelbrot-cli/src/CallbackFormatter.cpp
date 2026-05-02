@@ -19,7 +19,8 @@ static void printAllocatedImageEvent(const ImageEvent &event) {
             FormatUtil::formatBufferSize(
                 event.primaryBytes + event.secondaryBytes).c_str(),
             FormatUtil::formatBufferSize(event.primaryBytes).c_str(),
-            FormatUtil::formatBufferSize(event.secondaryBytes).c_str());
+            FormatUtil::formatBufferSize(event.secondaryBytes).c_str()
+        );
         return;
     }
 

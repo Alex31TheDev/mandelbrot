@@ -16,7 +16,33 @@ using namespace ParserUtil;
 PaletteParser::PaletteParser(const std::string &skipOption)
     : _skipOption(skipOption) {}
 
-bool PaletteParser::_isValidEntry(const PaletteHexEntry &entry) const {
+PaletteRGBEntry PaletteParser::toRGBEntry(const PaletteHexEntry &entry) {
+    bool ok = false;
+    const auto [r, g, b] = parseHexString(entry.color, std::ref(ok));
+
+    return {
+        .R = static_cast<float>(r) / 255.0f,
+        .G = static_cast<float>(g) / 255.0f,
+        .B = static_cast<float>(b) / 255.0f,
+        .length = entry.length
+    };
+}
+
+PaletteRGBConfig PaletteParser::toRGBConfig(const PaletteHexConfig &palette) {
+    PaletteRGBConfig converted;
+    converted.totalLength = palette.totalLength;
+    converted.offset = palette.offset;
+    converted.blendEnds = palette.blendEnds;
+    converted.entries.reserve(palette.entries.size());
+
+    for (const PaletteHexEntry &entry : palette.entries) {
+        converted.entries.push_back(toRGBEntry(entry));
+    }
+
+    return converted;
+}
+
+bool PaletteParser::_isValidEntry(const PaletteHexEntry &entry) {
     bool ok = false;
     parseHexString(entry.color, std::ref(ok));
     return ok && entry.length >= 0.0f;
@@ -25,7 +51,7 @@ bool PaletteParser::_isValidEntry(const PaletteHexEntry &entry) const {
 bool PaletteParser::_validateConfig(
     const PaletteHexConfig &out,
     const std::string &context, std::string &err
-) const {
+) {
     if (out.totalLength > 0.0f && out.offset >= 0.0f) return true;
 
     err = context + " length must be > 0 and offset must be >= 0.";
@@ -35,7 +61,7 @@ bool PaletteParser::_validateConfig(
 bool PaletteParser::_validateEntryCount(
     const PaletteHexConfig &out,
     const std::string &context, std::string &err
-) const {
+) {
     if (out.entries.size() >= 2) return true;
 
     err = context + " must contain at least 2 color entries.";
@@ -178,4 +204,15 @@ bool PaletteParser::parse(
     }
 
     return _parseCLI(args, out, err);
+}
+
+bool PaletteParser::parse(
+    const std::vector<std::string> &args,
+    PaletteRGBConfig &out, std::string &err
+) {
+    PaletteHexConfig palette;
+    if (!parse(args, palette, err)) return false;
+
+    out = toRGBConfig(palette);
+    return true;
 }

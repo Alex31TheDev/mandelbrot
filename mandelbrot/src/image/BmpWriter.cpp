@@ -6,6 +6,7 @@
 #include "util/BufferUtil.h"
 
 #pragma pack(push, 1)
+
 struct BmpHeader {
     uint8_t type[2];
     uint32_t size;
@@ -13,6 +14,7 @@ struct BmpHeader {
     uint16_t reserved2 = 0;
     uint32_t offset;
 };
+
 struct DibHeader {
     uint32_t size;
     int32_t width;
@@ -26,6 +28,7 @@ struct DibHeader {
     uint32_t colorsUsed = 0;
     uint32_t importantColors = 0;
 };
+
 #pragma pack(pop)
 
 static_assert(sizeof(BmpHeader) == 14, "Invalid BmpHeader size");

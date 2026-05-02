@@ -181,6 +181,7 @@
     <ClInclude Include="src\util\AssertUtil.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
+    <ClInclude Include="src\util\IncludeWin32.h" />
     <ClInclude Include="src\util\TimeUtil.h" />
     <ClInclude Include="src\util\fnv1a.h" />
     <ClInclude Include="src\util\FormatUtil.h" />

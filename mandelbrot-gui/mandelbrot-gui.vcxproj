@@ -37,12 +37,12 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
     <QtInstall>6.11.0_intel_icx_64</QtInstall>
-    <QtModules>core;gui;widgets</QtModules>
+    <QtModules>core;gui;widgets;help</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
     <QtInstall>6.11.0_intel_icx_64</QtInstall>
-    <QtModules>core;gui;widgets</QtModules>
+    <QtModules>core;gui;widgets;help</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -70,14 +70,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <QtDeploy>false</QtDeploy>
     <QtDeployDebugRelease>debug</QtDeployDebugRelease>
     <QtDeployPdb>true</QtDeployPdb>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)bin\obj\$(Platform)\$(Configuration)\</IntDir>
     <QtDeploy>false</QtDeploy>
     <QtDeployDebugRelease>release</QtDeployDebugRelease>
   </PropertyGroup>
@@ -85,7 +85,7 @@
     <ProjectOutputRoot>$(ProjectDir)bin\</ProjectOutputRoot>
     <ProjectIntermediateRoot>$(ProjectDir)bin\obj\</ProjectIntermediateRoot>
     <OutDir>$(ProjectOutputRoot)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(ProjectIntermediateRoot)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(ProjectIntermediateRoot)$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AppVersion.h" />
     <ClInclude Include="settings\AppSettings.h" />
     <ClInclude Include="services\NativeFileDialog.h" />
     <ClInclude Include="services\PaletteStore.h" />
@@ -232,6 +233,15 @@
     <QtRcc Include="mandelbrot-gui.qrc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="help\help.css" />
+    <None Include="help\actions.html" />
+    <None Include="help\controls.html" />
+    <None Include="help\files.html" />
+    <None Include="help\index.html" />
+    <None Include="help\menus.html" />
+    <None Include="help\mandelbrot-gui-help.qhp" />
+    <None Include="help\shortcuts.html" />
+    <None Include="help\viewport.html" />
     <None Include="mandelbrot-gui.aps" />
   </ItemGroup>
   <ItemGroup>
@@ -282,6 +292,18 @@
     <MakeDir Directories="$(OutDir)translations" />
     <Message Importance="high" Condition="!Exists('$(_GUILRelease)')" Text="Qt lrelease was not found; GUI .qm translations were not generated." />
     <Exec Condition="Exists('$(_GUILRelease)')" Command="&quot;$(_GUILRelease)&quot; &quot;%(QtTranslation.Identity)&quot; -qm &quot;$(OutDir)translations\%(Filename).qm&quot;" />
+  </Target>
+  <Target Name="BuildGUIHelp" BeforeTargets="QtDeployCustom">
+    <PropertyGroup>
+      <_GUIHelpGenerator>$(QtToolsPath)\qhelpgenerator.exe</_GUIHelpGenerator>
+      <_GUIHelpGenerator Condition="!Exists('$(_GUIHelpGenerator)') and Exists('C:\Qt\6.11.0\msvc2022_64\bin\qhelpgenerator.exe')">C:\Qt\6.11.0\msvc2022_64\bin\qhelpgenerator.exe</_GUIHelpGenerator>
+      <_GUIHelpGenerator Condition="!Exists('$(_GUIHelpGenerator)') and Exists('C:\Qt\6.11.0\intel_icx_64\bin\qhelpgenerator.exe')">C:\Qt\6.11.0\intel_icx_64\bin\qhelpgenerator.exe</_GUIHelpGenerator>
+      <_GUIHelpGenerator Condition="!Exists('$(_GUIHelpGenerator)') and Exists('C:\Qt\6.11.0\mingw_64\bin\qhelpgenerator.exe')">C:\Qt\6.11.0\mingw_64\bin\qhelpgenerator.exe</_GUIHelpGenerator>
+      <_GUIHelpGenerator Condition="!Exists('$(_GUIHelpGenerator)') and Exists('C:\Qt\Tools\QtDesignStudio\qt6_design_studio_reduced_version\bin\qhelpgenerator.exe')">C:\Qt\Tools\QtDesignStudio\qt6_design_studio_reduced_version\bin\qhelpgenerator.exe</_GUIHelpGenerator>
+    </PropertyGroup>
+    <MakeDir Directories="$(OutDir)help" />
+    <Message Importance="high" Condition="!Exists('$(_GUIHelpGenerator)')" Text="Qt qhelpgenerator was not found; GUI help .qch was not generated." />
+    <Exec Condition="Exists('$(_GUIHelpGenerator)')" Command="&quot;$(_GUIHelpGenerator)&quot; &quot;$(MSBuildProjectDirectory)\help\mandelbrot-gui-help.qhp&quot; -o &quot;$(OutDir)help\mandelbrot-gui-help.qch&quot;" />
   </Target>
   <Target Name="QtDeployCustom" AfterTargets="IntelVcpkgAppLocal" Condition="Exists('$(TargetPath)')">
     <PropertyGroup>

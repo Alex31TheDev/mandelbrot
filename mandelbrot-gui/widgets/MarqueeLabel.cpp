@@ -4,21 +4,41 @@
 
 #include <QDesktopServices>
 #include <QEvent>
+#include <QFileInfo>
 #include <QResizeEvent>
 #include <QUrl>
 
 MarqueeLabel::MarqueeLabel(QWidget *parent)
     : QLabel(parent) {
+    setTextFormat(Qt::RichText);
+    setTextInteractionFlags(Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
+    setOpenExternalLinks(false);
+
     _marqueeTimer.setInterval(125);
     QObject::connect(&_marqueeTimer, &QTimer::timeout, this, [this]() {
         if (_sourceText.isEmpty()) return;
         _marqueeOffset++;
         _updateDisplayedText();
         });
-    QObject::connect(this, &QLabel::linkActivated, this,
-        [](const QString &link) { QDesktopServices::openUrl(QUrl(link)); });
+    QObject::connect(this, &QLabel::linkActivated, this, [](const QString &link) {
+        QUrl url = QUrl::fromUserInput(link);
+        if (url.isLocalFile() || QFileInfo::exists(link)) {
+            url = QUrl::fromLocalFile(
+                url.isLocalFile() ? url.toLocalFile() : QFileInfo(link).absoluteFilePath());
+        }
+
+        if (url.isValid()) {
+            QDesktopServices::openUrl(url);
+        }
+        });
     QObject::connect(this, &QLabel::linkHovered, this, [this](const QString &link) {
-        if (link.isEmpty()) {
+        const bool hovered = !link.isEmpty();
+        if (_linkHovered != hovered) {
+            _linkHovered = hovered;
+            _syncTimer();
+        }
+
+        if (!hovered) {
             unsetCursor();
         } else {
             setCursor(Qt::PointingHandCursor);
@@ -123,7 +143,7 @@ void MarqueeLabel::changeEvent(QEvent *event) {
 }
 
 bool MarqueeLabel::_shouldMarquee() const {
-    return wouldMarquee(_sourceText);
+    return !_linkHovered && wouldMarquee(_sourceText);
 }
 
 void MarqueeLabel::_syncTimer() {

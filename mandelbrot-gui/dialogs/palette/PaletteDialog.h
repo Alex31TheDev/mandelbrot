@@ -17,26 +17,26 @@ class PaletteDialog final : public QDialog {
     Q_OBJECT
 
 public:
-    PaletteDialog(const Backend::PaletteHexConfig &palette,
+    PaletteDialog(const Backend::PaletteRGBConfig &palette,
         const QString &paletteName,
         std::function<void(const QString &)> savedPathCallback,
         QWidget *parent = nullptr);
     ~PaletteDialog() override;
 
-    [[nodiscard]] Backend::PaletteHexConfig palette() const;
+    [[nodiscard]] Backend::PaletteRGBConfig palette() const;
     [[nodiscard]] QString savedPaletteName() const;
     [[nodiscard]] bool savedStateDirty() const;
     void accept() override;
 
 private:
     std::unique_ptr<Ui::PaletteDialog> _ui;
-    Backend::PaletteHexConfig _palette;
+    Backend::PaletteRGBConfig _palette;
     QString _savedPaletteName;
     bool _savedPaletteDirty = false;
     std::function<void(const QString &)> _savedPathCallback;
 
-    [[nodiscard]] Backend::PaletteHexConfig _currentPalette() const;
-    void _applyPalette(const Backend::PaletteHexConfig &palette);
+    [[nodiscard]] Backend::PaletteRGBConfig _currentPalette() const;
+    void _applyPalette(const Backend::PaletteRGBConfig &palette);
     [[nodiscard]] QString _validatedPaletteName() const;
     void _editColor();
     void _importPalette();

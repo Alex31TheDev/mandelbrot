@@ -36,6 +36,9 @@ public:
     [[nodiscard]] int selectedOutputHeight() const;
     void setSelectedOutputHeight(int height);
 
+    [[nodiscard]] float viewportScalePercent() const;
+    void setViewportScalePercent(float percent);
+
     [[nodiscard]] QString paletteRecoveryName() const;
     void setPaletteRecoveryName(const QString &name);
     void clearPaletteRecoveryName();

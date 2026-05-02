@@ -10,6 +10,23 @@
 
 using namespace GUI;
 
+static QSize nonClientSizeForViewport(const ViewportWindow *viewport) {
+    if (!viewport) return {};
+
+    const QSize clientSize = viewport->size();
+    const QRect frame = viewport->frameGeometry();
+    return QSize(std::max(0, frame.width() - clientSize.width()),
+        std::max(0, frame.height() - clientSize.height()));
+}
+
+static QSize clientSizeFromOuter(
+    const QSize &outerSize,
+    const QSize &nonClientSize
+) {
+    return QSize(std::max(1, outerSize.width() - std::max(0, nonClientSize.width())),
+        std::max(1, outerSize.height() - std::max(0, nonClientSize.height())));
+}
+
 ViewportController::ViewportController(
     GUISessionState &sessionState, RenderController &renderController,
     Shortcuts &shortcuts, QObject *parent
@@ -235,16 +252,124 @@ void ViewportController::prepareViewportFullscreenTransition() {
     if (_viewport) _viewport->clearPreviewOffset();
 }
 
+void ViewportController::resizeViewportForScalePercent(float scalePercent) const {
+    if (!_viewport || _viewport->isFullScreen()) {
+        return;
+    }
+
+    const QSize output = _sessionState.outputSize();
+    if (output.width() <= 0 || output.height() <= 0) {
+        return;
+    }
+
+    const float dpr = std::max(1.0f, static_cast<float>(_viewport->devicePixelRatioF()));
+    const float scale = std::max(1.0f, scalePercent) / 100.0f;
+    const QSize requestedClientSize(
+        std::max(1,
+            static_cast<int>(
+                std::lroundf(static_cast<float>(output.width()) * scale / dpr))
+        ),
+        std::max(1,
+            static_cast<int>(
+                std::lroundf(static_cast<float>(output.height()) * scale / dpr))
+        )
+    );
+    const QSize nonClientSize = nonClientSizeForViewport(_viewport);
+    const QSize constrainedOuterSize = constrainViewportSize(
+        QSize(requestedClientSize.width() + nonClientSize.width(),
+            requestedClientSize.height() + nonClientSize.height()),
+        nonClientSize);
+    const QSize constrainedClientSize
+        = clientSizeFromOuter(constrainedOuterSize, nonClientSize);
+
+    _viewport->showNormal();
+    _viewport->setMinimumSize(1, 1);
+    _viewport->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    _viewport->resize(constrainedClientSize);
+}
+
+float ViewportController::viewportScalePercentForLogicalSize(
+    const QSize &logicalSize
+) const {
+    const QSize output = _sessionState.outputSize();
+    if (!logicalSize.isValid() || output.width() <= 0 || output.height() <= 0) {
+        return std::max(1.0f, _sessionState.state().viewportScalePercent);
+    }
+
+    const float dpr = std::max(1.0f, static_cast<float>(
+        _viewport ? _viewport->devicePixelRatioF() : 1.0)
+    );
+    const QSize nonClientSize = nonClientSizeForViewport(_viewport);
+    const QSize constrainedClientSize = clientSizeFromOuter(
+        constrainViewportSize(
+            QSize(logicalSize.width() + nonClientSize.width(),
+                logicalSize.height() + nonClientSize.height()),
+            nonClientSize
+        ),
+        nonClientSize
+    );
+
+    const float widthScalePercent = static_cast<float>(constrainedClientSize.width())
+        * dpr * 100.0f / static_cast<float>(std::max(1, output.width()));
+    const float heightScalePercent = static_cast<float>(constrainedClientSize.height())
+        * dpr * 100.0f / static_cast<float>(std::max(1, output.height()));
+    return std::max(1.0f, std::min(widthScalePercent, heightScalePercent));
+}
+
 void ViewportController::applyViewportOutputSize(const QSize &outputSize) {
     if (!outputSize.isValid()) return;
     _renderController.markPreviewMotion();
     _sessionState.mutableState().outputWidth = outputSize.width();
     _sessionState.mutableState().outputHeight = outputSize.height();
-    if (_viewport && !_viewport->isFullScreen()) {
-        Util::resizeViewportToImageSize(_viewport, outputSize);
-    }
+    resizeViewportForScalePercent(_sessionState.state().viewportScalePercent);
     emit sessionStateChanged();
     emit renderRequested();
+}
+
+QSize ViewportController::constrainViewportSize(
+    const QSize &requestedOuterSize, const QSize &nonClientSize
+) const {
+    const int requestedOuterWidth = std::max(1, requestedOuterSize.width());
+    const int requestedOuterHeight = std::max(1, requestedOuterSize.height());
+    const int nonClientWidth = std::max(0, nonClientSize.width());
+    const int nonClientHeight = std::max(0, nonClientSize.height());
+
+    const QSize output = _sessionState.outputSize();
+    if (output.width() <= 0 || output.height() <= 0) {
+        return QSize(requestedOuterWidth, requestedOuterHeight);
+    }
+
+    const double aspect = static_cast<double>(output.width())
+        / static_cast<double>(output.height());
+    if (!(aspect > 0.0) || !std::isfinite(aspect)) {
+        return QSize(requestedOuterWidth, requestedOuterHeight);
+    }
+
+    const int requestedClientWidth
+        = std::max(1, requestedOuterWidth - nonClientWidth);
+    const int requestedClientHeight
+        = std::max(1, requestedOuterHeight - nonClientHeight);
+
+    int constrainedClientWidth = requestedClientWidth;
+    int constrainedClientHeight = requestedClientHeight;
+    if (static_cast<double>(requestedClientWidth)
+        / static_cast<double>(requestedClientHeight)
+    > aspect) {
+        constrainedClientWidth = std::max(1,
+            static_cast<int>(std::lround(
+                static_cast<double>(requestedClientHeight) * aspect)
+                )
+        );
+    } else {
+        constrainedClientHeight = std::max(1,
+            static_cast<int>(std::lround(
+                static_cast<double>(requestedClientWidth) / aspect)
+                )
+        );
+    }
+
+    return QSize(std::max(1, constrainedClientWidth + nonClientWidth),
+        std::max(1, constrainedClientHeight + nonClientHeight));
 }
 
 bool ViewportController::previewPannedViewState(

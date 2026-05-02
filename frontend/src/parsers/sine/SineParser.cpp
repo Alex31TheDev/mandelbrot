@@ -17,7 +17,7 @@ SineParser::SineParser(const std::string &skipOption)
 bool SineParser::_validate(
     const SinePaletteConfig &out,
     const std::string &context, std::string &err
-) const {
+) {
     if (std::abs(out.freqMult) > 0.0001f) return true;
 
     err = context + " frequency multiplier must be non-zero.";

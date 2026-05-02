@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QtHelpProject version="1.0">
+    <namespace>com.alex31thedev.mandelbrot.gui</namespace>
+    <virtualFolder>doc</virtualFolder>
+
+    <filterSection>
+        <toc>
+            <section title="Mandelbrot GUI Help" ref="index.html">
+                <section title="Viewport" ref="viewport.html"/>
+                <section title="Controls" ref="controls.html"/>
+                <section title="Actions" ref="actions.html"/>
+                <section title="Files and Recovery" ref="files.html"/>
+                <section title="Shortcuts" ref="shortcuts.html"/>
+                <section title="Menus" ref="menus.html"/>
+            </section>
+        </toc>
+
+        <keywords>
+            <keyword name="viewport" id="viewport" ref="viewport.html"/>
+            <keyword name="controls" id="controls" ref="controls.html"/>
+            <keyword name="actions" id="actions" ref="actions.html"/>
+            <keyword name="files" id="files" ref="files.html"/>
+            <keyword name="recovery" id="recovery" ref="files.html"/>
+            <keyword name="shortcuts" id="shortcuts" ref="shortcuts.html"/>
+            <keyword name="menus" id="menus" ref="menus.html"/>
+            <keyword name="palette" id="palette" ref="controls.html"/>
+            <keyword name="sine" id="sine" ref="controls.html"/>
+            <keyword name="light" id="light" ref="controls.html"/>
+            <keyword name="zoom" id="zoom" ref="viewport.html"/>
+            <keyword name="pan" id="pan" ref="viewport.html"/>
+            <keyword name="save view" id="save-view" ref="files.html"/>
+        </keywords>
+
+        <files>
+            <file>help.css</file>
+            <file>index.html</file>
+            <file>viewport.html</file>
+            <file>controls.html</file>
+            <file>actions.html</file>
+            <file>files.html</file>
+            <file>shortcuts.html</file>
+            <file>menus.html</file>
+        </files>
+    </filterSection>
+</QtHelpProject>

@@ -142,6 +142,7 @@ createProgressTracker(
         const ProgressOptions options{
             .callbacks = callbacks
         };
+
         return std::make_unique<ProgressTracker>(width * height,
             useThreads, options);
     } else return nullptr;

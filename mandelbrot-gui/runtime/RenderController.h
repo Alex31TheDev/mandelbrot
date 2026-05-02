@@ -67,14 +67,15 @@ public:
     }
     [[nodiscard]] int currentIterationCount() const;
 
-    bool saveImage(const QString &path, bool appendDate, const QString &type,
+    bool saveImage(const QString &path, bool appendDate,
+        const QString &type, QString *savedPath,
         QString &errorMessage);
     [[nodiscard]] QImage renderSinePreview(
         const Backend::SinePaletteConfig &palette,
         const QSize &widgetSize, double rangeMin, double rangeMax
     ) const;
     [[nodiscard]] QImage renderPalettePreview(
-        const Backend::PaletteHexConfig &palette
+        const Backend::PaletteRGBConfig &palette
     ) const;
 
     bool pointAtPixel(

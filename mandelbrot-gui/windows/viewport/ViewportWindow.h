@@ -52,7 +52,8 @@ public:
     [[nodiscard]] std::optional<PreviewTransform> previewTransform() const;
 
 signals:
-    void closeRequested();
+    void closeRequested(bool skipDirtyViewPrompt);
+    void viewportScaleAdjustmentRequested(const QSize &logicalSize);
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -66,6 +67,8 @@ protected:
     void leaveEvent(QEvent *) override;
     void resizeEvent(QResizeEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    bool nativeEvent(const QByteArray &eventType,
+        void *message, qintptr *result) override;
 
 private:
     std::unique_ptr<Ui::ViewportWindow> _ui;

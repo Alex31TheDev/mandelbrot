@@ -4,6 +4,7 @@
 
 #include "ui_ViewportWindow.h"
 #include "app/GUIConstants.h"
+#include "util/IncludeWin32.h"
 #include "util/NumberUtil.h"
 
 using namespace GUI;
@@ -651,7 +652,117 @@ void ViewportWindow::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
     if (_fullscreenTransitionPending) {
         _fullscreenResizeTimer.start();
+        return;
     }
+
+    if (!_host || isFullScreen() || !event->spontaneous()) {
+        return;
+    }
+    
+    emit viewportScaleAdjustmentRequested(event->size());
+}
+
+bool ViewportWindow::nativeEvent(
+    const QByteArray &eventType,
+    void *message, qintptr *result
+) {
+    Q_UNUSED(eventType);
+    const bool handled = QWidget::nativeEvent(eventType, message, result);
+    if (!message || !result || isFullScreen()) {
+        return handled;
+    }
+
+    MSG *msg = static_cast<MSG *>(message);
+    if (msg->message == WM_NCHITTEST) {
+        switch (*result) {
+            case HTLEFT:
+            case HTRIGHT:
+            case HTTOP:
+            case HTBOTTOM:
+                *result = HTCLIENT;
+                return true;
+            default:
+                return handled;
+        }
+    }
+
+    if (msg->message == WM_SIZING && _host) {
+        RECT *rect = reinterpret_cast<RECT *>(msg->lParam);
+        if (!rect) {
+            return handled;
+        }
+
+        int nonClientWidth = 0;
+        int nonClientHeight = 0;
+        if (const HWND hwnd = reinterpret_cast<HWND>(winId())) {
+            RECT windowRect{};
+            RECT clientRect{};
+            if (GetWindowRect(hwnd, &windowRect) && GetClientRect(hwnd, &clientRect)) {
+                nonClientWidth = static_cast<int>(
+                    (windowRect.right - windowRect.left)
+                    - (clientRect.right - clientRect.left));
+                nonClientHeight = static_cast<int>(
+                    (windowRect.bottom - windowRect.top)
+                    - (clientRect.bottom - clientRect.top));
+            }
+        }
+
+        const QSize newSize = _host->constrainViewportSize(
+            QSize(static_cast<int>(rect->right - rect->left),
+                static_cast<int>(rect->bottom - rect->top)),
+            QSize(nonClientWidth, nonClientHeight)
+        );
+
+        switch (msg->wParam) {
+            case WMSZ_TOPLEFT:
+                rect->left = rect->right - newSize.width();
+                rect->top = rect->bottom - newSize.height();
+                break;
+            case WMSZ_TOPRIGHT:
+                rect->right = rect->left + newSize.width();
+                rect->top = rect->bottom - newSize.height();
+                break;
+            case WMSZ_BOTTOMLEFT:
+                rect->left = rect->right - newSize.width();
+                rect->bottom = rect->top + newSize.height();
+                break;
+            case WMSZ_BOTTOMRIGHT:
+                rect->right = rect->left + newSize.width();
+                rect->bottom = rect->top + newSize.height();
+                break;
+            default:
+                return true;
+        }
+
+        *result = TRUE;
+        return true;
+    }
+
+    if (msg->message == WM_NCLBUTTONDOWN) {
+        switch (msg->wParam) {
+            case HTLEFT:
+            case HTRIGHT:
+            case HTTOP:
+            case HTBOTTOM:
+                *result = 0;
+                return true;
+            default:
+                break;
+        }
+    }
+
+    if (msg->message == WM_SYSCOMMAND) {
+        if ((msg->wParam & 0xFFF0) == SC_SIZE) {
+            const WPARAM direction = (msg->wParam & 0x000F);
+            if (direction == WMSZ_LEFT || direction == WMSZ_RIGHT
+                || direction == WMSZ_TOP || direction == WMSZ_BOTTOM) {
+                *result = 0;
+                return true;
+            }
+        }
+    }
+
+    return handled;
 }
 
 void ViewportWindow::closeEvent(QCloseEvent *event) {
@@ -665,7 +776,9 @@ void ViewportWindow::closeEvent(QCloseEvent *event) {
     }
     if (!_closeAllowed) {
         event->ignore();
-        emit closeRequested();
+        const bool skipDirtyViewPrompt
+            = (QApplication::keyboardModifiers() & Qt::ShiftModifier) != 0;
+        emit closeRequested(skipDirtyViewPrompt);
         return;
     }
     event->accept();

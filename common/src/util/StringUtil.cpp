@@ -1,8 +1,12 @@
 #include "StringUtil.h"
 
 #include <cctype>
+#include <codecvt>
+#include <locale>
 #include <string>
 #include <string_view>
+
+#include "IncludeWin32.h"
 
 namespace StringUtil {
     bool startsWith(std::string_view value, std::string_view prefix) {
@@ -80,4 +84,59 @@ namespace StringUtil {
 
         return std::string(value);
     }
+
+    std::wstring utf8ToWide(std::string_view value) {
+        if (value.empty()) return L"";
+
+#ifdef _WIN32
+        const size_t len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+            value.data(), static_cast<int>(value.size()), nullptr, 0);
+
+        if (len > 0) {
+            std::wstring out(len, L'\0');
+            MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+                value.data(), static_cast<int>(value.size()), out.data(), len);
+            return out;
+        }
+#else
+        try {
+            std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+            return converter.from_bytes(value.data(), value.data() + value.size());
+        } catch (...) {
+        }
+#endif
+
+        return std::wstring(value.begin(), value.end());
+    }
+
+#ifdef _WIN32
+    void copyToClipboard(HWND hwnd, const std::wstring &text) {
+        if (!OpenClipboard(hwnd)) return;
+        EmptyClipboard();
+
+        const size_t bytes = (text.size() + 1) * sizeof(wchar_t);
+        HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+
+        if (mem) {
+            void *ptr = GlobalLock(mem);
+
+            if (ptr) {
+                memcpy(ptr, text.c_str(), bytes);
+                GlobalUnlock(mem);
+
+                if (SetClipboardData(CF_UNICODETEXT, mem)) {
+                    mem = nullptr;
+                }
+            }
+
+            if (mem) GlobalFree(mem);
+        }
+
+        CloseClipboard();
+    }
+
+    void copyToClipboard(HWND hwnd, std::string_view text) {
+        copyToClipboard(hwnd, utf8ToWide(text));
+    }
+#endif
 }

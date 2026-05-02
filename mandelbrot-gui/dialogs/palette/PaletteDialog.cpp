@@ -26,7 +26,7 @@ using namespace Backend;
 
 using namespace GUI;
 
-PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig &palette,
+PaletteDialog::PaletteDialog(const Backend::PaletteRGBConfig &palette,
     const QString &paletteName,
     std::function<void(const QString &)> savedPathCallback, QWidget *parent)
     : QDialog(parent)
@@ -55,7 +55,8 @@ PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig &palette,
         _ui->paletteTimeline, &PaletteTimelineWidget::changed, this, [this]() {
             _savedPaletteDirty = true;
             _refreshButtonState();
-        });
+        }
+    );
     connect(_ui->paletteTimeline, &PaletteTimelineWidget::selectionChanged,
         this, [this](int) { _refreshButtonState(); });
     connect(_ui->paletteTimeline, &PaletteTimelineWidget::editColorRequested,
@@ -73,7 +74,8 @@ PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig &palette,
             _ui->paletteTimeline->setBlendEnds(checked);
             _savedPaletteDirty = true;
             _refreshButtonState();
-        });
+        }
+    );
     connect(_ui->nameEdit, &QLineEdit::textEdited, this,
         [this](const QString &) { _savedPaletteDirty = true; });
     connect(_ui->importButton, &QPushButton::clicked, this,
@@ -86,7 +88,7 @@ PaletteDialog::PaletteDialog(const Backend::PaletteHexConfig &palette,
 
 PaletteDialog::~PaletteDialog() = default;
 
-Backend::PaletteHexConfig PaletteDialog::palette() const {
+Backend::PaletteRGBConfig PaletteDialog::palette() const {
     return _currentPalette();
 }
 
@@ -103,13 +105,13 @@ void PaletteDialog::accept() {
     QDialog::accept();
 }
 
-Backend::PaletteHexConfig PaletteDialog::_currentPalette() const {
+Backend::PaletteRGBConfig PaletteDialog::_currentPalette() const {
     return PaletteStore::stopsToConfig(_ui->paletteTimeline->stops(),
         _palette.totalLength, _palette.offset,
         _ui->blendEndsCheck->isChecked());
 }
 
-void PaletteDialog::_applyPalette(const Backend::PaletteHexConfig &palette) {
+void PaletteDialog::_applyPalette(const Backend::PaletteRGBConfig &palette) {
     _palette = palette;
     const QSignalBlocker blendBlocker(_ui->blendEndsCheck);
     _ui->blendEndsCheck->setChecked(_palette.blendEnds);
@@ -140,7 +142,7 @@ void PaletteDialog::_importPalette() {
         tr("Palette Files (*.txt);;All Files (*.*)"));
     if (sourcePath.isEmpty()) return;
 
-    Backend::PaletteHexConfig loaded;
+    Backend::PaletteRGBConfig loaded;
     QString importedName;
     std::filesystem::path destinationPath;
     QString errorMessage;
@@ -190,7 +192,7 @@ void PaletteDialog::_savePalette() {
             QMessageBox::Yes);
         if (choice == QMessageBox::Cancel) return;
         if (choice == QMessageBox::No) {
-            const QString savePath = showNativeSaveFileDialog(this,
+            const QString savePath = showNativeSaveDialog(this,
                 tr("Save Palette As"), PaletteStore::directoryPath(),
                 QFileInfo(
                     Util::uniqueIndexedPathWithExtension(

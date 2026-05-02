@@ -31,6 +31,9 @@ public:
     virtual void setDisplayedNavModeOverride(std::optional<GUI::NavMode> mode) = 0;
     virtual void prepareViewportFullscreenTransition() = 0;
     virtual void applyViewportOutputSize(const QSize &outputSize) = 0;
+    [[nodiscard]] virtual QSize constrainViewportSize(
+        const QSize &requestedOuterSize, const QSize &nonClientSize
+    ) const = 0;
 
     [[nodiscard]] virtual GUI::NavMode navMode() const = 0;
     [[nodiscard]] virtual bool viewportUsesDirectPick() const = 0;

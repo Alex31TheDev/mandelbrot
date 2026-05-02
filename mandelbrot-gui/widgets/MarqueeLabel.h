@@ -57,6 +57,7 @@ private:
     int _marqueeOffset = 0;
     bool _marqueeEnabled = true;
     bool _emphasisEnabled = false;
+    bool _linkHovered = false;
 
     [[nodiscard]] bool _shouldMarquee() const;
     void _syncTimer();

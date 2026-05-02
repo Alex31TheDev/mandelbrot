@@ -69,6 +69,6 @@ private:
     QString _savedSineName;
     QString _savedPaletteName;
     Backend::SinePaletteConfig _savedSinePalette;
-    Backend::PaletteHexConfig _savedPalette;
+    Backend::PaletteRGBConfig _savedPalette;
     GUI::SavedPointViewState _savedPointViewState;
 };

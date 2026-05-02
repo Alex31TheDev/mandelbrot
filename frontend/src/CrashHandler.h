@@ -4,22 +4,51 @@
 #include <cstdio>
 #include <cstring>
 
-#include <filesystem>
-#include <fstream>
 #include <sstream>
 #include <string>
+#include <fstream>
+#include <iterator>
+#include <filesystem>
 
 #include "util/IncludeWin32.h"
+#include "util/StringUtil.h"
 
 #include <DbgHelp.h>
 #include <Psapi.h>
-
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "psapi.lib")
+
+#ifdef CRASH_HANDLER_MSGBOX
+#include <CommCtrl.h>
+#pragma comment(lib, "comctl32.lib")
+
+#ifdef UNICODE
+#if defined _M_IX86
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_IA64
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='ia64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_X64
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#else
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
+#endif
+#endif
 
 #include "util/TimeUtil.h"
 
 namespace _CrashHandlerImpl {
+    inline constexpr const char *ignoredModules[] = {
+        "ntdll.dll",
+        "kernelbase.dll",
+        "rpcrt4.dll",
+        "davclnt.dll",
+        "mpr.dll",
+        "windows.storage.dll",
+        "explorerframe.dll",
+        "shcore.dll",
+    };
+
     inline void writeCrashReport(const std::string &report) {
         std::error_code err;
         std::filesystem::create_directories("logs", err);
@@ -32,6 +61,88 @@ namespace _CrashHandlerImpl {
         if (file) file.write(report.data(), static_cast<std::streamsize>(report.size()));
     }
 
+#if defined(CRASH_HANDLER_MSGBOX)
+    inline constexpr const wchar_t *iconPath = L"mandelbrot.ico";
+    inline constexpr int COPY_BUTTON = 1002;
+
+    inline thread_local HICON largeIcon = nullptr;
+    inline thread_local HICON smallIcon = nullptr;
+
+    inline HICON loadIcon(int metric) {
+        const int iconSize = GetSystemMetrics(metric);
+        return reinterpret_cast<HICON>(LoadImageW(nullptr, iconPath,
+            IMAGE_ICON, iconSize, iconSize, LR_LOADFROMFILE));
+    }
+
+    inline void applyIcons(HWND hwnd, HICON largeIcon, HICON smallIcon) {
+        if (!hwnd) return;
+        if (largeIcon) SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(largeIcon));
+        if (smallIcon) SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(smallIcon));
+    }
+
+    inline HRESULT CALLBACK dialogCallback(HWND hwnd, UINT msg, WPARAM wParam,
+        LPARAM, LONG_PTR refData) {
+        if (msg == TDN_CREATED) {
+            applyIcons(hwnd, largeIcon, smallIcon);
+            return S_OK;
+        }
+
+        if (msg == TDN_BUTTON_CLICKED && wParam == COPY_BUTTON) {
+            const auto *text = reinterpret_cast<const std::wstring *>(refData);
+            if (text) StringUtil::copyToClipboard(hwnd, *text);
+            return S_FALSE;
+        }
+
+        return S_OK;
+    }
+
+    inline void displayCrashReport(const std::string &report) {
+        const std::wstring windowTitle = L"Crash Detected";
+        const std::wstring reportText = StringUtil::utf8ToWide(report);
+
+        const TASKDIALOG_BUTTON buttons[] = {
+            { COPY_BUTTON, L"Copy" },
+            { IDOK, L"OK" }
+        };
+
+        TASKDIALOGCONFIG config{};
+        config.cbSize = sizeof(config);
+        config.hInstance = GetModuleHandleW(nullptr);
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION
+            | TDF_POSITION_RELATIVE_TO_WINDOW
+            | TDF_SIZE_TO_CONTENT;
+        config.pszWindowTitle = windowTitle.c_str();
+        config.pszMainIcon = TD_ERROR_ICON;
+        config.pszMainInstruction = L"Crash Report";
+        config.pszContent = L"The application hit an unexpected exception.";
+        config.pszExpandedInformation = reportText.c_str();
+        config.pszExpandedControlText = L"Hide details";
+        config.pszCollapsedControlText = L"Show details";
+        config.cButtons = static_cast<UINT>(std::size(buttons));
+        config.pButtons = buttons;
+        config.nDefaultButton = IDOK;
+        config.pfCallback = dialogCallback;
+        config.lpCallbackData = reinterpret_cast<LONG_PTR>(&reportText);
+
+        largeIcon = loadIcon(SM_CXICON);
+        smallIcon = loadIcon(SM_CXSMICON);
+
+        if (FAILED(TaskDialogIndirect(&config, nullptr, nullptr, nullptr))) {
+            MessageBoxW(nullptr, reportText.c_str(), windowTitle.c_str(),
+                MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
+        }
+
+        if (largeIcon) {
+            DestroyIcon(largeIcon);
+            largeIcon = nullptr;
+        }
+
+        if (smallIcon) {
+            DestroyIcon(smallIcon);
+            smallIcon = nullptr;
+        }
+    }
+#elif defined(CRASH_HANDLER_PRINT)
     inline void displayCrashReport(const std::string &report) {
         std::string display = report;
         const size_t MB_LIMIT = 30000;
@@ -40,15 +151,12 @@ namespace _CrashHandlerImpl {
             display += "\n...[truncated, see log file]";
         }
 
-#ifdef CRASH_HANDLER_MSGBOX
-        MessageBoxA(NULL, display.c_str(), "Crash Detected", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
-#elif defined(CRASH_HANDLER_PRINT)
         fprintf(stderr, "%s\n", display.c_str());
         fflush(stderr);
+    }
 #else
 #error "No reporting type selected"
 #endif
-    }
 
     inline bool AddressInModule(uintptr_t addr, const char *moduleName) {
         HMODULE hMod = GetModuleHandleA(moduleName);
@@ -80,8 +188,10 @@ namespace _CrashHandlerImpl {
 
         uintptr_t excAddr = (uintptr_t)excRecord->ExceptionAddress;
 
-        if (AddressInModule(excAddr, "ntdll.dll"))
-            return EXCEPTION_CONTINUE_SEARCH;
+        for (const char *moduleName : ignoredModules) {
+            if (AddressInModule(excAddr, moduleName))
+                return EXCEPTION_CONTINUE_SEARCH;
+        }
 
         HANDLE process = GetCurrentProcess();
         SymInitialize(process, NULL, TRUE);

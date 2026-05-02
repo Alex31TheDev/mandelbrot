@@ -97,6 +97,16 @@ void AppSettings::setSelectedOutputHeight(int height) {
     _settings.setValue("render/outputHeight", std::max(1, height));
 }
 
+float AppSettings::viewportScalePercent() const {
+    return std::max(1.0f,
+        _settings.value("window/viewportScalePercent", 100.0).toFloat()
+    );
+}
+
+void AppSettings::setViewportScalePercent(float percent) {
+    _settings.setValue("window/viewportScalePercent", std::max(1.0f, percent));
+}
+
 QString AppSettings::paletteRecoveryName() const {
     return _settings.value("recovery/paletteName").toString();
 }

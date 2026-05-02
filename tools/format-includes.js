@@ -38,26 +38,21 @@ const IncludeGroups = Object.freeze({
     util: "util"
 });
 
-const IncludeRules = {
-    guiRootName: "mandelbrot-gui",
+const SortTypes = Object.freeze({
+    alphabetical: "alphabetical",
+    preserve: "preserve",
+    weighted: "weighted"
+});
 
-    groupOrder: [
-        IncludeGroups.stl,
-        IncludeGroups.win32,
-        IncludeGroups.qt,
-        IncludeGroups.backend,
-        IncludeGroups.external,
-        IncludeGroups.app,
-        IncludeGroups.runtime,
-        IncludeGroups.controllers,
-        IncludeGroups.services,
-        IncludeGroups.settings,
-        IncludeGroups.locale,
-        IncludeGroups.windows,
-        IncludeGroups.dialogs,
-        IncludeGroups.widgets,
-        IncludeGroups.util
-    ],
+const MatchTypes = Object.freeze({
+    leafName: "leafName",
+    leafStem: "leafStem",
+    substring: "substring",
+    regex: "regex"
+});
+
+const IncludeConfig = Object.freeze({
+    guiRootName: "mandelbrot-gui",
 
     pathGroups: {
         app: IncludeGroups.app,
@@ -70,12 +65,6 @@ const IncludeRules = {
         dialogs: IncludeGroups.dialogs,
         widgets: IncludeGroups.widgets,
         util: IncludeGroups.util
-    },
-
-    weightOrder: {
-        [IncludeGroups.app]: ["GUIAppController", "GUISessionState", "GUITypes", "GUIConstants"],
-        [IncludeGroups.services]: ["point", "palette", "sine"],
-        [IncludeGroups.settings]: ["AppSettings", "Shortcuts"]
     },
 
     windowsSystemHeaders: new Set([
@@ -92,11 +81,75 @@ const IncludeRules = {
         "winuser.h"
     ]),
 
+    includeWin32: "IncludeWin32.h",
     backendInclude: "BackendAPI.h",
     backendUsing: "using namespace Backend;",
 
     guiUsing: "using namespace GUI;"
-};
+});
+
+const IncludeRules = Object.freeze({
+    [IncludeGroups.stl]: {
+        sort: SortTypes.weighted,
+        fallback: SortTypes.alphabetical,
+        weights: ["^c(?!omplex$)[a-z0-9_]*$"],
+        match: MatchTypes.regex
+    },
+    [IncludeGroups.win32]: {
+        sort: SortTypes.weighted,
+        fallback: SortTypes.preserve,
+        weights: [IncludeConfig.includeWin32],
+        match: MatchTypes.leafName
+    },
+    [IncludeGroups.qt]: {
+        sort: SortTypes.alphabetical
+    },
+    [IncludeGroups.backend]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.external]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.app]: {
+        sort: SortTypes.weighted,
+        fallback: SortTypes.preserve,
+        weights: ["GUIAppController", "GUISessionState", "GUITypes", "GUIConstants"],
+        match: MatchTypes.leafStem
+    },
+    [IncludeGroups.runtime]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.controllers]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.services]: {
+        sort: SortTypes.weighted,
+        fallback: SortTypes.preserve,
+        weights: ["point", "palette", "sine"],
+        match: MatchTypes.substring
+    },
+    [IncludeGroups.settings]: {
+        sort: SortTypes.weighted,
+        fallback: SortTypes.preserve,
+        weights: ["AppSettings", "Shortcuts"],
+        match: MatchTypes.leafStem
+    },
+    [IncludeGroups.locale]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.windows]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.dialogs]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.widgets]: {
+        sort: SortTypes.preserve
+    },
+    [IncludeGroups.util]: {
+        sort: SortTypes.preserve
+    }
+});
 
 let args = null;
 
@@ -172,6 +225,11 @@ const Util = Object.freeze({
             FormatterUtil.normalizeSlashes(path.resolve(left)).toLowerCase() ===
             FormatterUtil.normalizeSlashes(path.resolve(right)).toLowerCase()
         );
+    },
+
+    compareText: (left, right, direction = "asc") => {
+        const multiplier = direction === "desc" ? -1 : 1;
+        return left.localeCompare(right) * multiplier;
     }
 });
 
@@ -179,7 +237,7 @@ function findContainingProjectRoot(filePath) {
     let current = path.resolve(path.dirname(filePath));
 
     while (true) {
-        if (path.basename(current).toLowerCase() === IncludeRules.guiRootName) {
+        if (path.basename(current).toLowerCase() === IncludeConfig.guiRootName) {
             return current;
         }
 
@@ -339,11 +397,15 @@ function isQtInclude(includePath) {
 }
 
 function isWindowsSystemInclude(includePath) {
-    return IncludeRules.windowsSystemHeaders.has(Util.getLeafName(includePath).toLowerCase());
+    return IncludeConfig.windowsSystemHeaders.has(Util.getLeafName(includePath).toLowerCase());
 }
 
 function isBackendApiInclude(includePath) {
-    return Util.getLeafName(includePath).toLowerCase() === IncludeRules.backendInclude.toLowerCase();
+    return Util.getLeafName(includePath).toLowerCase() === IncludeConfig.backendInclude.toLowerCase();
+}
+
+function isIncludeWin32Include(includePath) {
+    return Util.getLeafName(includePath).toLowerCase() === IncludeConfig.includeWin32.toLowerCase();
 }
 
 function getIncludeGroup(includeInfo) {
@@ -357,8 +419,12 @@ function getIncludeGroup(includeInfo) {
         return IncludeGroups.stl;
     }
 
+    if (isIncludeWin32Include(includeInfo.includePath)) {
+        return IncludeGroups.win32;
+    }
+
     const firstSegment = FormatterUtil.normalizeSlashes(includeInfo.includePath).split("/")[0];
-    return IncludeRules.pathGroups[firstSegment] ?? IncludeGroups.external;
+    return IncludeConfig.pathGroups[firstSegment] ?? IncludeGroups.external;
 }
 
 function getConditionalGroup(entry) {
@@ -382,19 +448,48 @@ function getConditionalGroup(entry) {
     return IncludeGroups.external;
 }
 
-function getWeight(groupId, sortKey) {
-    const rules = IncludeRules.weightOrder[groupId];
-    if (!rules) return Number.MAX_SAFE_INTEGER;
+function getOrderedGroupIds() {
+    return Object.entries(IncludeRules)
+        .map(([groupId, rule], index) => ({
+            groupId,
+            order: rule.order ?? index
+        }))
+        .sort((left, right) => left.order - right.order)
+        .map(entry => entry.groupId);
+}
 
-    const loweredSortKey = sortKey.toLowerCase();
+function getIncludeRule(groupId) {
+    return IncludeRules[groupId] ?? { sort: SortTypes.preserve };
+}
 
-    for (let i = 0; i < rules.length; i += 1) {
-        const rule = rules[i];
+function getWeight(rule, sortKey) {
+    if (!rule.weights || rule.weights.length < 1) return Number.MAX_SAFE_INTEGER;
 
-        if (groupId === IncludeGroups.services) {
-            if (loweredSortKey.includes(rule.toLowerCase())) return i;
-        } else if (Util.getLeafStem(sortKey).toLowerCase() === rule.toLowerCase()) {
-            return i;
+    const loweredSortKey = sortKey.toLowerCase(),
+        loweredLeafStem = Util.getLeafStem(sortKey).toLowerCase(),
+        loweredLeafName = Util.getLeafName(sortKey).toLowerCase(),
+        match = rule.match ?? MatchTypes.leafStem;
+
+    for (let i = 0; i < rule.weights.length; i += 1) {
+        const weight = rule.weights[i].toLowerCase();
+
+        switch (match) {
+            case MatchTypes.leafName:
+                if (loweredLeafName === weight) return i;
+                break;
+
+            case MatchTypes.substring:
+                if (loweredSortKey.includes(weight)) return i;
+                break;
+
+            case MatchTypes.regex:
+                if (new RegExp(weight, "i").test(loweredLeafStem)) return i;
+                break;
+
+            case MatchTypes.leafStem:
+            default:
+                if (loweredLeafStem === weight) return i;
+                break;
         }
     }
 
@@ -417,15 +512,49 @@ function getEntrySortKey(entry) {
 }
 
 function sortEntries(groupId, entries) {
-    return [...entries].sort((left, right) => {
-        const leftKey = getEntrySortKey(left),
-            rightKey = getEntrySortKey(right),
-            leftWeight = getWeight(groupId, leftKey),
-            rightWeight = getWeight(groupId, rightKey);
+    const rule = getIncludeRule(groupId),
+        decoratedEntries = entries.map((entry, originalIndex) => ({
+            entry,
+            originalIndex,
+            sortKey: getEntrySortKey(entry),
+            weight: getWeight(rule, getEntrySortKey(entry))
+        }));
 
-        if (leftWeight !== rightWeight) return leftWeight - rightWeight;
-        return leftKey.localeCompare(rightKey);
+    decoratedEntries.sort((left, right) => {
+        switch (rule.sort) {
+            case SortTypes.weighted: {
+                if (left.weight !== right.weight) return left.weight - right.weight;
+
+                const fallback = rule.fallback ?? SortTypes.preserve;
+
+                switch (fallback) {
+                    case SortTypes.alphabetical: {
+                        const compare = Util.compareText(left.sortKey, right.sortKey, rule.direction);
+                        if (compare !== 0) return compare;
+                        break;
+                    }
+
+                    case SortTypes.preserve:
+                    default:
+                        break;
+                }
+
+                return left.originalIndex - right.originalIndex;
+            }
+
+            case SortTypes.alphabetical: {
+                const compare = Util.compareText(left.sortKey, right.sortKey, rule.direction);
+                if (compare !== 0) return compare;
+                return left.originalIndex - right.originalIndex;
+            }
+
+            case SortTypes.preserve:
+            default:
+                return left.originalIndex - right.originalIndex;
+        }
     });
+
+    return decoratedEntries.map(entry => entry.entry);
 }
 
 function getIncludePreamble(lines) {
@@ -470,7 +599,7 @@ function getIncludePreamble(lines) {
         if (isUsingNamespaceLine(line, "Backend")) {
             entries.push({
                 type: "using-backend",
-                line: IncludeRules.backendUsing
+                line: IncludeConfig.backendUsing
             });
             index += 1;
             continue;
@@ -479,7 +608,7 @@ function getIncludePreamble(lines) {
         if (isUsingNamespaceLine(line, "GUI")) {
             entries.push({
                 type: "using-gui",
-                line: IncludeRules.guiUsing
+                line: IncludeConfig.guiUsing
             });
             index += 1;
             continue;
@@ -562,7 +691,8 @@ function formatIncludePreamble(fileInfo, preamble) {
         return null;
     }
 
-    const groupedEntries = new Map(IncludeRules.groupOrder.map(groupId => [groupId, []]));
+    const orderedGroupIds = getOrderedGroupIds(),
+        groupedEntries = new Map(orderedGroupIds.map(groupId => [groupId, []]));
 
     for (const entry of entries) {
         const groupId = entry.type === "conditional" ? getConditionalGroup(entry) : getIncludeGroup(entry);
@@ -579,7 +709,7 @@ function formatIncludePreamble(fileInfo, preamble) {
         if (initialGroup.length > 0) groups.push(initialGroup);
     }
 
-    for (const groupId of IncludeRules.groupOrder) {
+    for (const groupId of orderedGroupIds) {
         const entriesInGroup = sortEntries(groupId, groupedEntries.get(groupId));
         if (entriesInGroup.length < 1) continue;
 

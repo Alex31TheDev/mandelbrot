@@ -6,18 +6,14 @@
 #include <algorithm>
 #include <string>
 #include <string_view>
-#include <iomanip>
-#include <sstream>
 #include <functional>
+#include <iomanip>
+#include <iterator>
+#include <sstream>
 
 static const char *sizeUnits[] = { "B", "KB", "MB", "GB", "TB" };
-constexpr int sizeUnitCount = sizeof(sizeUnits) / sizeof(sizeUnits[0]);
-
 static const char *timeUnits[] = { "ms", "s", "min", "h", "d" };
-constexpr int timeUnitCount = sizeof(timeUnits) / sizeof(timeUnits[0]);
-
 static const int64_t durFactors[] = { 1000i64, 60i64, 60i64, 24i64 };
-constexpr int durMaxSteps = sizeof(durFactors) / sizeof(durFactors[0]);
 
 static int toChannelByte(float value) {
     const float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -41,7 +37,7 @@ namespace FormatUtil {
         int unitIdx = 0;
         double count = static_cast<double>(size);
 
-        while (count >= 1024 && unitIdx < sizeUnitCount - 1) {
+        while (count >= 1024 && unitIdx < std::size(sizeUnits) - 1) {
             count /= 1024;
             unitIdx++;
         }
@@ -64,14 +60,15 @@ namespace FormatUtil {
         int64_t remainder = 0;
         int unitIdx = 0;
 
-        while (unitIdx < durMaxSteps &&
+        while (unitIdx < std::size(durFactors) &&
             millis >= durFactors[unitIdx]) {
             remainder = millis % durFactors[unitIdx];
             millis /= durFactors[unitIdx];
             unitIdx++;
         }
 
-        unitIdx = unitIdx < timeUnitCount ? unitIdx : timeUnitCount - 1;
+        unitIdx = unitIdx < std::size(timeUnits) ? unitIdx
+            : std::size(timeUnits) - 1;
 
         oss << millis;
         if (remainder != 0 && unitIdx > 0) {

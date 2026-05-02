@@ -1,5 +1,6 @@
 #include "GUIAppController.h"
 
+#include <cmath>
 #include <filesystem>
 #include <system_error>
 
@@ -135,7 +136,7 @@ static std::optional<NamedAssetSaveTarget> resolveNamedAssetSaveTarget(
             return NamedAssetSaveTarget{ .cancelled = true };
         }
         if (choice == QMessageBox::No) {
-            const QString savePath = showNativeSaveFileDialog(parent, saveAsTitle, directory,
+            const QString savePath = showNativeSaveDialog(parent, saveAsTitle, directory,
                 QFileInfo(Util::uniqueIndexedPathWithExtension(
                     directory, targetName, "txt")).fileName(),
                 dialogFilter);
@@ -201,7 +202,8 @@ GUIAppController::GUIAppController(
         &GUIAppController::_savePersistentState);
     _viewportController.attachViewport(_viewportWindow.get());
     _renderController.setPreviewDevicePixelRatio(
-        _viewportWindow ? _viewportWindow->devicePixelRatioF() : 1.0);
+        _viewportWindow ? _viewportWindow->devicePixelRatioF() : 1.0
+    );
 }
 
 GUIAppController::~GUIAppController() = default;
@@ -230,15 +232,16 @@ bool GUIAppController::initialize() {
     if (!_loadSelectedBackend()) {
         return false;
     }
-    _requestRenderFromModel();
+    _requestRender();
     return true;
 }
 
 void GUIAppController::show() {
     _controlWindow->show();
     _viewportWindow->show();
-    Util::resizeViewportToImageSize(
-        _viewportWindow.get(), _sessionState.outputSize());
+    _viewportController.resizeViewportForScalePercent(
+        _sessionState.state().viewportScalePercent
+    );
     if (!_controlWindow->windowSettingsRestored()) {
         _positionWindowsForInitialShow();
     }
@@ -248,7 +251,8 @@ void GUIAppController::show() {
         }
         if (!_viewportWindow || !_viewportWindow->isVisible()) return;
         _renderController.setPreviewDevicePixelRatio(
-            _viewportWindow->devicePixelRatioF());
+            _viewportWindow->devicePixelRatioF()
+        );
         _viewportWindow->raise();
         _viewportWindow->activateWindow();
         _viewportWindow->setFocus(Qt::ActiveWindowFocusReason);
@@ -262,7 +266,6 @@ void GUIAppController::_connectUI() {
             _sessionState.mutableState().manualBackendSelection = true;
             _loadSelectedBackend();
             _refreshControlState();
-            _requestRenderFromModel();
         });
     connect(_controlWindow.get(), &ControlWindow::renderRequested, this,
         &GUIAppController::_requestRenderFromControls);
@@ -281,7 +284,8 @@ void GUIAppController::_connectUI() {
         [this]() {
             const QSize size = _sessionState.outputSize();
             _viewportController.zoomAtPixel(
-                QPoint(size.width() / 2, size.height() / 2), true);
+                QPoint(size.width() / 2, size.height() / 2), true
+            );
         });
     connect(_controlWindow.get(), &ControlWindow::saveImageRequested, this,
         &GUIAppController::_saveImage);
@@ -290,11 +294,10 @@ void GUIAppController::_connectUI() {
     connect(_controlWindow.get(), &ControlWindow::viewportResizeRequested, this,
         [this]() {
             _controlWindow->syncToSessionState(_sessionState);
-            _refreshControlState();
-            Util::resizeViewportToImageSize(
-                _viewportWindow.get(), _sessionState.outputSize());
-            _requestRenderFromModel();
+            _viewportController.applyViewportOutputSize(_sessionState.outputSize());
         });
+    connect(_controlWindow.get(), &ControlWindow::viewportScaleChanged, this,
+        [this](float scalePercent) { _applyViewportScalePercent(scalePercent); });
     connect(_controlWindow.get(), &ControlWindow::saveViewRequested, this,
         &GUIAppController::_savePointView);
     connect(_controlWindow.get(), &ControlWindow::loadViewRequested, this,
@@ -308,9 +311,15 @@ void GUIAppController::_connectUI() {
     connect(_controlWindow.get(), &ControlWindow::aboutRequested, this,
         &GUIAppController::_showAboutDialog);
     connect(_controlWindow.get(), &ControlWindow::exitRequested, this,
-        &GUIAppController::_closeAllWindows);
+        [this]() {
+            const bool skipDirtyViewPrompt
+                = (QApplication::keyboardModifiers() & Qt::ShiftModifier) != 0;
+            _closeAllWindows(skipDirtyViewPrompt);
+        });
     connect(_controlWindow.get(), &ControlWindow::closeRequested, this,
-        &GUIAppController::_closeAllWindows);
+        [this](bool skipDirtyViewPrompt) {
+            _closeAllWindows(skipDirtyViewPrompt);
+        });
     connect(_controlWindow.get(), &ControlWindow::cancelRenderRequested, this,
         [this]() { _viewportController.cancelQueuedRenders(); _refreshStatus(); });
     connect(_controlWindow.get(), &ControlWindow::cycleGridRequested,
@@ -371,7 +380,7 @@ void GUIAppController::_connectUI() {
     connect(&_viewportController, &ViewportController::sessionStateChanged, this,
         &GUIAppController::_refreshControlState);
     connect(&_viewportController, &ViewportController::renderRequested, this,
-        &GUIAppController::_requestRenderFromModel);
+        [this]() { _requestRender(); });
     connect(&_viewportController, &ViewportController::renderRequestedWithPickAction,
         this, [this](int pickTarget, const QPoint &pixel) {
             PendingPickAction pickAction;
@@ -383,8 +392,16 @@ void GUIAppController::_connectUI() {
         &GUIAppController::_quickSaveImage);
     connect(&_viewportController, &ViewportController::statusMessageChanged, this,
         &GUIAppController::_setStatusMessage);
+    connect(_viewportWindow.get(), &ViewportWindow::viewportScaleAdjustmentRequested,
+        this, [this](const QSize &logicalSize) {
+            _applyViewportScalePercent(
+                _viewportController.viewportScalePercentForLogicalSize(logicalSize)
+            );
+        });
     connect(_viewportWindow.get(), &ViewportWindow::closeRequested, this,
-        &GUIAppController::_closeAllWindows);
+        [this](bool skipDirtyViewPrompt) {
+            _closeAllWindows(skipDirtyViewPrompt);
+        });
 
     connect(&_renderController, &RenderController::previewImageChanged, this,
         [this]() { _viewportWindow->update(); });
@@ -412,7 +429,8 @@ void GUIAppController::_connectUI() {
                 }
 
                 _requestRender(
-                    _pendingPickAction(hasPickAction, pickTarget, pickPixel));
+                    _pendingPickAction(hasPickAction, pickTarget, pickPixel)
+                );
         });
 }
 
@@ -420,10 +438,6 @@ void GUIAppController::_requestRenderFromControls() {
     _controlWindow->syncToSessionState(_sessionState);
     _refreshControlState();
     _refreshPreviews();
-    _requestRenderFromModel();
-}
-
-void GUIAppController::_requestRenderFromModel() {
     _requestRender();
 }
 
@@ -436,10 +450,23 @@ void GUIAppController::_requestRender(
     _statusLinkPath.clear();
     if (_viewportWindow) {
         _renderController.setPreviewDevicePixelRatio(
-            _viewportWindow->devicePixelRatioF());
+            _viewportWindow->devicePixelRatioF()
+        );
     }
     _renderController.requestRender(_sessionState.snapshot(), pickAction);
     _refreshStatus();
+}
+
+void GUIAppController::_applyViewportScalePercent(float scalePercent) {
+    const float clampedScalePercent = std::max(1.0f, scalePercent);
+    if (std::fabs(clampedScalePercent - _sessionState.state().viewportScalePercent)
+        < 0.001f) {
+        return;
+    }
+
+    _sessionState.mutableState().viewportScalePercent = clampedScalePercent;
+    _refreshControlState();
+    _viewportController.resizeViewportForScalePercent(clampedScalePercent);
 }
 
 void GUIAppController::_clearSavedSettings() {
@@ -509,10 +536,12 @@ void GUIAppController::_refreshPreviews() {
 void GUIAppController::_refreshCollections() {
     _controlWindow->setSineNames(
         SineStore::listNames(), _sessionState.state().sineName,
-        _sessionState.isSineDirty());
+        _sessionState.isSineDirty()
+    );
     _controlWindow->setPaletteNames(
         PaletteStore::listNames(), _sessionState.state().paletteName,
-        _sessionState.isPaletteDirty());
+        _sessionState.isPaletteDirty()
+    );
 }
 
 void GUIAppController::_syncSineDirtyStateFromControls() {
@@ -529,7 +558,8 @@ void GUIAppController::_syncSineDirtyStateFromControls() {
         [this]() { _cacheSineRecovery(); })) {
         _controlWindow->setSineNames(
             SineStore::listNames(), _sessionState.state().sineName,
-            _sessionState.isSineDirty());
+            _sessionState.isSineDirty()
+        );
     }
 }
 
@@ -547,7 +577,8 @@ void GUIAppController::_syncPaletteDirtyStateFromControls() {
         [this]() { _cachePaletteRecovery(); })) {
         _controlWindow->setPaletteNames(
             PaletteStore::listNames(), _sessionState.state().paletteName,
-            _sessionState.isPaletteDirty());
+            _sessionState.isPaletteDirty()
+        );
     }
 }
 
@@ -598,6 +629,7 @@ void GUIAppController::_initializeSessionState() {
     state.interactionTargetFPS = _settings.previewFallbackFPS();
     state.outputWidth = _settings.selectedOutputWidth();
     state.outputHeight = _settings.selectedOutputHeight();
+    state.viewportScalePercent = _settings.viewportScalePercent();
     const QString recoveredSineName
         = recoveryNameFromPath(findRecoveryPath(SineStore::directoryPath()));
     const QString recoveredPaletteName
@@ -637,8 +669,8 @@ void GUIAppController::_initializeSessionState() {
     }
 
     const CPUInfo cpu = queryCPUInfo();
-    _controlWindow->setCpuInfo(
-        QString::fromStdString(cpu.name), cpu.cores, cpu.threads);
+    _controlWindow->setCpuInfo(QString::fromStdString(cpu.name),
+        cpu.cores, cpu.threads);
     _sessionState.markPointViewSavedState();
     _restoreSineRecovery();
     _restorePaletteRecovery();
@@ -689,7 +721,7 @@ QString GUIAppController::_defaultBackend() const {
     }
 
     const QString preferredType
-        = QString::fromUtf8(Constants::defaultBackendType);
+        = QString::fromStdString(Constants::defaultBackendType);
     for (const QString &name : _backendNames) {
         if (name.compare(preferredType, Qt::CaseInsensitive) == 0
             || name.endsWith(QStringLiteral(" - %1").arg(preferredType),
@@ -739,13 +771,14 @@ void GUIAppController::_saveImage() {
     if (!result) return;
 
     QString errorMessage;
+    QString savedPath;
     if (!_renderController.saveImage(
-        result->path, result->appendDate, result->type, errorMessage)) {
+        result->path, result->appendDate, result->type, &savedPath, errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Save"), errorMessage);
         return;
     }
 
-    _setStatusSavedPath(result->path);
+    _setStatusSavedPath(savedPath.isEmpty() ? result->path : savedPath);
 }
 
 void GUIAppController::_quickSaveImage() {
@@ -754,12 +787,13 @@ void GUIAppController::_quickSaveImage() {
     const QString path = QString::fromStdWString(
         (Util::savesDirectoryPath() / "mandelbrot.png").wstring());
     QString errorMessage;
-    if (!_renderController.saveImage(path, true, "png", errorMessage)) {
+    QString savedPath;
+    if (!_renderController.saveImage(path, true, "png", &savedPath, errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Save"), errorMessage);
         return;
     }
 
-    _setStatusSavedPath(path);
+    _setStatusSavedPath(savedPath.isEmpty() ? path : savedPath);
 }
 
 void GUIAppController::_changeLightColor() {
@@ -770,7 +804,7 @@ void GUIAppController::_changeLightColor() {
 
     _sessionState.mutableState().lightColor = Util::lightColorFromQColor(color);
     _refreshControlState();
-    _requestRenderFromModel();
+    _requestRender();
 }
 
 void GUIAppController::_randomizeSinePalette() {
@@ -791,7 +825,7 @@ void GUIAppController::_randomizeSinePalette() {
     _cacheSineRecovery();
     _refreshControlState();
     _refreshPreviews();
-    _requestRenderFromModel();
+    _requestRender();
 }
 
 void GUIAppController::_savePointView() {
@@ -810,7 +844,7 @@ bool GUIAppController::_savePointViewInteractive() {
 
     const QString defaultPath = Util::uniqueIndexedPathWithExtension(
         PointStore::directoryPath(), tr("View"), "txt");
-    const QString selectedPath = showNativeSaveFileDialog(_controlWindow.get(),
+    const QString selectedPath = showNativeSaveDialog(_controlWindow.get(),
         tr("Save View"), PointStore::directoryPath(),
         QFileInfo(defaultPath).fileName(), tr("View Files (*.txt);;All Files (*.*)"));
     if (selectedPath.isEmpty()) return false;
@@ -866,16 +900,16 @@ void GUIAppController::_loadPointView() {
     state.julia = point.julia;
     state.iterations = std::max(0, point.iterations);
     _sessionState.setZoomText(QString::fromStdString(point.zoom));
-    _sessionState.setPointTexts(
-        QString::fromStdString(point.real), QString::fromStdString(point.imag));
-    _sessionState.setSeedTexts(
-        QString::fromStdString(point.seedReal), QString::fromStdString(point.seedImag));
+    _sessionState.setPointTexts(QString::fromStdString(point.real),
+        QString::fromStdString(point.imag));
+    _sessionState.setSeedTexts(QString::fromStdString(point.seedReal),
+        QString::fromStdString(point.seedImag));
     _sessionState.syncStateZoomFromText();
     _sessionState.syncStatePointFromText();
     _sessionState.syncStateSeedFromText();
     _sessionState.markPointViewSavedState();
     _refreshControlState();
-    _requestRenderFromModel();
+    _requestRender();
 }
 
 void GUIAppController::_importSine() {
@@ -912,7 +946,7 @@ void GUIAppController::_importSine() {
     _discardSineRecovery();
     _setStatusSavedPath(QString::fromStdWString(destinationPath.wstring()));
     _refreshAllViews();
-    _requestRenderFromModel();
+    _requestRender();
 }
 
 void GUIAppController::_saveSine() {
@@ -958,7 +992,7 @@ void GUIAppController::_loadPalette() {
         tr("Palette Files (*.txt);;All Files (*.*)"));
     if (sourcePath.isEmpty()) return;
 
-    Backend::PaletteHexConfig loaded;
+    Backend::PaletteRGBConfig loaded;
     QString importedName;
     std::filesystem::path destinationPath;
     QString errorMessage;
@@ -976,7 +1010,7 @@ void GUIAppController::_loadPalette() {
     _discardPaletteRecovery();
     _setStatusSavedPath(QString::fromStdWString(destinationPath.wstring()));
     _refreshAllViews();
-    _requestRenderFromModel();
+    _requestRender();
 }
 
 void GUIAppController::_savePalette() {
@@ -1014,7 +1048,7 @@ void GUIAppController::_savePalette() {
 }
 
 void GUIAppController::_openPaletteEditor() {
-    const Backend::PaletteHexConfig original = _sessionState.state().palette;
+    const Backend::PaletteRGBConfig original = _sessionState.state().palette;
     const QString originalName = _sessionState.state().paletteName;
     PaletteDialog dialog(_sessionState.state().palette, originalName,
         [this](const QString &path) { _setStatusSavedPath(path); }, _controlWindow.get());
@@ -1032,7 +1066,7 @@ void GUIAppController::_openPaletteEditor() {
         }
         _refreshAllViews();
         _cachePaletteRecovery();
-        _requestRenderFromModel();
+        _requestRender();
     } else {
         _sessionState.mutableState().palette = original;
         _sessionState.mutableState().paletteName = originalName;
@@ -1049,7 +1083,7 @@ void GUIAppController::_createNewSinePalette(bool requestRenderOnSuccess) {
     _refreshAllViews();
     _cacheSineRecovery();
     if (requestRenderOnSuccess) {
-        _requestRenderFromModel();
+        _requestRender();
     }
 }
 
@@ -1062,7 +1096,7 @@ void GUIAppController::_createNewColorPalette(bool requestRenderOnSuccess) {
     _refreshAllViews();
     _cachePaletteRecovery();
     if (requestRenderOnSuccess) {
-        _requestRenderFromModel();
+        _requestRender();
     }
 }
 
@@ -1096,7 +1130,7 @@ bool GUIAppController::_loadSineByName(
     }
     _refreshAllViews();
     if (requestRenderOnSuccess) {
-        _requestRenderFromModel();
+        _requestRender();
     }
     return true;
 }
@@ -1109,7 +1143,7 @@ bool GUIAppController::_loadPaletteByName(
     const QString normalizedName = PaletteStore::normalizeName(name);
     if (normalizedName.isEmpty()) return false;
 
-    Backend::PaletteHexConfig loaded;
+    Backend::PaletteRGBConfig loaded;
     QString localError;
     if (!PaletteStore::loadNamed(normalizedName, loaded, localError)) {
         if (errorMessage) *errorMessage = localError;
@@ -1124,7 +1158,7 @@ bool GUIAppController::_loadPaletteByName(
     }
     _refreshAllViews();
     if (requestRenderOnSuccess) {
-        _requestRenderFromModel();
+        _requestRender();
     }
     return true;
 }
@@ -1158,23 +1192,19 @@ bool GUIAppController::_promptForDirtyViewOnClose() {
         return true;
     }
 
-    QMessageBox dialog(_controlWindow.get());
-    dialog.setIcon(QMessageBox::Question);
-    dialog.setWindowTitle(tr("Save View"));
-    dialog.setText(tr("Current view has unsaved changes. Save it before closing?"));
-    QPushButton *saveButton = dialog.addButton(QMessageBox::Save);
-    QPushButton *discardButton = dialog.addButton(QMessageBox::Discard);
-    QPushButton *cancelButton = dialog.addButton(QMessageBox::Cancel);
-    dialog.setDefaultButton(saveButton);
-    dialog.exec();
+    const QMessageBox::StandardButton choice = QMessageBox::question(
+        _controlWindow.get(), tr("Save View"),
+        tr("Current view has unsaved changes. Save it before closing?"),
+        QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
+        QMessageBox::Yes);
 
-    if (dialog.clickedButton() == cancelButton) {
+    if (choice == QMessageBox::Cancel) {
         return false;
     }
-    if (dialog.clickedButton() == saveButton) {
+    if (choice == QMessageBox::Yes) {
         return _savePointViewInteractive();
     }
-    return dialog.clickedButton() == discardButton;
+    return choice == QMessageBox::No;
 }
 
 std::filesystem::path GUIAppController::_paletteRecoveryPath(
@@ -1199,7 +1229,7 @@ void GUIAppController::_restorePaletteRecovery() {
         return;
     }
 
-    Backend::PaletteHexConfig palette;
+    Backend::PaletteRGBConfig palette;
     QString errorMessage;
     if (!PaletteStore::loadFromPath(path, palette, errorMessage)) {
         _discardPaletteRecovery();
@@ -1296,16 +1326,20 @@ void GUIAppController::_savePersistentState() {
         _controlWindow->saveWindowSettings(_settings);
         _settings.setPreferredBackend(_sessionState.state().backend);
         _settings.setPreviewFallbackFPS(
-            _sessionState.state().interactionTargetFPS);
+            _sessionState.state().interactionTargetFPS
+        );
         _settings.setSelectedOutputWidth(_sessionState.state().outputWidth);
         _settings.setSelectedOutputHeight(_sessionState.state().outputHeight);
+        _settings.setViewportScalePercent(
+            _sessionState.state().viewportScalePercent
+        );
         _settings.sync();
     }
 }
 
-void GUIAppController::_closeAllWindows() {
+void GUIAppController::_closeAllWindows(bool skipDirtyViewPrompt) {
     if (_closingWindows) return;
-    if (!_promptForDirtyViewOnClose()) {
+    if (!skipDirtyViewPrompt && !_promptForDirtyViewOnClose()) {
         return;
     }
 

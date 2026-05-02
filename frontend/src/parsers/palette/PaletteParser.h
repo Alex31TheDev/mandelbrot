@@ -9,19 +9,28 @@
 class PaletteParser
     : public KeyValueParser<Backend::PaletteHexConfig> {
 public:
+    static Backend::PaletteRGBEntry toRGBEntry(
+        const Backend::PaletteHexEntry &entry
+    );
+    static Backend::PaletteRGBConfig toRGBConfig(
+        const Backend::PaletteHexConfig &palette
+    );
+
     PaletteParser(const std::string &skipOption);
 
     bool parse(const std::vector<std::string> &args,
         Backend::PaletteHexConfig &out, std::string &err);
+    bool parse(const std::vector<std::string> &args,
+        Backend::PaletteRGBConfig &out, std::string &err);
 
 private:
     std::string _skipOption;
 
-    bool _isValidEntry(const Backend::PaletteHexEntry &entry) const;
-    bool _validateConfig(const Backend::PaletteHexConfig &out,
-        const std::string &context, std::string &err) const;
-    bool _validateEntryCount(const Backend::PaletteHexConfig &out,
-        const std::string &context, std::string &err) const;
+    static bool _isValidEntry(const Backend::PaletteHexEntry &entry);
+    static bool _validateConfig(const Backend::PaletteHexConfig &out,
+        const std::string &context, std::string &err);
+    static bool _validateEntryCount(const Backend::PaletteHexConfig &out,
+        const std::string &context, std::string &err);
 
     bool _parseCLIEntry(const std::string &str,
         Backend::PaletteHexEntry &out) const;

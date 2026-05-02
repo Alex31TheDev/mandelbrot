@@ -50,12 +50,15 @@ cd /d "%QT_TOOLS_BUILD_DIR%" || exit /b
 
 call "%QT_CONFIGURE_MODULE%" "%QT_TOOLS_SRC%" || exit /b
 
-cmake --build . --parallel || exit /b
-cmake --install . || exit /b
+cmake --build . --parallel --config Release || exit /b
+cmake --build . --parallel --config Debug || exit /b
+cmake --install . --config Release || exit /b
+cmake --install . --config Debug || exit /b
 
 cd /d "%QT_ROOT%" || exit /b
 if exist "%QT_BASE_BUILD_DIR%" rmdir /s /q "%QT_BASE_BUILD_DIR%"
 if exist "%QT_TOOLS_BUILD_DIR%" rmdir /s /q "%QT_TOOLS_BUILD_DIR%"
+if exist "%QT_ROOT%\build" rmdir /s /q "%QT_ROOT%\build"
 
 set "QMAKE_CONF=%QT_INSTALL_DIR%\mkspecs\win32-clang-msvc\qmake.conf"
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^

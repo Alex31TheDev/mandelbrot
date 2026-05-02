@@ -60,8 +60,6 @@ namespace GUI::Util {
     [[nodiscard]] QImage wrapImageViewToImage(const ImageView &view);
     [[nodiscard]] QImage imageViewToImage(const ImageView &view);
     [[nodiscard]] QImage makeBlankViewportImage();
-    [[nodiscard]] double effectiveDevicePixelRatio(const QWidget *widget);
     void setAdaptiveSpinValue(QDoubleSpinBox *spinBox, double value);
-    void resizeViewportToImageSize(QWidget *viewport, const QSize &imageSize);
 
 }

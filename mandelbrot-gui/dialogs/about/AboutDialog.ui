@@ -35,6 +35,15 @@ QLabel#aboutSubtitle {
  color: #5b6673;
  font-size: 13px;
 }
+QLabel#aboutVersion {
+ color: #1d2430;
+ font-size: 13px;
+ font-weight: 600;
+}
+QLabel#aboutQtVersion {
+ color: #5b6673;
+ font-size: 12px;
+}
 QLabel#aboutNote {
  color: #6a5440;
  font-size: 12px;
@@ -153,6 +162,20 @@ QPushButton:hover {
         <widget class="QLabel" name="aboutNote">
          <property name="text">
           <string>Desktop fractal renderer</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="aboutVersion">
+         <property name="text">
+          <string>Version 0.0.0</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="aboutQtVersion">
+         <property name="text">
+          <string>Qt runtime 0.0.0</string>
          </property>
         </widget>
        </item>

@@ -20,7 +20,7 @@ using namespace Backend;
 using namespace GUI;
 
 namespace GUI::PaletteStore {
-    static double paletteSegmentLengthSum(const PaletteHexConfig &palette) {
+    static double paletteSegmentLengthSum(const PaletteRGBConfig &palette) {
         if (palette.entries.empty()) return 0.0;
 
         const size_t segmentCount = palette.blendEnds ? palette.entries.size()
@@ -34,17 +34,18 @@ namespace GUI::PaletteStore {
         return total;
     }
 
-    PaletteHexConfig makeNewConfig() {
-        PaletteHexConfig palette;
+    PaletteRGBConfig makeNewConfig() {
+        PaletteRGBConfig palette;
         palette.totalLength = 1.0f;
         palette.offset = 0.0f;
         palette.blendEnds = true;
-        palette.entries = { { "#000000", 1.0f }, { "#FFFFFF", 1.0f } };
+        palette.entries = { { 0.0f, 0.0f, 0.0f, 1.0f },
+            { 1.0f, 1.0f, 1.0f, 1.0f } };
         return palette;
     }
 
     bool sameConfig(
-        const PaletteHexConfig &a, const PaletteHexConfig &b
+        const PaletteRGBConfig &a, const PaletteRGBConfig &b
     ) {
         if (!NumberUtil::almostEqual(a.totalLength, b.totalLength)
             || !NumberUtil::almostEqual(a.offset, b.offset)
@@ -55,10 +56,9 @@ namespace GUI::PaletteStore {
 
         for (size_t i = 0; i < a.entries.size(); i++) {
             if (!NumberUtil::almostEqual(a.entries[i].length, b.entries[i].length)
-                || QString::fromStdString(a.entries[i].color)
-                .compare(QString::fromStdString(b.entries[i].color),
-                    Qt::CaseInsensitive)
-                != 0) {
+                || !NumberUtil::almostEqual(a.entries[i].R, b.entries[i].R)
+                || !NumberUtil::almostEqual(a.entries[i].G, b.entries[i].G)
+                || !NumberUtil::almostEqual(a.entries[i].B, b.entries[i].B)) {
                 return false;
             }
         }
@@ -149,7 +149,8 @@ namespace GUI::PaletteStore {
                 if (a.compare(defaultName, Qt::CaseInsensitive) == 0) return true;
                 if (b.compare(defaultName, Qt::CaseInsensitive) == 0) return false;
                 return a.compare(b, Qt::CaseInsensitive) < 0;
-            });
+            }
+        );
         return names;
     }
 
@@ -171,7 +172,7 @@ namespace GUI::PaletteStore {
 
     bool loadFromPath(
         const std::filesystem::path &path,
-        PaletteHexConfig &palette, QString &errorMessage
+        PaletteRGBConfig &palette, QString &errorMessage
     ) {
         PaletteParser parser("-");
         std::string err;
@@ -186,7 +187,7 @@ namespace GUI::PaletteStore {
 
     bool saveToPath(
         const std::filesystem::path &path,
-        const PaletteHexConfig &palette, QString &errorMessage
+        const PaletteRGBConfig &palette, QString &errorMessage
     ) {
         PaletteWriter writer(palette);
         std::string err;
@@ -201,7 +202,7 @@ namespace GUI::PaletteStore {
 
     bool loadNamed(
         const QString &name,
-        PaletteHexConfig &palette, QString &errorMessage
+        PaletteRGBConfig &palette, QString &errorMessage
     ) {
         const QString normalizedName = normalizeName(name);
         if (normalizedName.isEmpty()) {
@@ -224,10 +225,10 @@ namespace GUI::PaletteStore {
     bool importFromPath(
         const std::filesystem::path &sourcePath,
         float totalLength, float offset, QString &importedName,
-        PaletteHexConfig &palette,
+        PaletteRGBConfig &palette,
         std::filesystem::path &destinationPath, QString &errorMessage
     ) {
-        PaletteHexConfig loaded;
+        PaletteRGBConfig loaded;
         if (!loadFromPath(sourcePath, loaded, errorMessage)) return false;
 
         loaded.totalLength = totalLength;
@@ -248,7 +249,7 @@ namespace GUI::PaletteStore {
 
     bool saveNamed(
         const QString &name,
-        const PaletteHexConfig &palette,
+        const PaletteRGBConfig &palette,
         std::filesystem::path &destinationPath, QString &errorMessage
     ) {
         const QString normalizedName = normalizeName(name);
@@ -266,7 +267,7 @@ namespace GUI::PaletteStore {
 
     bool saveFromDialogPath(
         const QString &savePath,
-        const PaletteHexConfig &palette, QString &savedName,
+        const PaletteRGBConfig &palette, QString &savedName,
         std::filesystem::path &destinationPath, QString &errorMessage
     ) {
         const QString savePathWithExtension = QString::fromStdString(
@@ -284,7 +285,7 @@ namespace GUI::PaletteStore {
 
     QImage makePreviewImage(
         Session *session,
-        const PaletteHexConfig &palette, int width, int height
+        const PaletteRGBConfig &palette, int width, int height
     ) {
         if (!session || width <= 0 || height <= 0) return {};
         if (const Status status = session->setColorPalette(palette);
@@ -296,7 +297,7 @@ namespace GUI::PaletteStore {
             session->renderPalettePreview(width, height));
     }
 
-    std::vector<PaletteStop> configToStops(const PaletteHexConfig &palette) {
+    std::vector<PaletteStop> configToStops(const PaletteRGBConfig &palette) {
         std::vector<PaletteStop> stops;
         if (palette.entries.empty()) return stops;
 
@@ -313,12 +314,13 @@ namespace GUI::PaletteStore {
                     useEqualSpacing ? static_cast<double>(i)
                             / std::max<size_t>(1, palette.entries.size() - 1)
                                     : std::clamp(accum / segmentSum, 0.0, 1.0),
-                    QColor(QString::fromStdString(entry.color)) });
+                    QColor::fromRgbF(entry.R, entry.G, entry.B) });
                 accum += std::max(0.0f, entry.length);
             }
 
             stops.push_back({ nextId++, 1.0,
-                QColor(QString::fromStdString(palette.entries.back().color)) });
+                QColor::fromRgbF(palette.entries.back().R,
+                    palette.entries.back().G, palette.entries.back().B) });
             return stops;
         }
 
@@ -327,7 +329,7 @@ namespace GUI::PaletteStore {
                 useEqualSpacing ? static_cast<double>(stops.size())
                         / std::max<size_t>(1, stopCount)
                                 : std::clamp(accum / segmentSum, 0.0, 1.0),
-                QColor(QString::fromStdString(entry.color)) });
+                QColor::fromRgbF(entry.R, entry.G, entry.B) });
             accum += std::max(0.0f, entry.length);
         }
 
@@ -338,12 +340,12 @@ namespace GUI::PaletteStore {
         return stops;
     }
 
-    PaletteHexConfig stopsToConfig(
+    PaletteRGBConfig stopsToConfig(
         const std::vector<PaletteStop> &stops,
         float totalLength, float offset, bool blendEnds
     ) {
         const double loopEndpointEpsilon = 1e-4;
-        PaletteHexConfig palette;
+        PaletteRGBConfig palette;
         palette.totalLength = totalLength;
         palette.offset = offset;
         palette.blendEnds = blendEnds;
@@ -373,12 +375,18 @@ namespace GUI::PaletteStore {
                 const double len = std::max((end - start) * totalLength, 0.0001);
 
                 palette.entries.push_back(
-                    { sorted[i].color.name(QColor::HexRgb).toStdString(),
-                        static_cast<float>(len) });
+                    { static_cast<float>(sorted[i].color.redF()),
+                        static_cast<float>(sorted[i].color.greenF()),
+                        static_cast<float>(sorted[i].color.blueF()),
+                        static_cast<float>(len) }
+                    );
             }
 
             palette.entries.push_back(
-                { sorted.back().color.name(QColor::HexRgb).toStdString(), 0.0f });
+                { static_cast<float>(sorted.back().color.redF()),
+                    static_cast<float>(sorted.back().color.greenF()),
+                    static_cast<float>(sorted.back().color.blueF()), 0.0f }
+                );
             return palette;
         }
 
@@ -389,8 +397,11 @@ namespace GUI::PaletteStore {
             len = std::max(len * totalLength, 0.0001);
 
             palette.entries.push_back(
-                { sorted[i].color.name(QColor::HexRgb).toStdString(),
-                    static_cast<float>(len) });
+                { static_cast<float>(sorted[i].color.redF()),
+                    static_cast<float>(sorted[i].color.greenF()),
+                    static_cast<float>(sorted[i].color.blueF()),
+                    static_cast<float>(len) }
+                );
         }
 
         return palette;

@@ -16,9 +16,9 @@ namespace GUI::PaletteStore {
 
     inline constexpr auto defaultName = "default";
 
-    [[nodiscard]] PaletteHexConfig makeNewConfig();
-    [[nodiscard]] bool sameConfig(const PaletteHexConfig &a,
-        const PaletteHexConfig &b);
+    [[nodiscard]] PaletteRGBConfig makeNewConfig();
+    [[nodiscard]] bool sameConfig(const PaletteRGBConfig &a,
+        const PaletteRGBConfig &b);
 
     [[nodiscard]] std::filesystem::path directoryPath();
     [[nodiscard]] std::filesystem::path filePath(const QString &name);
@@ -32,30 +32,30 @@ namespace GUI::PaletteStore {
         const QStringList &existingNames);
 
     [[nodiscard]] bool loadFromPath(const std::filesystem::path &path,
-        PaletteHexConfig &palette, QString &errorMessage);
+        PaletteRGBConfig &palette, QString &errorMessage);
     [[nodiscard]] bool saveToPath(const std::filesystem::path &path,
-        const PaletteHexConfig &palette, QString &errorMessage);
+        const PaletteRGBConfig &palette, QString &errorMessage);
     [[nodiscard]] bool loadNamed(const QString &name,
-        PaletteHexConfig &palette, QString &errorMessage);
+        PaletteRGBConfig &palette, QString &errorMessage);
     [[nodiscard]] bool importFromPath(const std::filesystem::path &sourcePath,
         float totalLength, float offset, QString &importedName,
-        PaletteHexConfig &palette, std::filesystem::path &destinationPath,
+        PaletteRGBConfig &palette, std::filesystem::path &destinationPath,
         QString &errorMessage);
     [[nodiscard]] bool saveNamed(const QString &name,
-        const PaletteHexConfig &palette,
+        const PaletteRGBConfig &palette,
         std::filesystem::path &destinationPath, QString &errorMessage);
     [[nodiscard]] bool saveFromDialogPath(const QString &savePath,
-        const PaletteHexConfig &palette, QString &savedName,
+        const PaletteRGBConfig &palette, QString &savedName,
         std::filesystem::path &destinationPath, QString &errorMessage);
 
     [[nodiscard]] std::vector<PaletteStop> configToStops(
-        const PaletteHexConfig &palette
+        const PaletteRGBConfig &palette
     );
-    [[nodiscard]] PaletteHexConfig stopsToConfig(
+    [[nodiscard]] PaletteRGBConfig stopsToConfig(
         const std::vector<PaletteStop> &stops,
         float totalLength, float offset, bool blendEnds
     );
 
     [[nodiscard]] QImage makePreviewImage(Session *session,
-        const PaletteHexConfig &palette, int width, int height);
+        const PaletteRGBConfig &palette, int width, int height);
 }
