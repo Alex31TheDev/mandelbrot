@@ -19,8 +19,9 @@
 #include <QWidget>
 #include <QWheelEvent>
 
+#include "ViewportHost.h"
+
 #include "app/GUITypes.h"
-#include "windows/viewport/ViewportHost.h"
 
 namespace Ui {
     class ViewportWindow;
@@ -45,9 +46,13 @@ public:
     void toggleMinimalUI();
     void toggleFullscreen();
     void finalizeFullscreenTransition();
-    [[nodiscard]] ViewTextState displayedPreviewView() const;
-    [[nodiscard]] ViewTextState targetPreviewView() const;
+    void setCloseAllowed(bool allowed) { _closeAllowed = allowed; }
+    [[nodiscard]] GUI::ViewTextState displayedPreviewView() const;
+    [[nodiscard]] GUI::ViewTextState targetPreviewView() const;
     [[nodiscard]] std::optional<PreviewTransform> previewTransform() const;
+
+signals:
+    void closeRequested();
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -94,6 +99,7 @@ private:
     bool _minimalUI = false;
     bool _fullscreenManaged = false;
     bool _fullscreenTransitionPending = false;
+    bool _closeAllowed = false;
     bool _restoreMaximized = false;
     QRect _restoreGeometry;
     QSize _restoreOutputSize;
@@ -125,7 +131,7 @@ private:
     QPoint _mapToOutputPixel(const QPointF &logicalPoint) const;
     QPoint _mapToOutputDelta(const QPoint &logicalDelta) const;
     QRect _mapToOutputRect(const QRect &logicalRect) const;
-    NavMode _effectiveMode() const;
+    GUI::NavMode _effectiveMode() const;
     void _updateCursor();
     void _commitPanOffset();
     void _commitZoomOutPreview();

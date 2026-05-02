@@ -1,4 +1,4 @@
-#include "services/PaletteStore.h"
+#include "PaletteStore.h"
 
 #include <algorithm>
 #include <system_error>
@@ -9,9 +9,10 @@
 
 #include "parsers/palette/PaletteParser.h"
 #include "parsers/palette/PaletteWriter.h"
+
 #include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 #include "BackendAPI.h"
 using namespace Backend;
@@ -66,7 +67,7 @@ namespace GUI::PaletteStore {
     }
 
     std::filesystem::path directoryPath() {
-        return PathUtil::executableDir() / "palettes";
+        return FileUtil::executableDir() / "palettes";
     }
 
     std::filesystem::path filePath(const QString &name) {
@@ -137,6 +138,8 @@ namespace GUI::PaletteStore {
 
             const std::filesystem::path path = entry.path();
             if (path.extension() != ".txt") continue;
+            const QString stem = QString::fromStdWString(path.stem().wstring());
+            if (stem.startsWith('.') && stem.endsWith("_recovery")) continue;
             names.push_back(QString::fromStdWString(path.stem().wstring()));
         }
 
@@ -267,7 +270,7 @@ namespace GUI::PaletteStore {
         std::filesystem::path &destinationPath, QString &errorMessage
     ) {
         const QString savePathWithExtension = QString::fromStdString(
-            PathUtil::appendExtension(savePath.toStdString(), "txt"));
+            FileUtil::appendExtension(savePath.toStdString(), "txt"));
         savedName = normalizeName(
             QFileInfo(savePathWithExtension).completeBaseName());
         if (!isValidName(savedName)) {
@@ -346,8 +349,7 @@ namespace GUI::PaletteStore {
         palette.blendEnds = blendEnds;
 
         if (stops.size() < 2) {
-            const auto fallback = makeNewConfig();
-            palette.entries = fallback.entries;
+            palette.entries = makeNewConfig().entries;
             return palette;
         }
 

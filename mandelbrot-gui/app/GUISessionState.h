@@ -4,7 +4,8 @@
 #include <QSize>
 #include <QString>
 
-#include "app/GUITypes.h"
+#include "BackendAPI.h"
+#include "GUITypes.h"
 
 class GUISessionState final : public QObject {
     Q_OBJECT
@@ -12,8 +13,8 @@ class GUISessionState final : public QObject {
 public:
     explicit GUISessionState(QObject *parent = nullptr);
 
-    [[nodiscard]] const GUIState &state() const { return _state; }
-    [[nodiscard]] GUIState &mutableState() { return _state; }
+    [[nodiscard]] const GUI::GUIState &state() const { return _state; }
+    [[nodiscard]] GUI::GUIState &mutableState() { return _state; }
 
     [[nodiscard]] const QString &pointRealText() const { return _pointRealText; }
     [[nodiscard]] const QString &pointImagText() const { return _pointImagText; }
@@ -30,8 +31,8 @@ public:
     void setPointTexts(const QString &real, const QString &imag);
     void setSeedTexts(const QString &real, const QString &imag);
     [[nodiscard]] QSize outputSize() const;
-    [[nodiscard]] ViewTextState currentViewTextState() const;
-    [[nodiscard]] GUIRenderSnapshot snapshot() const;
+    [[nodiscard]] GUI::ViewTextState currentViewTextState() const;
+    [[nodiscard]] GUI::GUIRenderSnapshot snapshot() const;
 
     void syncPointTextFromState();
     void syncSeedTextFromState();
@@ -39,7 +40,9 @@ public:
     void syncStatePointFromText();
     void syncStateSeedFromText();
     void syncStateZoomFromText();
+
     void applyHomeView();
+    [[nodiscard]] bool isHomeView() const;
 
     void markSineSavedState();
     void markPaletteSavedState();
@@ -49,10 +52,11 @@ public:
     [[nodiscard]] bool isPointViewDirty() const;
 
     [[nodiscard]] QString stateToString(double value, int precision = 17) const;
-    [[nodiscard]] SavedPointViewState capturePointViewState() const;
+    [[nodiscard]] GUI::SavedPointViewState capturePointViewState() const;
 
 private:
-    GUIState _state;
+    GUI::GUIState _state;
+
     QString _pointRealText = "0";
     QString _pointImagText = "0";
     QString _zoomText;
@@ -66,5 +70,5 @@ private:
     QString _savedPaletteName;
     Backend::SinePaletteConfig _savedSinePalette;
     Backend::PaletteHexConfig _savedPalette;
-    SavedPointViewState _savedPointViewState;
+    GUI::SavedPointViewState _savedPointViewState;
 };

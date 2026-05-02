@@ -1,5 +1,4 @@
-#include "dialogs/help/HelpDialog.h"
-
+#include "HelpDialog.h"
 #include "ui_HelpDialog.h"
 
 HelpDialog::HelpDialog(QWidget *parent)

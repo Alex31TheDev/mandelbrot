@@ -15,11 +15,11 @@
 
 #include "BackendAPI.h"
 #include "BackendModule.h"
+
 #include "app/GUITypes.h"
 #include "app/GUISessionState.h"
-#include "util/GUIUtil.h"
 
-using namespace GUI;
+#include "util/GUIUtil.h"
 
 class RenderController final : public QObject {
     Q_OBJECT
@@ -32,10 +32,10 @@ public:
     void setPreviewDevicePixelRatio(double devicePixelRatio);
     bool loadBackend(const QString &backendName, QString &errorMessage);
     void shutdown(bool forceKillOnTimeout = true,
-        int timeoutMs = Constants::renderShutdownTimeoutMs);
+        int timeoutMs = GUI::Constants::renderShutdownTimeoutMs);
 
-    void requestRender(const GUIRenderSnapshot &snapshot,
-        const std::optional<PendingPickAction> &pickAction = std::nullopt);
+    void requestRender(const GUI::GUIRenderSnapshot &snapshot,
+        const std::optional<GUI::PendingPickAction> &pickAction = std::nullopt);
     void cancelQueuedRenders();
     void freezePreview();
     void markPreviewMotion();
@@ -51,7 +51,7 @@ public:
     [[nodiscard]] bool previewUsesBackendMemory() const {
         return _previewUsesBackendMemory;
     }
-    [[nodiscard]] ViewTextState displayedViewTextState() const;
+    [[nodiscard]] GUI::ViewTextState displayedViewTextState() const;
     [[nodiscard]] QString statusMessage() const { return _statusText; }
     [[nodiscard]] QString progressText() const { return _progressText; }
     [[nodiscard]] int progressValue() const { return _progressValue; }
@@ -77,23 +77,29 @@ public:
         const Backend::PaletteHexConfig &palette
     ) const;
 
-    bool pointAtPixel(const GUIRenderSnapshot &snapshot, const QPoint &pixel,
-        QString &realText, QString &imagText, QString &errorMessage);
-    bool panPointByDelta(const GUIRenderSnapshot &snapshot, const QPoint &delta,
-        QString &realText, QString &imagText, QString &errorMessage);
-    bool zoomViewAtPixel(const GUIRenderSnapshot &snapshot, const QPoint &pixel,
-        double scaleMultiplier, ViewTextState &view, QString &errorMessage);
-    bool boxZoomView(const GUIRenderSnapshot &snapshot, const QRect &rect,
-        ViewTextState &view, QString &errorMessage);
-    bool previewPannedViewState(const GUIRenderSnapshot &snapshot,
-        const QPoint &delta, ViewTextState &view, QString &errorMessage);
-    bool previewScaledViewState(const GUIRenderSnapshot &snapshot,
-        const QPoint &pixel, double scaleMultiplier, ViewTextState &view,
+    bool pointAtPixel(
+        const GUI::GUIRenderSnapshot &snapshot, const QPoint &pixel,
+        QString &realText, QString &imagText, QString &errorMessage
+    );
+    bool panPointByDelta(
+        const GUI::GUIRenderSnapshot &snapshot, const QPoint &delta,
+        QString &realText, QString &imagText, QString &errorMessage
+    );
+    bool zoomViewAtPixel(
+        const GUI::GUIRenderSnapshot &snapshot, const QPoint &pixel,
+        double scaleMultiplier, GUI::ViewTextState &view, QString &errorMessage
+    );
+    bool boxZoomView(const GUI::GUIRenderSnapshot &snapshot, const QRect &rect,
+        GUI::ViewTextState &view, QString &errorMessage);
+    bool previewPannedViewState(const GUI::GUIRenderSnapshot &snapshot,
+        const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage);
+    bool previewScaledViewState(const GUI::GUIRenderSnapshot &snapshot,
+        const QPoint &pixel, double scaleMultiplier, GUI::ViewTextState &view,
         QString &errorMessage);
-    bool previewBoxZoomViewState(const GUIRenderSnapshot &snapshot,
-        const QRect &rect, ViewTextState &view, QString &errorMessage);
-    bool mapViewPixelToViewPixel(const ViewTextState &sourceView,
-        const ViewTextState &targetView, const QPoint &pixel,
+    bool previewBoxZoomViewState(const GUI::GUIRenderSnapshot &snapshot,
+        const QRect &rect, GUI::ViewTextState &view, QString &errorMessage);
+    bool mapViewPixelToViewPixel(const GUI::ViewTextState &sourceView,
+        const GUI::ViewTextState &targetView, const QPoint &pixel,
         QPointF &mappedPixel, QString &errorMessage);
 
 signals:
@@ -118,7 +124,7 @@ private:
     QString _statusText;
     QString _progressText;
     QString _imageMemoryText;
-    QString _viewportFPSText = Util::defaultViewportFPSText();
+    QString _viewportFPSText = GUI::Util::defaultViewportFPSText();
     QString _viewportRenderTimeText;
     QString _pixelsPerSecondText;
     int _progressValue = 0;
@@ -132,12 +138,12 @@ private:
     QString _displayedPointImagText = QStringLiteral("0");
     QString _displayedZoomText;
     QSize _displayedOutputSize{
-        Constants::defaultOutputWidth, Constants::defaultOutputHeight
+        GUI::Constants::defaultOutputWidth, GUI::Constants::defaultOutputHeight
     };
     bool _hasDisplayedViewState = false;
 
     std::thread _renderThread;
-    std::optional<RenderRequest> _queuedRenderRequest;
+    std::optional<GUI::RenderRequest> _queuedRenderRequest;
     std::mutex _renderMutex;
     std::condition_variable _renderCv;
     bool _renderStopRequested = false;
@@ -158,11 +164,11 @@ private:
     bool _ensureBackendReady(QString &errorMessage) const;
     bool _ensureNavigationSessionReady(QString &errorMessage) const;
     bool _applyStateToSession(Backend::Session *session,
-        const GUIRenderSnapshot &snapshot,
-        const std::optional<PendingPickAction> &pickAction,
+        const GUI::GUIRenderSnapshot &snapshot,
+        const std::optional<GUI::PendingPickAction> &pickAction,
         QString &errorMessage);
     bool _applyNavigationStateToSession(
-        const GUIRenderSnapshot &snapshot, QString &errorMessage
+        const GUI::GUIRenderSnapshot &snapshot, QString &errorMessage
     );
     [[nodiscard]] QString _backendForRank(
         int rank, const QString &currentBackend

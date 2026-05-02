@@ -1,11 +1,12 @@
-#include "controllers/ViewportController.h"
+#include "ViewportController.h"
 
 #include <algorithm>
 #include <cmath>
 
+#include "windows/viewport/ViewportWindow.h"
+
 #include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
-#include "windows/viewport/ViewportWindow.h"
 
 using namespace GUI;
 

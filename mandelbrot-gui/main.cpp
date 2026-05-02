@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
         app.setStyle(QStyleFactory::create("windowsvista"));
     }
 
-    app.setWindowIcon(QIcon(":/mandelbrotgui/mandelbrot.ico"));
+    app.setWindowIcon(QIcon(":/mandelbrot-gui/mandelbrot.ico"));
 
     AppSettings settings;
     GUILocale locale(app);

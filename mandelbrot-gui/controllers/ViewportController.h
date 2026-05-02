@@ -5,11 +5,12 @@
 #include <QObject>
 #include <QString>
 
-#include "app/GUITypes.h"
-#include "app/GUISessionState.h"
 #include "runtime/RenderController.h"
 #include "settings/Shortcuts.h"
 #include "windows/viewport/ViewportHost.h"
+
+#include "app/GUITypes.h"
+#include "app/GUISessionState.h"
 
 class ViewportWindow;
 
@@ -24,13 +25,13 @@ public:
 
     void attachViewport(ViewportWindow *viewport);
 
-    [[nodiscard]] NavMode displayedNavMode() const;
-    [[nodiscard]] SelectionTarget selectionTarget() const {
+    [[nodiscard]] GUI::NavMode displayedNavMode() const;
+    [[nodiscard]] GUI::SelectionTarget selectionTarget() const {
         return _selectionTarget;
     }
 
-    void setNavMode(NavMode mode);
-    void setSelectionTarget(SelectionTarget target);
+    void setNavMode(GUI::NavMode mode);
+    void setSelectionTarget(GUI::SelectionTarget target);
 
 public slots:
     void cycleGridMode();
@@ -57,13 +58,13 @@ public:
     void cycleNavMode() override;
     void cancelQueuedRenders() override;
     void quickSaveImage() override;
-    void setDisplayedNavModeOverride(std::optional<NavMode> mode) override;
+    void setDisplayedNavModeOverride(std::optional<GUI::NavMode> mode) override;
     void prepareViewportFullscreenTransition() override;
     void applyViewportOutputSize(const QSize &outputSize) override;
 
-    [[nodiscard]] NavMode navMode() const override { return _navMode; }
+    [[nodiscard]] GUI::NavMode navMode() const override { return _navMode; }
     [[nodiscard]] bool viewportUsesDirectPick() const override {
-        return _selectionTarget != SelectionTarget::zoomPoint;
+        return _selectionTarget != GUI::SelectionTarget::zoomPoint;
     }
     [[nodiscard]] bool renderInFlight() const override {
         return _renderController.renderInFlight();
@@ -80,22 +81,24 @@ public:
     [[nodiscard]] bool hasDisplayedViewState() const override {
         return _renderController.hasDisplayedViewState();
     }
-    [[nodiscard]] ViewTextState currentViewTextState() const override {
+    [[nodiscard]] GUI::ViewTextState currentViewTextState() const override {
         return _sessionState.currentViewTextState();
     }
-    [[nodiscard]] ViewTextState displayedViewTextState() const override {
+    [[nodiscard]] GUI::ViewTextState displayedViewTextState() const override {
         return _renderController.displayedViewTextState();
     }
     bool previewPannedViewState(
-        const QPoint &delta, ViewTextState &view, QString &errorMessage
+        const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage
     ) override;
     bool previewScaledViewState(const QPoint &pixel, double scaleMultiplier,
-        ViewTextState &view, QString &errorMessage) override;
+        GUI::ViewTextState &view, QString &errorMessage) override;
     bool previewBoxZoomViewState(
-        const QRect &selectionRect, ViewTextState &view, QString &errorMessage
+        const QRect &selectionRect, GUI::ViewTextState &view,
+        QString &errorMessage
     ) override;
     bool mapViewPixelToViewPixel(
-        const ViewTextState &sourceView, const ViewTextState &targetView,
+        const GUI::ViewTextState &sourceView,
+        const GUI::ViewTextState &targetView,
         const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage
     ) override;
     [[nodiscard]] QString viewportStatusText() const override;
@@ -115,12 +118,12 @@ private:
     RenderController &_renderController;
     Shortcuts &_shortcuts;
     ViewportWindow *_viewport = nullptr;
-    NavMode _navMode = NavMode::realtimeZoom;
-    std::optional<NavMode> _displayedNavModeOverride;
-    SelectionTarget _selectionTarget = SelectionTarget::zoomPoint;
+    GUI::NavMode _navMode = GUI::NavMode::realtimeZoom;
+    std::optional<GUI::NavMode> _displayedNavModeOverride;
+    GUI::SelectionTarget _selectionTarget = GUI::SelectionTarget::zoomPoint;
     QString _mouseText;
 
     [[nodiscard]] QPoint _clampPixelToOutput(const QPoint &pixel) const;
     [[nodiscard]] double _currentZoomFactor(int sliderValue) const;
-    [[nodiscard]] GUIRenderSnapshot _snapshot() const;
+    [[nodiscard]] GUI::GUIRenderSnapshot _snapshot() const;
 };

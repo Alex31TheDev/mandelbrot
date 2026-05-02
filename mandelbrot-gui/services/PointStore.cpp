@@ -1,4 +1,4 @@
-#include "services/PointStore.h"
+#include "PointStore.h"
 
 #include <system_error>
 
@@ -6,11 +6,11 @@
 
 #include "parsers/point/PointParser.h"
 #include "parsers/point/PointWriter.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 namespace GUI {
     std::filesystem::path PointStore::directoryPath() {
-        return PathUtil::executableDir() / "views";
+        return FileUtil::executableDir() / "views";
     }
 
     bool PointStore::ensureDirectory(QString &errorMessage) {

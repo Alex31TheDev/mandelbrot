@@ -1,16 +1,16 @@
-#include "settings/AppSettings.h"
+#include "AppSettings.h"
 
 #include <algorithm>
 #include <filesystem>
 
 #include "app/GUIConstants.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 using namespace GUI;
 
 static QString settingsPath() {
     const std::filesystem::path path
-        = PathUtil::executableDir() / "settings.ini";
+        = FileUtil::executableDir() / "settings.ini";
     return QString::fromStdWString(path.wstring());
 }
 
@@ -95,6 +95,30 @@ int AppSettings::selectedOutputHeight() const {
 
 void AppSettings::setSelectedOutputHeight(int height) {
     _settings.setValue("render/outputHeight", std::max(1, height));
+}
+
+QString AppSettings::paletteRecoveryName() const {
+    return _settings.value("recovery/paletteName").toString();
+}
+
+void AppSettings::setPaletteRecoveryName(const QString &name) {
+    _settings.setValue("recovery/paletteName", name);
+}
+
+void AppSettings::clearPaletteRecoveryName() {
+    _settings.remove("recovery/paletteName");
+}
+
+QString AppSettings::sineRecoveryName() const {
+    return _settings.value("recovery/sineName").toString();
+}
+
+void AppSettings::setSineRecoveryName(const QString &name) {
+    _settings.setValue("recovery/sineName", name);
+}
+
+void AppSettings::clearSineRecoveryName() {
+    _settings.remove("recovery/sineName");
 }
 
 void AppSettings::sync() {

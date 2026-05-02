@@ -28,7 +28,7 @@ POP_DISABLE_WARNINGS
 
 #include "util/fnv1a.h"
 #include "util/BufferUtil.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 inline float clampf(float x, float a, float b) {
     return fmaxf(a, fminf(x, b));
@@ -239,8 +239,8 @@ bool Image::saveToFile(
     if (!_pixels) return false;
 
     const std::string outPath = appendDate ?
-        PathUtil::appendIsoDate(filePath) : filePath;
-    const std::string absPath = PathUtil::getAbsolutePath(outPath);
+        FileUtil::appendIsoDate(filePath) : filePath;
+    const std::string absPath = FileUtil::getAbsolutePath(outPath);
 
     std::ofstream fout(absPath, std::ios::binary);
     const bool result = writeToStream(fout, type);

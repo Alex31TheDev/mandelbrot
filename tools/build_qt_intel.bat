@@ -1,14 +1,27 @@
 @echo off
 setlocal
 
-set "QT_SRC=C:\Qt\6.11.0\Src\qtbase"
-set "QT_BUILD_DIR=C:\Qt\build\qtbase-6.11.0-intel\build"
-set "QT_VS_KEY=6.11.0_intel_icx_64"
-set "QT_INSTALL_DIR=C:\Qt\%QT_VS_KEY%"
+set "QT_ROOT=C:\Qt"
+set "QT_VERSION=6.11.0"
+set "QT_NAME=intel_icx_64"
+
 set "INTEL_ROOT=C:\Program Files (x86)\Intel\oneAPI"
 
-if not exist "%QT_BUILD_DIR%" mkdir "%QT_BUILD_DIR%" || exit /b
-cd /d "%QT_BUILD_DIR%" || exit /b
+set "QT_BASE_SRC=%QT_ROOT%\%QT_VERSION%\Src\qtbase"
+set "QT_TOOLS_SRC=%QT_ROOT%\%QT_VERSION%\Src\qttools"
+
+set "QT_BASE_BUILD_DIR=%QT_ROOT%\build\qtbase-%QT_VERSION%-%QT_NAME%"
+set "QT_TOOLS_BUILD_DIR=%QT_ROOT%\build\qttools-%QT_VERSION%-%QT_NAME%"
+
+set "QT_INSTALL_DIR=%QT_ROOT%\%QT_VERSION%\%QT_NAME%"
+set "QT_CONFIGURE_MODULE=%QT_INSTALL_DIR%\bin\qt-configure-module.bat"
+
+cd /d "%QT_ROOT%" || exit /b
+if exist "%QT_BASE_BUILD_DIR%" rmdir /s /q "%QT_BASE_BUILD_DIR%"
+if exist "%QT_TOOLS_BUILD_DIR%" rmdir /s /q "%QT_TOOLS_BUILD_DIR%"
+
+if not exist "%QT_BASE_BUILD_DIR%" mkdir "%QT_BASE_BUILD_DIR%" || exit /b
+cd /d "%QT_BASE_BUILD_DIR%" || exit /b
 
 call "%INTEL_ROOT%\setvars.bat" intel64 vs2022 || exit /b
 set "PATH=C:\Qt\Tools\CMake_64\bin;C:\Qt\Tools\Ninja;%PATH%"
@@ -18,7 +31,7 @@ for /f "delims=" %%i in ('where mt') do if not defined MT_PATH set "MT_PATH=%%i"
 set "RC_PATH_FWD=%RC_PATH:\=/%"
 set "MT_PATH_FWD=%MT_PATH:\=/%"
 
-call "%QT_SRC%\configure.bat" ^
+call "%QT_BASE_SRC%\configure.bat" ^
   -prefix "%QT_INSTALL_DIR%" ^
   -debug-and-release ^
   -opensource -confirm-license ^
@@ -32,10 +45,17 @@ call "%QT_SRC%\configure.bat" ^
 cmake --build . --parallel || exit /b
 ninja install || exit /b
 
-if exist "%QT_BUILD_DIR%" (
-    cd /d "%QT_BUILD_DIR%\..\..\.." || exit /b
-    rmdir /s /q ".\build_tmp"
-)
+if not exist "%QT_TOOLS_BUILD_DIR%" mkdir "%QT_TOOLS_BUILD_DIR%" || exit /b
+cd /d "%QT_TOOLS_BUILD_DIR%" || exit /b
+
+call "%QT_CONFIGURE_MODULE%" "%QT_TOOLS_SRC%" || exit /b
+
+cmake --build . --parallel || exit /b
+cmake --install . || exit /b
+
+cd /d "%QT_ROOT%" || exit /b
+if exist "%QT_BASE_BUILD_DIR%" rmdir /s /q "%QT_BASE_BUILD_DIR%"
+if exist "%QT_TOOLS_BUILD_DIR%" rmdir /s /q "%QT_TOOLS_BUILD_DIR%"
 
 set "QMAKE_CONF=%QT_INSTALL_DIR%\mkspecs\win32-clang-msvc\qmake.conf"
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
@@ -52,6 +72,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Set-Content -LiteralPath $p -Value $c -Encoding ASCII;"
 if errorlevel 1 exit /b
 
-reg add "HKCU\Software\QtProject\QtVsTools\Versions\%QT_VS_KEY%" /v InstallDir /t REG_SZ /d "%QT_INSTALL_DIR%" /f >nul || exit /b
+reg add "HKCU\Software\QtProject\QtVsTools\Versions\%QT_VERSION%_%QT_NAME%" /v InstallDir /t REG_SZ /d "%QT_INSTALL_DIR%" /f >nul || exit /b
 
 endlocal

@@ -328,9 +328,8 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
-    const auto mode = _effectiveMode();
     const bool panDrag = event->button() == Qt::MiddleButton
-        || (mode == NavMode::pan
+        || (_effectiveMode() == NavMode::pan
             && (event->button() == Qt::LeftButton
                 || event->button() == Qt::RightButton));
     if (panDrag) {
@@ -338,7 +337,7 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
-    if (mode == NavMode::realtimeZoom) {
+    if (_effectiveMode() == NavMode::realtimeZoom) {
         if (event->button() == Qt::LeftButton
             || event->button() == Qt::RightButton) {
             _beginRealtimeZoom(event->button() == Qt::LeftButton);
@@ -346,7 +345,7 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
         }
     }
 
-    if (mode == NavMode::zoom) {
+    if (_effectiveMode() == NavMode::zoom) {
         if (event->button() == Qt::LeftButton) {
             _selectionOrigin = event->position().toPoint();
             _selectionRect = QRect(_selectionOrigin, QSize(1, 1));
@@ -664,9 +663,12 @@ void ViewportWindow::closeEvent(QCloseEvent *event) {
     if (mouseGrabber() == this) {
         releaseMouse();
     }
+    if (!_closeAllowed) {
+        event->ignore();
+        emit closeRequested();
+        return;
+    }
     event->accept();
-    QMetaObject::invokeMethod(
-        qApp, &QCoreApplication::quit, Qt::QueuedConnection);
 }
 
 void ViewportWindow::cycleGridMode() {

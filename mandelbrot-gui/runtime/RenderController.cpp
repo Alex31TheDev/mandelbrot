@@ -1,4 +1,4 @@
-#include "runtime/RenderController.h"
+#include "RenderController.h"
 
 #include <algorithm>
 #include <chrono>
@@ -14,9 +14,12 @@
 #include "util/FormatUtil.h"
 #include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 #include "services/BackendCatalog.h"
 #include "services/PaletteStore.h"
+
+#include "BackendAPI.h"
+using namespace Backend;
 
 using namespace GUI;
 
@@ -82,7 +85,7 @@ bool RenderController::loadBackend(
 
     std::string error;
     _backend = loadBackendModule(
-        PathUtil::executableDir(), backendName.toStdString(), error);
+        FileUtil::executableDir(), backendName.toStdString(), error);
     if (_backend) {
         _renderSession = _backend.makeSession();
         if (!_renderSession && error.empty()) {
@@ -177,6 +180,15 @@ void RenderController::requestRender(
 }
 
 void RenderController::cancelQueuedRenders() {
+    bool hasQueuedRender = false;
+    {
+        const std::scoped_lock lock(_renderMutex);
+        hasQueuedRender = _queuedRenderRequest.has_value();
+    }
+    if (!_renderInFlight && !hasQueuedRender) {
+        return;
+    }
+
     const int cancelledProgressValue = _progressValue;
     const uint64_t cancelledBoundary
         = _latestRenderRequestId.fetch_add(1, std::memory_order_acq_rel) + 1;

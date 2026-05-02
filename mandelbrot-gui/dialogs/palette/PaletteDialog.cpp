@@ -1,4 +1,5 @@
-#include "dialogs/palette/PaletteDialog.h"
+#include "PaletteDialog.h"
+#include "ui_PaletteDialog.h"
 
 #include <filesystem>
 #include <system_error>
@@ -16,9 +17,12 @@
 
 #include "services/NativeFileDialog.h"
 #include "services/PaletteStore.h"
-#include "ui_PaletteDialog.h"
+
 #include "util/GUIUtil.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
+
+#include "BackendAPI.h"
+using namespace Backend;
 
 using namespace GUI;
 
@@ -196,7 +200,7 @@ void PaletteDialog::_savePalette() {
             if (savePath.isEmpty()) return;
 
             const QString savePathWithExtension = QString::fromStdString(
-                PathUtil::appendExtension(savePath.toStdString(), "txt"));
+                FileUtil::appendExtension(savePath.toStdString(), "txt"));
             QString saveName;
             if (!PaletteStore::saveFromDialogPath(savePathWithExtension,
                 _palette, saveName, destinationPath, errorMessage)) {

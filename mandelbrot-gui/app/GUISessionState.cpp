@@ -1,11 +1,15 @@
-#include "app/GUISessionState.h"
+#include "GUISessionState.h"
 
 #include <algorithm>
 
 #include "services/PaletteStore.h"
 #include "services/SineStore.h"
+
 #include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
+
+#include "BackendAPI.h"
+using namespace Backend;
 
 using namespace GUI;
 
@@ -122,6 +126,18 @@ void GUISessionState::applyHomeView() {
     syncSeedTextFromState();
 }
 
+bool GUISessionState::isHomeView() const {
+    const SavedPointViewState current = capturePointViewState();
+    return current.fractalType == Backend::FractalType::mandelbrot
+        && !current.inverse && !current.julia && current.iterations == 0
+        && NumberUtil::equalParsedDoubleText(current.real.toStdString(), "0")
+        && NumberUtil::equalParsedDoubleText(current.imag.toStdString(), "0")
+        && NumberUtil::equalParsedDoubleText(current.zoom.toStdString(),
+            stateToString(Constants::homeZoom, 17).toStdString())
+        && NumberUtil::equalParsedDoubleText(current.seedReal.toStdString(), "0")
+        && NumberUtil::equalParsedDoubleText(current.seedImag.toStdString(), "0");
+}
+
 void GUISessionState::markSineSavedState() {
     _savedSineName = PaletteStore::normalizeName(_state.sineName);
     _savedSinePalette = _state.sinePalette;
@@ -163,20 +179,22 @@ bool GUISessionState::isPointViewDirty() const {
     if (!_hasSavedPointViewState) return true;
 
     const SavedPointViewState current = capturePointViewState();
-    const SavedPointViewState &saved = _savedPointViewState;
-    return current.fractalType != saved.fractalType
-        || current.inverse != saved.inverse || current.julia != saved.julia
-        || current.iterations != saved.iterations
+    return current.fractalType != _savedPointViewState.fractalType
+        || current.inverse != _savedPointViewState.inverse
+        || current.julia != _savedPointViewState.julia
+        || current.iterations != _savedPointViewState.iterations
         || !NumberUtil::equalParsedDoubleText(
-            current.real.toStdString(), saved.real.toStdString())
+            current.real.toStdString(), _savedPointViewState.real.toStdString())
         || !NumberUtil::equalParsedDoubleText(
-            current.imag.toStdString(), saved.imag.toStdString())
+            current.imag.toStdString(), _savedPointViewState.imag.toStdString())
         || !NumberUtil::equalParsedDoubleText(
-            current.zoom.toStdString(), saved.zoom.toStdString())
+            current.zoom.toStdString(), _savedPointViewState.zoom.toStdString())
         || !NumberUtil::equalParsedDoubleText(
-            current.seedReal.toStdString(), saved.seedReal.toStdString())
+            current.seedReal.toStdString(),
+            _savedPointViewState.seedReal.toStdString())
         || !NumberUtil::equalParsedDoubleText(
-            current.seedImag.toStdString(), saved.seedImag.toStdString());
+            current.seedImag.toStdString(),
+            _savedPointViewState.seedImag.toStdString());
 }
 
 QString GUISessionState::stateToString(double value, int precision) const {

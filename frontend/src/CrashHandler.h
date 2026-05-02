@@ -17,7 +17,7 @@
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "psapi.lib")
 
-#include "util/DateTimeUtil.h"
+#include "util/TimeUtil.h"
 
 namespace _CrashHandlerImpl {
     inline void writeCrashReport(const std::string &report) {
@@ -26,7 +26,7 @@ namespace _CrashHandlerImpl {
         if (err) return;
 
         const std::filesystem::path logPath = std::filesystem::path("logs")
-            / ("crash_" + DateTimeUtil::formatCurrentLocalTime("%Y_%m_%d-%H_%M_%S") + ".log");
+            / ("crash_" + TimeUtil::formatCurrentTime("%Y_%m_%d-%H_%M_%S") + ".log");
 
         std::ofstream file(logPath, std::ios::binary);
         if (file) file.write(report.data(), static_cast<std::streamsize>(report.size()));
@@ -80,8 +80,7 @@ namespace _CrashHandlerImpl {
 
         uintptr_t excAddr = (uintptr_t)excRecord->ExceptionAddress;
 
-        if (AddressInModule(excAddr, "ntdll.dll") ||
-            AddressInModule(excAddr, "RobloxPlayerBeta.dll"))
+        if (AddressInModule(excAddr, "ntdll.dll"))
             return EXCEPTION_CONTINUE_SEARCH;
 
         HANDLE process = GetCurrentProcess();

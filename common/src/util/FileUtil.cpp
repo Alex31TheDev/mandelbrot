@@ -1,4 +1,4 @@
-#include "PathUtil.h"
+#include "FileUtil.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -8,11 +8,11 @@
 #include <filesystem>
 #include <tuple>
 
-#include "DateTimeUtil.h"
+#include "TimeUtil.h"
 #include "IncludeWin32.h"
 #include "StringUtil.h"
 
-namespace PathUtil {
+namespace FileUtil {
     std::filesystem::path executableDir() {
         std::wstring path(MAX_PATH, L'\0');
         const DWORD length = GetModuleFileNameW(nullptr, path.data(),
@@ -86,7 +86,7 @@ namespace PathUtil {
     ) {
         const auto [name, ext] = splitFilename(filePath);
 
-        const std::string formatted = DateTimeUtil::formatCurrentLocalTime(format);
+        const std::string formatted = TimeUtil::formatCurrentTime(format);
         if (formatted.empty()) return "";
 
         std::string result;
@@ -117,5 +117,20 @@ namespace PathUtil {
         out.push_back('.');
         out.append(normalizedExt);
         return out;
+    }
+
+    bool hideFile(const std::filesystem::path &path) {
+#ifdef _WIN32
+        const DWORD attributes = GetFileAttributesW(path.c_str());
+        if (attributes == INVALID_FILE_ATTRIBUTES) {
+            return false;
+        }
+
+        return SetFileAttributesW(
+            path.c_str(), attributes | FILE_ATTRIBUTE_HIDDEN) != 0;
+#else
+        (void)path;
+        return false;
+#endif
     }
 }

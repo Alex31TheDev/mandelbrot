@@ -13,7 +13,7 @@ using namespace Backend;
 #include "args/ArgsUsage.h"
 
 #include "util/ParserUtil.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 #include "CPUInfo.h"
 #include "CallbackFormatter.h"
@@ -25,7 +25,7 @@ static bool saveImage(
 ) {
     const std::string baseName = fullname;
     const std::string outName = num
-        ? PathUtil::appendSeqnum(baseName, *num)
+        ? FileUtil::appendSeqnum(baseName, *num)
         : baseName;
 
     if (const Status status =
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
     }
 
     std::string error;
-    BackendModule backend = loadBackendModule(PathUtil::executableDir(),
+    BackendModule backend = loadBackendModule(FileUtil::executableDir(),
         configName, error);
     if (!backend) {
         fprintf(stderr, "%s\n", error.c_str());

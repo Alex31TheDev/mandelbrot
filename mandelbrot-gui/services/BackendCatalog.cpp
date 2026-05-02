@@ -1,4 +1,4 @@
-#include "services/BackendCatalog.h"
+#include "BackendCatalog.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -6,7 +6,7 @@
 
 #include <QCoreApplication>
 
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 namespace GUI {
     int BackendCatalog::typeRank(const QString &name) {
@@ -34,7 +34,7 @@ namespace GUI {
         QStringList names;
 
         std::error_code ec;
-        const std::filesystem::path dir = PathUtil::executableDir() / "backends";
+        const std::filesystem::path dir = FileUtil::executableDir() / "backends";
         if (!std::filesystem::exists(dir, ec) || ec) {
             errorMessage = QCoreApplication::translate(
                 "BackendCatalog", "Backend directory was not found.");

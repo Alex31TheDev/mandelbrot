@@ -3,9 +3,9 @@
 #include <time.h>
 #include <string>
 
-namespace DateTimeUtil {
+namespace TimeUtil {
     bool tryFormatLocalTime(time_t time, const std::string &format,
         std::string &out);
 
-    std::string formatCurrentLocalTime(const std::string &format);
+    std::string formatCurrentTime(const std::string &format);
 }

@@ -63,4 +63,5 @@ namespace GUI::Util {
     [[nodiscard]] double effectiveDevicePixelRatio(const QWidget *widget);
     void setAdaptiveSpinValue(QDoubleSpinBox *spinBox, double value);
     void resizeViewportToImageSize(QWidget *viewport, const QSize &imageSize);
+
 }

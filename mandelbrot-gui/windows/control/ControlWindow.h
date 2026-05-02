@@ -12,14 +12,14 @@
 #include <QPixmap>
 #include <QShowEvent>
 
-#include "app/GUITypes.h"
 #include "settings/AppSettings.h"
 #include "settings/Shortcuts.h"
+
+#include "BackendAPI.h"
+
+#include "app/GUITypes.h"
+#include "app/GUISessionState.h"
 #include "util/GUIUtil.h"
-
-using namespace GUI;
-
-class GUISessionState;
 
 namespace Ui {
     class ControlWindow;
@@ -42,8 +42,8 @@ public:
     );
     void setCpuInfo(const QString &name, int cores, int threads);
     void setSessionState(
-        const GUISessionState &sessionState, NavMode displayedNavMode,
-        SelectionTarget selectionTarget
+        const GUISessionState &sessionState, GUI::NavMode displayedNavMode,
+        GUI::SelectionTarget selectionTarget
     );
     void syncToSessionState(GUISessionState &sessionState) const;
     void applyShortcuts(const Shortcuts &shortcuts);
@@ -64,6 +64,7 @@ public:
     [[nodiscard]] bool windowSettingsRestored() const {
         return _windowSettingsRestored;
     }
+    void setCloseAllowed(bool allowed) { _closeAllowed = allowed; }
 
 signals:
     void backendSelectionRequested(const QString &backendName);
@@ -86,19 +87,22 @@ signals:
     void cycleGridRequested();
     void toggleViewportOverlayRequested();
     void toggleViewportFullscreenRequested();
-    void navModeChanged(NavMode mode);
-    void selectionTargetChanged(SelectionTarget target);
+    void navModeChanged(GUI::NavMode mode);
+    void selectionTargetChanged(GUI::SelectionTarget target);
+    void sineStateEdited();
     void sineSelectionRequested(const QString &name);
     void newSineRequested();
     void randomizeSineRequested();
     void saveSineRequested();
     void importSineRequested();
+    void paletteStateEdited();
     void paletteSelectionRequested(const QString &name);
     void newPaletteRequested();
     void loadPaletteRequested();
     void savePaletteRequested();
     void paletteEditorRequested();
     void lightColorChangeRequested();
+    void closeRequested();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -112,7 +116,7 @@ private:
     QString _statusText;
     QString _statusLinkPath;
     QString _pixelsPerSecondText;
-    QString _imageMemoryText = Util::defaultImageMemoryText();
+    QString _imageMemoryText = GUI::Util::defaultImageMemoryText();
     QStringList _sineNames;
     QString _currentSineName;
     bool _sineDirty = false;
@@ -123,9 +127,11 @@ private:
     bool _progressActive = false;
     bool _progressCancelled = false;
     QSize _lastOutputSize{
-        Constants::defaultOutputWidth, Constants::defaultOutputHeight
+        GUI::Constants::defaultOutputWidth, GUI::Constants::defaultOutputHeight
     };
     bool _windowSettingsRestored = false;
+    bool _closeAllowed = false;
+    bool _pointViewDirty = false;
     std::function<int()> _iterationAutoResolver;
 
     void _buildUI();
@@ -135,6 +141,7 @@ private:
     void _retranslateDynamicControls();
     void _updateModeEnablement(Backend::ColorMethod colorMethod);
     void _updateControlWindowSize();
+    void _updateWindowTitle();
     void _updateAspectLinkedSizes(bool widthChanged);
     void _updateStatusRightEdgeAlignment();
     void _updateStatusLabels();

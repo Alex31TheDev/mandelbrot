@@ -11,7 +11,7 @@
 #include "app/GUIConstants.h"
 #include "settings/AppSettings.h"
 #include "ui_SettingsDialog.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 using namespace GUI;
 
@@ -34,7 +34,7 @@ static QString _displayLanguageName(const QString &code) {
 static std::vector<QString> _availableLanguageCodes() {
     std::vector<QString> codes{ "en" };
     const std::filesystem::path translationsDir
-        = PathUtil::executableDir() / "translations";
+        = FileUtil::executableDir() / "translations";
 
     std::error_code ec;
     if (!std::filesystem::exists(translationsDir, ec)

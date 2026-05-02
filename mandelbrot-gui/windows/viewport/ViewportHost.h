@@ -28,33 +28,33 @@ public:
     virtual void cycleNavMode() = 0;
     virtual void cancelQueuedRenders() = 0;
     virtual void quickSaveImage() = 0;
-    virtual void setDisplayedNavModeOverride(std::optional<NavMode> mode) = 0;
+    virtual void setDisplayedNavModeOverride(std::optional<GUI::NavMode> mode) = 0;
     virtual void prepareViewportFullscreenTransition() = 0;
     virtual void applyViewportOutputSize(const QSize &outputSize) = 0;
 
-    [[nodiscard]] virtual NavMode navMode() const = 0;
+    [[nodiscard]] virtual GUI::NavMode navMode() const = 0;
     [[nodiscard]] virtual bool viewportUsesDirectPick() const = 0;
     [[nodiscard]] virtual bool renderInFlight() const = 0;
     [[nodiscard]] virtual QSize outputSize() const = 0;
     [[nodiscard]] virtual const QImage &previewImage() const = 0;
     [[nodiscard]] virtual bool previewUsesBackendMemory() const = 0;
     [[nodiscard]] virtual bool hasDisplayedViewState() const = 0;
-    [[nodiscard]] virtual ViewTextState currentViewTextState() const = 0;
-    [[nodiscard]] virtual ViewTextState displayedViewTextState() const = 0;
+    [[nodiscard]] virtual GUI::ViewTextState currentViewTextState() const = 0;
+    [[nodiscard]] virtual GUI::ViewTextState displayedViewTextState() const = 0;
     virtual bool previewPannedViewState(
-        const QPoint &delta, ViewTextState &view, QString &errorMessage
+        const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage
     ) = 0;
     virtual bool previewScaledViewState(
         const QPoint &pixel, double scaleMultiplier,
-        ViewTextState &view, QString &errorMessage
+        GUI::ViewTextState &view, QString &errorMessage
     ) = 0;
     virtual bool previewBoxZoomViewState(
-        const QRect &selectionRect, ViewTextState &view, QString &errorMessage
+        const QRect &selectionRect, GUI::ViewTextState &view,
+        QString &errorMessage
     ) = 0;
-    virtual bool mapViewPixelToViewPixel(
-        const ViewTextState &sourceView, const ViewTextState &targetView,
-        const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage
-    ) = 0;
+    virtual bool mapViewPixelToViewPixel(const GUI::ViewTextState &sourceView,
+        const GUI::ViewTextState &targetView,
+        const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage) = 0;
     [[nodiscard]] virtual QString viewportStatusText() const = 0;
     [[nodiscard]] virtual int interactionFrameIntervalMs() const = 0;
     [[nodiscard]] virtual bool shouldUseInteractionPreviewFallback() const = 0;

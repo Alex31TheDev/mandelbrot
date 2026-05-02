@@ -1,8 +1,8 @@
-#include "dialogs/about/AboutDialog.h"
+#include "AboutDialog.h"
+#include "ui_AboutDialog.h"
 
 #include <QLabel>
 
-#include "ui_AboutDialog.h"
 
 AboutDialog::AboutDialog(const QIcon &icon, QWidget *parent)
     : QDialog(parent)

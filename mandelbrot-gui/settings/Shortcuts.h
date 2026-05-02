@@ -5,7 +5,7 @@
 #include <QKeySequence>
 #include <QString>
 
-#include "settings/AppSettings.h"
+#include "AppSettings.h"
 
 struct ShortcutDef {
     QString id;
@@ -16,7 +16,7 @@ struct ShortcutDef {
 
 class Shortcuts {
 public:
-    static const std::vector<ShortcutDef> &defs();
+    [[nodiscard]] static const std::vector<ShortcutDef> &defs();
     static QString label(const ShortcutDef &def);
 
     explicit Shortcuts(AppSettings &settings);

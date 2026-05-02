@@ -1,4 +1,4 @@
-#include "settings/Shortcuts.h"
+#include "Shortcuts.h"
 
 #include <QCoreApplication>
 #include <QMap>
@@ -32,6 +32,7 @@ const std::vector<ShortcutDef> &Shortcuts::defs() {
             QKeySequence(Qt::CTRL | Qt::Key_Comma) },
         { "exit", QT_TRANSLATE_NOOP("Shortcuts", "Exit"), QKeySequence::Quit }
     };
+
     return defs;
 }
 
@@ -55,17 +56,15 @@ void Shortcuts::reload() {
 }
 
 QKeySequence Shortcuts::sequence(const QString &id) const {
-    const auto &items = defs();
-    for (size_t i = 0; i < items.size(); i++) {
-        if (items[i].id == id) return _sequences[i];
+    for (size_t i = 0; i < defs().size(); i++) {
+        if (defs()[i].id == id) return _sequences[i];
     }
     return {};
 }
 
 void Shortcuts::setSequence(const QString &id, const QKeySequence &sequence) {
-    const auto &items = defs();
-    for (size_t i = 0; i < items.size(); i++) {
-        if (items[i].id == id) {
+    for (size_t i = 0; i < defs().size(); i++) {
+        if (defs()[i].id == id) {
             _sequences[i] = sequence;
             return;
         }
@@ -73,22 +72,20 @@ void Shortcuts::setSequence(const QString &id, const QKeySequence &sequence) {
 }
 
 void Shortcuts::save() {
-    const auto &items = defs();
-    for (size_t i = 0; i < items.size(); i++) {
+    for (size_t i = 0; i < defs().size(); i++) {
         _settings.setShortcut(
-            items[i].id, _sequences[i].toString(QKeySequence::PortableText));
+            defs()[i].id, _sequences[i].toString(QKeySequence::PortableText));
     }
     _settings.sync();
 }
 
 QString Shortcuts::duplicateError() const {
     QMap<QString, QString> seen;
-    const auto &items = defs();
-    for (size_t i = 0; i < items.size(); i++) {
+    for (size_t i = 0; i < defs().size(); i++) {
         const QKeySequence sequence = _sequences[i];
         if (sequence.isEmpty()) {
-            if (items[i].required) {
-                return QObject::tr("%1 cannot be empty.").arg(label(items[i]));
+            if (defs()[i].required) {
+                return QObject::tr("%1 cannot be empty.").arg(label(defs()[i]));
             }
             continue;
         }
@@ -97,9 +94,9 @@ QString Shortcuts::duplicateError() const {
         const auto it = seen.constFind(key);
         if (it != seen.constEnd()) {
             return QObject::tr("%1 and %2 both use %3.")
-                .arg(it.value(), label(items[i]), key);
+                .arg(it.value(), label(defs()[i]), key);
         }
-        seen.insert(key, label(items[i]));
+        seen.insert(key, label(defs()[i]));
     }
     return {};
 }

@@ -1,10 +1,10 @@
-#include "locale/GUILocale.h"
+#include "GUILocale.h"
 
 #include <filesystem>
 
 #include <QApplication>
 
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 GUILocale::GUILocale(QApplication &app)
     : _app(app) {}
@@ -19,7 +19,7 @@ bool GUILocale::setLanguage(const QString &language) {
     if (_language == "en") return true;
 
     auto translator = std::make_unique<QTranslator>();
-    const std::filesystem::path qmPath = PathUtil::executableDir()
+    const std::filesystem::path qmPath = FileUtil::executableDir()
         / "translations"
         / std::filesystem::path(
             ("mandelbrot_" + _language + ".qm").toStdString());

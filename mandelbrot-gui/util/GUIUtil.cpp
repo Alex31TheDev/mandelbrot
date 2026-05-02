@@ -1,4 +1,4 @@
-#include "util/GUIUtil.h"
+#include "GUIUtil.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,15 +14,16 @@
 #include <QWindow>
 
 #include "widgets/AdaptiveDoubleSpinBox.h"
+
 #include "app/GUIConstants.h"
-#include "util/FormatUtil.h"
-#include "util/PathUtil.h"
-#include "util/StringUtil.h"
+using namespace GUI;
 
 #include "BackendAPI.h"
 using namespace Backend;
 
-using namespace GUI;
+#include "util/FormatUtil.h"
+#include "util/FileUtil.h"
+#include "util/StringUtil.h"
 
 const char committedLineEditTextProperty[] = "_mandelbrotCommittedText";
 
@@ -195,7 +196,7 @@ namespace GUI::Util {
     }
 
     std::filesystem::path savesDirectoryPath() {
-        return PathUtil::executableDir() / "saves";
+        return FileUtil::executableDir() / "saves";
     }
 
     void stabilizePushButton(QPushButton *button) {

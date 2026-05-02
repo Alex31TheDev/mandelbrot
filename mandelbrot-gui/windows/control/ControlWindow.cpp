@@ -1,4 +1,5 @@
-#include "windows/control/ControlWindow.h"
+#include "ControlWindow.h"
+#include "ui_ControlWindow.h"
 
 #include <algorithm>
 #include <array>
@@ -16,12 +17,10 @@
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QStyleFactory>
+#include <QWheelEvent>
 #include <QWindow>
 
-#include "app/GUISessionState.h"
 #include "services/PaletteStore.h"
-#include "ui_ControlWindow.h"
-#include "util/GUIUtil.h"
 #include "widgets/AdaptiveDoubleSpinBox.h"
 #include "widgets/CollapsibleGroupBox.h"
 #include "widgets/IterationSpinBox.h"
@@ -29,7 +28,13 @@
 #include "widgets/PalettePreviewWidget.h"
 #include "widgets/SinePreviewWidget.h"
 
+#include "app/GUISessionState.h"
 using namespace GUI;
+
+#include "BackendAPI.h"
+using namespace Backend;
+
+#include "util/GUIUtil.h"
 
 static const int controlWindowScreenPadding = 48;
 
@@ -99,6 +104,7 @@ void ControlWindow::_buildUI() {
     if (QLineEdit *iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit *>()) {
         iterationsEdit->installEventFilter(this);
     }
+    _ui->paletteCombo->installEventFilter(this);
 
     if (auto *spin = qobject_cast<::AdaptiveDoubleSpinBox *>(_ui->exponentSpin)) {
         spin->setDefaultDisplayDecimals(2);
@@ -238,7 +244,10 @@ void ControlWindow::_connectUI() {
     for (QDoubleSpinBox *spin : { _ui->freqRSpin, _ui->freqGSpin, _ui->freqBSpin,
              _ui->freqMultSpin }) {
         connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-            [emitRender](double) { emitRender(); });
+            [this, emitRender](double) {
+                emit sineStateEdited();
+                emitRender();
+            });
     }
     connect(_ui->randomizeSineButton, &QPushButton::clicked, this,
         &ControlWindow::randomizeSineRequested);
@@ -263,10 +272,16 @@ void ControlWindow::_connectUI() {
         });
     connect(_ui->paletteLengthSpin,
         QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-        [emitRender](double) { emitRender(); });
+        [this, emitRender](double) {
+            emit paletteStateEdited();
+            emitRender();
+        });
     connect(_ui->paletteOffsetSpin,
         QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-        [emitRender](double) { emitRender(); });
+        [this, emitRender](double) {
+            emit paletteStateEdited();
+            emitRender();
+        });
     connect(_ui->paletteLoadButton, &QPushButton::clicked, this,
         &ControlWindow::loadPaletteRequested);
     connect(_ui->paletteSaveButton, &QPushButton::clicked, this,
@@ -386,7 +401,6 @@ void ControlWindow::setSessionState(
     NavMode displayedNavMode, SelectionTarget selectionTarget
 ) {
     const GUIState &state = sessionState.state();
-
     const QSignalBlocker backendBlocker(_ui->backendCombo);
     const QSignalBlocker iterationsBlocker(_ui->iterationsSpin);
     const QSignalBlocker threadsBlocker(_ui->useThreadsCheckBox);
@@ -415,48 +429,61 @@ void ControlWindow::setSessionState(
     const QSignalBlocker widthBlocker(_ui->outputWidthSpin);
     const QSignalBlocker heightBlocker(_ui->outputHeightSpin);
 
-    _ui->backendCombo->setCurrentText(state.backend);
-    _ui->iterationsSpin->setValue(state.iterations);
-    _ui->useThreadsCheckBox->setChecked(state.useThreads);
-    _ui->juliaCheck->setChecked(state.julia);
-    _ui->inverseCheck->setChecked(state.inverse);
-    _ui->aaSpin->setValue(state.aaPixels);
-    _ui->preserveRatioCheck->setChecked(state.preserveRatio);
-    _ui->panRateSlider->setValue(state.panRate);
-    _ui->panRateSpin->setValue(state.panRate);
-    _ui->zoomRateSlider->setValue(state.zoomRate);
-    _ui->zoomRateSpin->setValue(state.zoomRate);
+    _ui->backendCombo->setCurrentText(sessionState.state().backend);
+    _ui->iterationsSpin->setValue(sessionState.state().iterations);
+    _ui->useThreadsCheckBox->setChecked(sessionState.state().useThreads);
+    _ui->juliaCheck->setChecked(sessionState.state().julia);
+    _ui->inverseCheck->setChecked(sessionState.state().inverse);
+    _ui->aaSpin->setValue(sessionState.state().aaPixels);
+    _ui->preserveRatioCheck->setChecked(sessionState.state().preserveRatio);
+    _ui->panRateSlider->setValue(sessionState.state().panRate);
+    _ui->panRateSpin->setValue(sessionState.state().panRate);
+    _ui->zoomRateSlider->setValue(sessionState.state().zoomRate);
+    _ui->zoomRateSpin->setValue(sessionState.state().zoomRate);
     _ui->exponentSlider->setValue(
-        static_cast<int>(std::round(std::max(1.01, state.exponent) * 100.0))
+        static_cast<int>(std::round(
+            std::max(1.01, sessionState.state().exponent) * 100.0))
     );
-    Util::setAdaptiveSpinValue(_ui->exponentSpin, std::max(1.01, state.exponent));
-    if (!state.sineName.isEmpty()) {
-        const int sineIndex = _ui->sineCombo->findData(state.sineName);
+    Util::setAdaptiveSpinValue(
+        _ui->exponentSpin, std::max(1.01, sessionState.state().exponent));
+    if (!sessionState.state().sineName.isEmpty()) {
+        const int sineIndex
+            = _ui->sineCombo->findData(sessionState.state().sineName);
         if (sineIndex >= 0) {
             _ui->sineCombo->setCurrentIndex(sineIndex);
         } else {
-            _ui->sineCombo->setCurrentText(state.sineName);
+            _ui->sineCombo->setCurrentText(sessionState.state().sineName);
         }
     }
-    Util::setAdaptiveSpinValue(_ui->freqRSpin, state.sinePalette.freqR);
-    Util::setAdaptiveSpinValue(_ui->freqGSpin, state.sinePalette.freqG);
-    Util::setAdaptiveSpinValue(_ui->freqBSpin, state.sinePalette.freqB);
-    Util::setAdaptiveSpinValue(_ui->freqMultSpin, state.sinePalette.freqMult);
-    if (!state.paletteName.isEmpty()) {
-        const int paletteIndex = _ui->paletteCombo->findData(state.paletteName);
+    Util::setAdaptiveSpinValue(
+        _ui->freqRSpin, sessionState.state().sinePalette.freqR);
+    Util::setAdaptiveSpinValue(
+        _ui->freqGSpin, sessionState.state().sinePalette.freqG);
+    Util::setAdaptiveSpinValue(
+        _ui->freqBSpin, sessionState.state().sinePalette.freqB);
+    Util::setAdaptiveSpinValue(
+        _ui->freqMultSpin, sessionState.state().sinePalette.freqMult);
+    if (!sessionState.state().paletteName.isEmpty()) {
+        const int paletteIndex
+            = _ui->paletteCombo->findData(sessionState.state().paletteName);
         if (paletteIndex >= 0) {
             _ui->paletteCombo->setCurrentIndex(paletteIndex);
         } else {
-            _ui->paletteCombo->setCurrentText(state.paletteName);
+            _ui->paletteCombo->setCurrentText(sessionState.state().paletteName);
         }
     }
-    Util::setAdaptiveSpinValue(_ui->paletteLengthSpin, state.palette.totalLength);
-    Util::setAdaptiveSpinValue(_ui->paletteOffsetSpin, state.palette.offset);
-    _ui->outputWidthSpin->setValue(state.outputWidth);
-    _ui->outputHeightSpin->setValue(state.outputHeight);
-    _lastOutputSize = QSize(state.outputWidth, state.outputHeight);
-    _ui->colorMethodCombo->setCurrentIndex(static_cast<int>(state.colorMethod));
-    _ui->fractalCombo->setCurrentIndex(static_cast<int>(state.fractalType));
+    Util::setAdaptiveSpinValue(
+        _ui->paletteLengthSpin, sessionState.state().palette.totalLength);
+    Util::setAdaptiveSpinValue(
+        _ui->paletteOffsetSpin, sessionState.state().palette.offset);
+    _ui->outputWidthSpin->setValue(sessionState.state().outputWidth);
+    _ui->outputHeightSpin->setValue(sessionState.state().outputHeight);
+    _lastOutputSize = QSize(
+        sessionState.state().outputWidth, sessionState.state().outputHeight);
+    _ui->colorMethodCombo->setCurrentIndex(
+        static_cast<int>(sessionState.state().colorMethod));
+    _ui->fractalCombo->setCurrentIndex(
+        static_cast<int>(sessionState.state().fractalType));
     _ui->navModeCombo->setCurrentIndex(static_cast<int>(displayedNavMode));
     _ui->pickTargetCombo->setCurrentIndex(static_cast<int>(selectionTarget));
 
@@ -468,6 +495,8 @@ void ControlWindow::setSessionState(
     _ui->lightRealEdit->setText(sessionState.stateToString(state.light.x(), 12));
     _ui->lightImagEdit->setText(sessionState.stateToString(state.light.y(), 12));
 
+    _pointViewDirty = sessionState.isPointViewDirty() && !sessionState.isHomeView();
+    _updateWindowTitle();
     _updateModeEnablement(state.colorMethod);
 }
 
@@ -626,6 +655,15 @@ std::pair<double, double> ControlWindow::sinePreviewRange() const {
 }
 
 bool ControlWindow::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == _ui->paletteCombo && event->type() == QEvent::Wheel) {
+        auto *wheelEvent = static_cast<QWheelEvent *>(event);
+        if (wheelEvent && wheelEvent->angleDelta().y() > 0
+            && _ui->paletteCombo->currentIndex() <= 2) {
+            event->accept();
+            return true;
+        }
+    }
+
     QLineEdit *iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit *>();
     if (iterationsEdit && watched == iterationsEdit
         && event->type() == QEvent::KeyPress) {
@@ -654,6 +692,7 @@ void ControlWindow::changeEvent(QEvent *event) {
         _ui->retranslateUi(this);
         _retranslateMenus();
         _retranslateDynamicControls();
+        _updateWindowTitle();
         _refreshNamedCombo(
             _ui->sineCombo, _sineNames, _currentSineName, _sineDirty);
         _refreshNamedCombo(
@@ -664,9 +703,13 @@ void ControlWindow::changeEvent(QEvent *event) {
 }
 
 void ControlWindow::closeEvent(QCloseEvent *event) {
+    if (!_closeAllowed) {
+        event->ignore();
+        emit closeRequested();
+        return;
+    }
+
     event->accept();
-    QMetaObject::invokeMethod(
-        qApp, &QCoreApplication::quit, Qt::QueuedConnection);
 }
 
 void ControlWindow::showEvent(QShowEvent *event) {
@@ -838,6 +881,10 @@ void ControlWindow::_updateControlWindowSize() {
     }
 
     _updateStatusRightEdgeAlignment();
+}
+
+void ControlWindow::_updateWindowTitle() {
+    setWindowTitle(Util::decorateUnsavedLabel(tr("Control"), _pointViewDirty));
 }
 
 void ControlWindow::_updateAspectLinkedSizes(bool widthChanged) {

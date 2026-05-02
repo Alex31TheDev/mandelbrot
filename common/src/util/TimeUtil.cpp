@@ -1,4 +1,4 @@
-#include "DateTimeUtil.h"
+#include "TimeUtil.h"
 
 #include <chrono>
 
@@ -12,7 +12,7 @@ static bool safeLocaltime(time_t time, tm &out) {
 #endif
 }
 
-namespace DateTimeUtil {
+namespace TimeUtil {
     bool tryFormatLocalTime(
         time_t time, const std::string &format,
         std::string &out
@@ -33,7 +33,7 @@ namespace DateTimeUtil {
         return true;
     }
 
-    std::string formatCurrentLocalTime(const std::string &format) {
+    std::string formatCurrentTime(const std::string &format) {
         const time_t now = system_clock::to_time_t(system_clock::now());
 
         std::string formatted;

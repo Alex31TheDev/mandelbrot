@@ -36,6 +36,14 @@ public:
     [[nodiscard]] int selectedOutputHeight() const;
     void setSelectedOutputHeight(int height);
 
+    [[nodiscard]] QString paletteRecoveryName() const;
+    void setPaletteRecoveryName(const QString &name);
+    void clearPaletteRecoveryName();
+
+    [[nodiscard]] QString sineRecoveryName() const;
+    void setSineRecoveryName(const QString &name);
+    void clearSineRecoveryName();
+
     void sync();
     void clearPersistedSettings();
 

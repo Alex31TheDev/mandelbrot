@@ -181,7 +181,7 @@
     <ClInclude Include="src\util\AssertUtil.h" />
     <ClInclude Include="src\util\BufferUtil.h" />
     <ClInclude Include="src\util\BufferUtil_impl.h" />
-    <ClInclude Include="src\util\DateTimeUtil.h" />
+    <ClInclude Include="src\util\TimeUtil.h" />
     <ClInclude Include="src\util\fnv1a.h" />
     <ClInclude Include="src\util\FormatUtil.h" />
     <ClInclude Include="src\util\FormatUtil_impl.h" />
@@ -191,7 +191,7 @@
     <ClInclude Include="src\util\NumberUtil.h" />
     <ClInclude Include="src\util\ParserUtil.h" />
     <ClInclude Include="src\util\ParserUtil_impl.h" />
-    <ClInclude Include="src\util\PathUtil.h" />
+    <ClInclude Include="src\util\FileUtil.h" />
     <ClInclude Include="src\util\RangeUtil.h" />
     <ClInclude Include="src\util\StringUtil.h" />
     <ClInclude Include="src\util\WarningUtil.h" />
@@ -199,11 +199,11 @@
   <ItemGroup>
     <ClCompile Include="src\options\ColorMethods.cpp" />
     <ClCompile Include="src\options\FractalTypes.cpp" />
-    <ClCompile Include="src\util\DateTimeUtil.cpp" />
+    <ClCompile Include="src\util\TimeUtil.cpp" />
     <ClCompile Include="src\util\FormatUtil.cpp" />
     <ClCompile Include="src\util\NumberUtil.cpp" />
     <ClCompile Include="src\util\ParserUtil.cpp" />
-    <ClCompile Include="src\util\PathUtil.cpp" />
+    <ClCompile Include="src\util\FileUtil.cpp" />
     <ClCompile Include="src\util\StringUtil.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

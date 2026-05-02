@@ -1,4 +1,4 @@
-#include "services/SineStore.h"
+#include "SineStore.h"
 
 #include <algorithm>
 #include <system_error>
@@ -8,7 +8,7 @@
 #include "parsers/sine/SineParser.h"
 #include "parsers/sine/SineWriter.h"
 #include "util/NumberUtil.h"
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 #include "BackendAPI.h"
 using namespace Backend;
@@ -29,7 +29,7 @@ namespace GUI::SineStore {
     }
 
     std::filesystem::path directoryPath() {
-        return PathUtil::executableDir() / "sines";
+        return FileUtil::executableDir() / "sines";
     }
 
     std::filesystem::path filePath(const QString &name) {
@@ -51,6 +51,8 @@ namespace GUI::SineStore {
 
             const std::filesystem::path path = entry.path();
             if (path.extension() != ".txt") continue;
+            const QString stem = QString::fromStdWString(path.stem().wstring());
+            if (stem.startsWith('.') && stem.endsWith("_recovery")) continue;
             names.push_back(QString::fromStdWString(path.stem().wstring()));
         }
 

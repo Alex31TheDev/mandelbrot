@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <optional>
 
@@ -10,7 +11,7 @@
 #include "settings/AppSettings.h"
 #include "settings/Shortcuts.h"
 #include "controllers/ViewportController.h"
-#include "app/GUISessionState.h"
+#include "GUISessionState.h"
 #include "runtime/RenderController.h"
 #include "windows/control/ControlWindow.h"
 #include "windows/viewport/ViewportWindow.h"
@@ -53,13 +54,15 @@ private:
     void _refreshStatus();
     void _refreshPreviews();
     void _refreshCollections();
+    void _syncSineDirtyStateFromControls();
+    void _syncPaletteDirtyStateFromControls();
     void _setStatusMessage(const QString &message);
     void _setStatusSavedPath(const QString &path);
     bool _loadSelectedBackend();
     void _requestRender(
-        const std::optional<PendingPickAction> &pickAction = std::nullopt
+        const std::optional<GUI::PendingPickAction> &pickAction = std::nullopt
     );
-    [[nodiscard]] std::optional<PendingPickAction> _pendingPickAction(
+    [[nodiscard]] std::optional<GUI::PendingPickAction> _pendingPickAction(
         bool hasPickAction, int pickTarget, const QPoint &pickPixel
     ) const;
     void _initializeSessionState();
@@ -82,11 +85,23 @@ private:
     void _createNewSinePalette(bool requestRenderOnSuccess);
     void _createNewColorPalette(bool requestRenderOnSuccess);
     bool _loadSineByName(const QString &name, bool requestRenderOnSuccess,
-        QString *errorMessage = nullptr);
+        QString *errorMessage = nullptr, bool discardRecovery = true);
     bool _loadPaletteByName(const QString &name, bool requestRenderOnSuccess,
-        QString *errorMessage = nullptr);
+        QString *errorMessage = nullptr, bool discardRecovery = true);
     bool _confirmDiscardDirtySine();
     bool _confirmDiscardDirtyPalette();
+    [[nodiscard]] bool _promptForDirtyViewOnClose();
+    [[nodiscard]] bool _savePointViewInteractive();
+    void _restorePaletteRecovery();
+    void _restoreSineRecovery();
+    void _cachePaletteRecovery();
+    void _cacheSineRecovery();
+    void _discardPaletteRecovery();
+    void _discardSineRecovery();
+    [[nodiscard]] std::filesystem::path _paletteRecoveryPath(
+        const QString &name
+    ) const;
+    [[nodiscard]] std::filesystem::path _sineRecoveryPath(const QString &name) const;
     void _savePersistentState();
     void _closeAllWindows();
 };

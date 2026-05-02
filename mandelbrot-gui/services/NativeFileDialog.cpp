@@ -1,4 +1,4 @@
-#include "services/NativeFileDialog.h"
+#include "NativeFileDialog.h"
 
 #include "util/IncludeWin32.h"
 
@@ -14,7 +14,7 @@
 #include <QMessageBox>
 #include <QStringList>
 
-#include "util/PathUtil.h"
+#include "util/FileUtil.h"
 
 static QString defaultExtensionFromPattern(const QString &patternText) {
     const QStringList patterns = patternText.split(' ', Qt::SkipEmptyParts);
@@ -278,7 +278,7 @@ namespace GUI {
     std::optional<SaveDialogResult> runSaveImageDialog(
         QWidget *parent, const QString &suggestedFile
     ) {
-        const std::filesystem::path savesDir = PathUtil::executableDir() / "saves";
+        const std::filesystem::path savesDir = FileUtil::executableDir() / "saves";
         std::error_code ec;
         std::filesystem::create_directories(savesDir, ec);
 
@@ -432,7 +432,7 @@ namespace GUI {
         }
 #endif
 
-        result.path = QString::fromStdString(PathUtil::appendExtension(
+        result.path = QString::fromStdString(FileUtil::appendExtension(
             result.path.toStdString(), result.type.toStdString()));
         return result;
     }
