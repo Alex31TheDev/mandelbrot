@@ -26,7 +26,7 @@ using namespace Backend;
 
 using namespace GUI;
 
-PaletteDialog::PaletteDialog(const Backend::PaletteRGBConfig &palette,
+PaletteDialog::PaletteDialog(const PaletteRGBConfig &palette,
     const QString &paletteName,
     std::function<void(const QString &)> savedPathCallback, QWidget *parent)
     : QDialog(parent)
@@ -88,7 +88,7 @@ PaletteDialog::PaletteDialog(const Backend::PaletteRGBConfig &palette,
 
 PaletteDialog::~PaletteDialog() = default;
 
-Backend::PaletteRGBConfig PaletteDialog::palette() const {
+PaletteRGBConfig PaletteDialog::palette() const {
     return _currentPalette();
 }
 
@@ -105,13 +105,13 @@ void PaletteDialog::accept() {
     QDialog::accept();
 }
 
-Backend::PaletteRGBConfig PaletteDialog::_currentPalette() const {
+PaletteRGBConfig PaletteDialog::_currentPalette() const {
     return PaletteStore::stopsToConfig(_ui->paletteTimeline->stops(),
         _palette.totalLength, _palette.offset,
         _ui->blendEndsCheck->isChecked());
 }
 
-void PaletteDialog::_applyPalette(const Backend::PaletteRGBConfig &palette) {
+void PaletteDialog::_applyPalette(const PaletteRGBConfig &palette) {
     _palette = palette;
     const QSignalBlocker blendBlocker(_ui->blendEndsCheck);
     _ui->blendEndsCheck->setChecked(_palette.blendEnds);
@@ -142,7 +142,7 @@ void PaletteDialog::_importPalette() {
         tr("Palette Files (*.txt);;All Files (*.*)"));
     if (sourcePath.isEmpty()) return;
 
-    Backend::PaletteRGBConfig loaded;
+    PaletteRGBConfig loaded;
     QString importedName;
     std::filesystem::path destinationPath;
     QString errorMessage;

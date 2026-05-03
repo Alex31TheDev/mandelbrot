@@ -137,7 +137,7 @@ namespace GUI::Util {
     }
 
     QString defaultImageMemoryText() {
-        return QApplication::translate("GUI::Util", "Render: -  Output: -");
+        return QApplication::translate("GUI::Util", "Render: -  Output: -  x2");
     }
 
     QString defaultViewportFPSText() {
@@ -158,12 +158,13 @@ namespace GUI::Util {
         const QString renderBytes = QString::fromStdString(
             FormatUtil::formatBufferSize(event.primaryBytes));
         if (!event.downscaling) {
-            return QApplication::translate("GUI::Util", "Render: %1").arg(renderBytes);
+            return QApplication::translate("GUI::Util", "Render: %1  x2")
+                .arg(renderBytes);
         }
 
         const QString outputBytesText = QString::fromStdString(
             FormatUtil::formatBufferSize(event.secondaryBytes));
-        return QApplication::translate("GUI::Util", "Render: %1  Output: %2")
+        return QApplication::translate("GUI::Util", "Render: %1  Output: %2  x2")
             .arg(renderBytes, outputBytesText);
     }
 
@@ -234,14 +235,13 @@ namespace GUI::Util {
     }
 
     QImage wrapImageViewToImage(const ImageView &view) {
-        if (!view.outputPixels || view.outputWidth <= 0 || view.outputHeight <= 0) {
+        if (!view.outputPixels ||
+            view.outputWidth <= 0 || view.outputHeight <= 0) {
             return {};
         }
 
-        const int bytesPerLine
-            = view.downscaling ? view.outputWidth * 3 : view.strideWidth;
         return QImage(view.outputPixels, view.outputWidth, view.outputHeight,
-            bytesPerLine, QImage::Format_RGB888);
+            view.outputStrideWidth, QImage::Format_RGB888);
     }
 
     QImage imageViewToImage(const ImageView &view) {

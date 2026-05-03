@@ -35,6 +35,7 @@ const IncludeGroups = Object.freeze({
     windows: "windows",
     dialogs: "dialogs",
     widgets: "widgets",
+    options: "options",
     util: "util"
 });
 
@@ -64,6 +65,7 @@ const IncludeConfig = Object.freeze({
         windows: IncludeGroups.windows,
         dialogs: IncludeGroups.dialogs,
         widgets: IncludeGroups.widgets,
+        options: IncludeGroups.options,
         util: IncludeGroups.util
     },
 
@@ -145,6 +147,9 @@ const IncludeRules = Object.freeze({
     },
     [IncludeGroups.widgets]: {
         sort: SortTypes.preserve
+    },
+    [IncludeGroups.options]: {
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.util]: {
         sort: SortTypes.preserve

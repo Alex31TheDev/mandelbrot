@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <optional>
 
 #include <QImage>
@@ -39,11 +40,11 @@ public:
     [[nodiscard]] virtual bool viewportUsesDirectPick() const = 0;
     [[nodiscard]] virtual bool renderInFlight() const = 0;
     [[nodiscard]] virtual QSize outputSize() const = 0;
-    [[nodiscard]] virtual const QImage &previewImage() const = 0;
-    [[nodiscard]] virtual bool previewUsesBackendMemory() const = 0;
+    virtual bool withPreviewImage(
+        const std::function<void(const QImage &)> &visitor
+    ) const = 0;
     [[nodiscard]] virtual bool hasDisplayedViewState() const = 0;
     [[nodiscard]] virtual GUI::ViewTextState currentViewTextState() const = 0;
-    [[nodiscard]] virtual GUI::ViewTextState displayedViewTextState() const = 0;
     virtual bool previewPannedViewState(
         const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage
     ) = 0;

@@ -128,7 +128,7 @@ void GUISessionState::applyHomeView() {
 
 bool GUISessionState::isHomeView() const {
     const SavedPointViewState current = capturePointViewState();
-    return current.fractalType == Backend::FractalType::mandelbrot
+    return current.fractalType == FractalType::mandelbrot
         && !current.inverse && !current.julia && current.iterations == 0
         && NumberUtil::equalParsedDoubleText(current.real.toStdString(), "0")
         && NumberUtil::equalParsedDoubleText(current.imag.toStdString(), "0")

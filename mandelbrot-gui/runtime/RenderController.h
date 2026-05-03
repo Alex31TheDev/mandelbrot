@@ -1,17 +1,16 @@
 #pragma once
 
 #include <atomic>
-#include <condition_variable>
+#include <functional>
 #include <memory>
-#include <mutex>
 #include <optional>
+#include <semaphore>
 #include <thread>
 
 #include <QObject>
 #include <QImage>
 #include <QString>
 #include <QStringList>
-#include <QTimer>
 
 #include "BackendAPI.h"
 #include "BackendModule.h"
@@ -20,6 +19,9 @@
 #include "app/GUISessionState.h"
 
 #include "util/GUIUtil.h"
+
+struct RenderCallbackState;
+struct DesiredRenderState;
 
 class RenderController final : public QObject {
     Q_OBJECT
@@ -38,19 +40,15 @@ public:
         const std::optional<GUI::PendingPickAction> &pickAction = std::nullopt);
     void cancelQueuedRenders();
     void freezePreview();
-    void markPreviewMotion();
 
     [[nodiscard]] bool renderInFlight() const { return _renderInFlight; }
     [[nodiscard]] bool shouldUseInteractionPreviewFallback() const {
-        return _presentingCopiedPreview;
+        return _interactionPreviewFallbackLatched;
     }
     [[nodiscard]] bool hasDisplayedViewState() const {
         return _hasDisplayedViewState;
     }
-    [[nodiscard]] const QImage &previewImage() const { return _previewImage; }
-    [[nodiscard]] bool previewUsesBackendMemory() const {
-        return _previewUsesBackendMemory;
-    }
+    bool withPreviewImage(const std::function<void(const QImage &)> &visitor) const;
     [[nodiscard]] GUI::ViewTextState displayedViewTextState() const;
     [[nodiscard]] QString statusMessage() const { return _statusText; }
     [[nodiscard]] QString progressText() const { return _progressText; }
@@ -104,7 +102,7 @@ public:
         QPointF &mappedPixel, QString &errorMessage);
 
 signals:
-    void previewImageChanged();
+    void previewImageChanged(const GUI::ViewTextState &viewState);
     void renderStateChanged();
     void renderFailed(const QString &message);
     void automaticBackendSwitchRequested(const QString &backendName,
@@ -116,11 +114,6 @@ private:
     Backend::Session *_navigationSession = nullptr;
     Backend::Session *_previewSession = nullptr;
     Backend::Callbacks _callbacks;
-
-    QImage _previewImage;
-    bool _previewUsesBackendMemory = false;
-    bool _directFrameDetachedForRender = false;
-    bool _presentingCopiedPreview = false;
 
     QString _statusText;
     QString _progressText;
@@ -134,6 +127,7 @@ private:
     bool _renderInFlight = false;
     double _previewDevicePixelRatio = 1.0;
     QStringList _backendNames;
+    std::shared_ptr<RenderCallbackState> _renderCallbackState;
 
     QString _displayedPointRealText = QStringLiteral("0");
     QString _displayedPointImagText = QStringLiteral("0");
@@ -144,18 +138,15 @@ private:
     bool _hasDisplayedViewState = false;
 
     std::thread _renderThread;
-    std::optional<GUI::RenderRequest> _queuedRenderRequest;
-    std::mutex _renderMutex;
-    std::condition_variable _renderCv;
-    bool _renderStopRequested = false;
-    std::atomic_uint64_t _latestRenderRequestId{ 0 };
-    std::atomic_uint64_t _callbackRenderRequestId{ 0 };
+    std::atomic<std::shared_ptr<const DesiredRenderState>> _desiredRenderState;
+    std::counting_semaphore<> _renderWake{ 0 };
+    std::atomic_bool _renderWakePending{ false };
+    std::atomic_bool _previewFallbackResetRequested{ false };
+    std::atomic_bool _renderStopRequested{ false };
+    std::atomic_uint64_t _latestDesiredStateId{ 0 };
+    std::atomic_uint64_t _discardBeforeStateId{ 0 };
     std::atomic_uint64_t _backendGeneration{ 1 };
-    std::atomic_uint64_t _lastPresentedRenderId{ 0 };
-    std::atomic_bool _interactionPreviewFallbackLatched{ false };
-    std::atomic_int64_t _lastProgressUIUpdateMs{ 0 };
-    std::chrono::steady_clock::time_point _lastPreviewMotionAt{};
-    QTimer _previewStillTimer;
+    bool _interactionPreviewFallbackLatched = false;
 
     void _bindBackendCallbacks();
     void _startRenderWorker();
@@ -174,7 +165,12 @@ private:
     [[nodiscard]] QString _backendForRank(
         int rank, const QString &currentBackend
     ) const;
-    [[nodiscard]] int _interactionFrameIntervalMs(int fallbackFPS) const;
+    void _publishCompletedRender(
+        const GUI::ViewTextState &viewState,
+        uint64_t stateId,
+        qint64 renderMs,
+        double renderFPS,
+        bool previewFallbackLatched
+    );
     void _applyPreviewDevicePixelRatio(QImage &image) const;
-    void _tryResumeDirectPreview();
 };

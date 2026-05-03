@@ -3,14 +3,19 @@
 #include <cstdint>
 
 #include <memory>
-#include <utility>
 #include <optional>
+#include <functional>
 
 #include "image/Image.h"
 #include "ProgressTracker.h"
 
 #include "RenderGlobals.h"
 using namespace RenderGlobals;
+
+#include "RenderIterationStats.h"
+
+#include "BackendAPI.h"
+using namespace Backend;
 
 #if defined(USE_SCALAR)
 
@@ -136,7 +141,7 @@ constexpr int MAX_TASK_COUNT = 4096;
 static std::unique_ptr<ProgressTracker>
 createProgressTracker(
     bool trackProgress,
-    const Backend::Callbacks *callbacks = nullptr
+    const Callbacks *callbacks = nullptr
 ) {
     if (trackProgress) {
         const ProgressOptions options{
@@ -174,7 +179,7 @@ static void renderStrip(
 }
 
 static void emitIterations(
-    const Backend::Callbacks *callbacks,
+    const Callbacks *callbacks,
     uint64_t iter, ProgressTracker::SU time
 ) {
     if (!callbacks || !callbacks->onInfo) return;
@@ -184,8 +189,8 @@ static void emitIterations(
         ProgressTracker::SHORT_UNIT_SCALE,
         iterSec = timeSec > 0.0 ? gigaIter / timeSec : 0.0;
 
-    const Backend::InfoEvent event = {
-        .kind = Backend::InfoEventKind::iterations,
+    const InfoEvent event = {
+        .kind = InfoEventKind::iterations,
         .totalIterations = iter,
         .opsPerSecond = iterSec,
         .elapsedMs = static_cast<int64_t>(time.count())
@@ -196,7 +201,7 @@ static void emitIterations(
 
 static void renderImageSequential(
     Image *image,
-    const Backend::Callbacks *callbacks,
+    const Callbacks *callbacks,
     bool trackProgress, bool trackIterations,
     OptionalIterationStats iterStats
 ) {
@@ -217,7 +222,7 @@ static void renderImageSequential(
 
 static void renderImageParallel(
     Image *image,
-    const Backend::Callbacks *callbacks,
+    const Callbacks *callbacks,
     bool trackProgress, bool trackIterations,
     OptionalIterationStats iterStats
 ) {
@@ -273,7 +278,7 @@ static void renderImageParallel(
 
 void renderImage(
     Image *image,
-    const Backend::Callbacks *callbacks,
+    const Callbacks *callbacks,
     bool trackProgress, bool trackIterations,
     OptionalIterationStats iterStats
 ) {

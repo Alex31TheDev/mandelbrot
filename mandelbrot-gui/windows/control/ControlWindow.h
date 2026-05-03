@@ -16,6 +16,7 @@
 #include "settings/Shortcuts.h"
 
 #include "BackendAPI.h"
+#include "options/ColorMethods.h"
 
 #include "app/GUITypes.h"
 #include "app/GUISessionState.h"
@@ -141,7 +142,7 @@ private:
     void _connectUI();
     void _retranslateMenus();
     void _retranslateDynamicControls();
-    void _updateModeEnablement(Backend::ColorMethod colorMethod);
+    void _updateModeEnablement(ColorMethod colorMethod);
     void _updateControlWindowSize();
     void _updateWindowTitle();
     void _updateAspectLinkedSizes(bool widthChanged);

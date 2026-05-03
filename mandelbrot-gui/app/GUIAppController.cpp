@@ -404,7 +404,9 @@ void GUIAppController::_connectUI() {
         });
 
     connect(&_renderController, &RenderController::previewImageChanged, this,
-        [this]() { _viewportWindow->update(); });
+        [this](const ViewTextState &viewState) {
+            _viewportWindow->presentFrame(viewState);
+        });
     connect(&_renderController, &RenderController::renderStateChanged, this,
         [this]() {
             _refreshStatus();

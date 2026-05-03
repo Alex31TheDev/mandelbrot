@@ -7,7 +7,6 @@ namespace GUI::Constants {
     inline const std::string defaultBackendType = "FloatAVX2";
 
     inline const int defaultInteractionTargetFPS = 30;
-    inline const int previewStillMs = 5000;
     inline const int precisionInteractionDelayMs = 200;
 
     inline const int defaultOutputWidth = 1920;

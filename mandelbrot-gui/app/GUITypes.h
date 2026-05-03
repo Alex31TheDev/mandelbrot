@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include <QMetaType>
 #include <QPoint>
 #include <QPointF>
 #include <QSize>
@@ -10,6 +11,9 @@
 
 #include "BackendAPI.h"
 #include "GUIConstants.h"
+
+#include "options/ColorMethods.h"
+#include "options/FractalTypes.h"
 
 namespace GUI {
     using namespace Backend;
@@ -72,17 +76,6 @@ namespace GUI {
         QString seedImag = "0";
     };
 
-    struct RenderRequest {
-        GUIState state;
-        QString pointRealText;
-        QString pointImagText;
-        QString zoomText;
-        QString seedRealText;
-        QString seedImagText;
-        std::optional<PendingPickAction> pickAction;
-        uint64_t id = 0;
-    };
-
     struct GUIRenderSnapshot {
         GUIState state;
         QString pointRealText;
@@ -92,3 +85,5 @@ namespace GUI {
         QString seedImagText;
     };
 }
+
+Q_DECLARE_METATYPE(GUI::ViewTextState)

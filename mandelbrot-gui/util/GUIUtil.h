@@ -13,6 +13,7 @@
 #include <QWidget>
 
 #include "BackendAPI.h"
+#include "options/FractalTypes.h"
 
 namespace GUI::Util {
     using namespace Backend;

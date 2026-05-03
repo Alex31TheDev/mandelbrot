@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <optional>
 
 #include <QObject>
@@ -79,20 +80,16 @@ public:
     [[nodiscard]] QSize outputSize() const override {
         return _sessionState.outputSize();
     }
-    [[nodiscard]] const QImage &previewImage() const override {
-        return _renderController.previewImage();
-    }
-    [[nodiscard]] bool previewUsesBackendMemory() const override {
-        return _renderController.previewUsesBackendMemory();
+    bool withPreviewImage(
+        const std::function<void(const QImage &)> &visitor
+    ) const override {
+        return _renderController.withPreviewImage(visitor);
     }
     [[nodiscard]] bool hasDisplayedViewState() const override {
         return _renderController.hasDisplayedViewState();
     }
     [[nodiscard]] GUI::ViewTextState currentViewTextState() const override {
         return _sessionState.currentViewTextState();
-    }
-    [[nodiscard]] GUI::ViewTextState displayedViewTextState() const override {
-        return _renderController.displayedViewTextState();
     }
     bool previewPannedViewState(
         const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage

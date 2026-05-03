@@ -70,7 +70,6 @@ void ViewportController::toggleFullscreen() {
 }
 
 void ViewportController::applyHomeView() {
-    _renderController.markPreviewMotion();
     _sessionState.applyHomeView();
     emit sessionStateChanged();
     emit renderRequested();
@@ -101,7 +100,6 @@ void ViewportController::scaleAtPixel(
     _sessionState.setZoomText(nextView.zoomText);
     _sessionState.syncStatePointFromText();
     _sessionState.syncStateZoomFromText();
-    _renderController.markPreviewMotion();
     emit sessionStateChanged();
     emit renderRequested();
 }
@@ -130,7 +128,6 @@ void ViewportController::boxZoom(const QRect &selectionRect) {
     _sessionState.setZoomText(nextView.zoomText);
     _sessionState.syncStatePointFromText();
     _sessionState.syncStateZoomFromText();
-    _renderController.markPreviewMotion();
     emit sessionStateChanged();
     emit renderRequested();
 }
@@ -149,7 +146,6 @@ void ViewportController::panByPixels(const QPoint &delta) {
 
     _sessionState.setPointTexts(pointReal, pointImag);
     _sessionState.syncStatePointFromText();
-    _renderController.markPreviewMotion();
     emit sessionStateChanged();
     emit renderRequested();
 }
@@ -318,7 +314,6 @@ float ViewportController::viewportScalePercentForLogicalSize(
 
 void ViewportController::applyViewportOutputSize(const QSize &outputSize) {
     if (!outputSize.isValid()) return;
-    _renderController.markPreviewMotion();
     _sessionState.mutableState().outputWidth = outputSize.width();
     _sessionState.mutableState().outputHeight = outputSize.height();
     resizeViewportForScalePercent(_sessionState.state().viewportScalePercent);

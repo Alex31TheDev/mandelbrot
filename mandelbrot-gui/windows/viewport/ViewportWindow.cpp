@@ -1,7 +1,6 @@
 #include "ViewportWindow.h"
 
 #include <QApplication>
-
 #include "ui_ViewportWindow.h"
 #include "app/GUIConstants.h"
 #include "util/IncludeWin32.h"
@@ -86,15 +85,21 @@ void ViewportWindow::clearPreviewOffset() {
         _zoomOutPendingCommit = false;
         _zoomOutPreviewScale = 1.0;
     }
+    presentFrame(_presentedViewState);
+}
+
+void ViewportWindow::presentFrame(const ViewTextState &displayedView) {
+    _presentedViewState = displayedView;
+    _updateWindowTitle();
     update();
 }
 
 ViewTextState ViewportWindow::displayedPreviewView() const {
-    if (!_host || !_host->hasDisplayedViewState()) {
+    if (!_host || !_host->hasDisplayedViewState() || !_presentedViewState.valid) {
         return {};
     }
 
-    return _host->displayedViewTextState();
+    return _presentedViewState;
 }
 
 ViewTextState ViewportWindow::targetPreviewView() const {
@@ -241,36 +246,34 @@ ViewportWindow::previewTransform() const {
     return PreviewTransform{ center, translation, scaleX, scaleY };
 }
 
-void ViewportWindow::paintEvent(QPaintEvent *) {
-    _updateWindowTitle();
+void ViewportWindow::paintEvent(QPaintEvent *event) {
     QPainter painter(this);
+    if (event) {
+        painter.setClipRegion(event->region());
+    }
     painter.fillRect(rect(), Qt::black);
 
-    const QImage &image = _host->previewImage();
-    if (!image.isNull()) {
-        const bool selectionPreviewActive = !_selectionRect.isNull();
-        const bool usePreviewFallback
-            = _host && _host->shouldUseInteractionPreviewFallback();
-        const std::optional<PreviewTransform> availableTransform
-            = (usePreviewFallback || selectionPreviewActive)
-            ? previewTransform()
-            : std::nullopt;
-        const bool transformedPreview = availableTransform.has_value();
-        const QImage drawImage = (transformedPreview
-            && _host->previewUsesBackendMemory())
-            ? image.copy()
-            : image;
-        if (availableTransform) {
-            painter.save();
-            painter.translate(availableTransform->translation);
-            painter.translate(availableTransform->center);
-            painter.scale(availableTransform->scaleX, availableTransform->scaleY);
-            painter.translate(-availableTransform->center);
-            painter.drawImage(rect(), drawImage);
-            painter.restore();
-        } else {
-            painter.drawImage(rect(), image);
-        }
+    const bool selectionPreviewActive = !_selectionRect.isNull();
+    const std::optional<PreviewTransform> availableTransform
+        = (_usePreviewFallback() || selectionPreviewActive)
+        ? previewTransform()
+        : std::nullopt;
+    if (_host) {
+        _host->withPreviewImage([&](const QImage &image) {
+            if (availableTransform) {
+                painter.save();
+                painter.translate(availableTransform->translation);
+                painter.translate(availableTransform->center);
+                painter.scale(
+                    availableTransform->scaleX, availableTransform->scaleY
+                );
+                painter.translate(-availableTransform->center);
+                painter.drawImage(rect(), image);
+                painter.restore();
+            } else {
+                painter.drawImage(rect(), image);
+            }
+            });
     }
 
     if (_minimalUI) {
@@ -286,28 +289,9 @@ void ViewportWindow::paintEvent(QPaintEvent *) {
     }
 
     const QString statusText = _host->viewportStatusText();
-    constexpr int overlayMargin = 8;
     constexpr int overlayPaddingX = 8;
     constexpr int overlayPaddingY = 6;
-    const QFontMetrics metrics = painter.fontMetrics();
-    const QString maxPrecisionMouseLine = "Mouse: 999999, 999999  |  "
-        "-1.7976931348623157e+308  "
-        "-1.7976931348623157e+308";
-    int overlayTextWidth = metrics.horizontalAdvance(maxPrecisionMouseLine);
-    for (const QString &line : statusText.split('\n')) {
-        overlayTextWidth
-            = std::max(overlayTextWidth, metrics.horizontalAdvance(line));
-    }
-    const int overlayWidth = std::min(std::max(1, width() - overlayMargin * 2),
-        overlayTextWidth + overlayPaddingX * 2 + 2);
-    const QRect textRect(overlayMargin + overlayPaddingX,
-        overlayMargin + overlayPaddingY,
-        std::max(1, overlayWidth - overlayPaddingX * 2),
-        std::max(1, height() - (overlayMargin + overlayPaddingY) * 2));
-    const QRect textBounds = metrics.boundingRect(
-        textRect, Qt::AlignTop | Qt::AlignLeft, statusText);
-    const QRect overlayRect(overlayMargin, overlayMargin, overlayWidth,
-        textBounds.height() + overlayPaddingY * 2);
+    const QRect overlayRect = _statusOverlayRect();
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(80, 80, 80, 150));
@@ -381,7 +365,7 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
 
     if (_panning) {
         _panOffset = _lastMousePos - _dragOrigin;
-        if (_usePreviewFallback()) update();
+        update();
         return;
     }
 
@@ -402,7 +386,7 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
             if (_zoomOutPendingCommit && !_zoomOutRedrawTimer.isActive()) {
                 _zoomOutRedrawTimer.start();
             }
-            if (_usePreviewFallback()) update();
+            update();
         }
         return;
     }
@@ -430,6 +414,7 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
         _rtZoomLastStepAt = {};
         releaseMouse();
         _updateCursor();
+        update();
         return;
     }
 
@@ -793,13 +778,13 @@ void ViewportWindow::cycleGridMode() {
     idx = (idx + 1) % static_cast<int>(Constants::gridModes.size());
 
     _gridDivisions = Constants::gridModes[idx];
-    update();
+    presentFrame(_presentedViewState);
 }
 
 void ViewportWindow::toggleMinimalUI() {
     _minimalUI = !_minimalUI;
     _updateCursor();
-    update();
+    presentFrame(_presentedViewState);
 }
 
 void ViewportWindow::toggleFullscreen() {
@@ -1110,6 +1095,37 @@ void ViewportWindow::_updateWindowTitle() {
         : tr("Viewport (Direct)"));
 }
 
+QRect ViewportWindow::_statusOverlayRect() const {
+    if (_minimalUI || !_host) {
+        return {};
+    }
+
+    const QString statusText = _host->viewportStatusText();
+    constexpr int overlayMargin = 8;
+    constexpr int overlayPaddingX = 8;
+    constexpr int overlayPaddingY = 6;
+    const QFontMetrics metrics(font());
+    const QString maxPrecisionMouseLine = "Mouse: 999999, 999999  |  "
+        "-1.7976931348623157e+308  "
+        "-1.7976931348623157e+308";
+    int overlayTextWidth = metrics.horizontalAdvance(maxPrecisionMouseLine);
+    for (const QString &line : statusText.split('\n')) {
+        overlayTextWidth
+            = std::max(overlayTextWidth, metrics.horizontalAdvance(line));
+    }
+
+    const int overlayWidth = std::min(std::max(1, width() - overlayMargin * 2),
+        overlayTextWidth + overlayPaddingX * 2 + 2);
+    const QRect textRect(overlayMargin + overlayPaddingX,
+        overlayMargin + overlayPaddingY,
+        std::max(1, overlayWidth - overlayPaddingX * 2),
+        std::max(1, height() - (overlayMargin + overlayPaddingY) * 2));
+    const QRect textBounds = metrics.boundingRect(
+        textRect, Qt::AlignTop | Qt::AlignLeft, statusText);
+    return QRect(overlayMargin, overlayMargin, overlayWidth,
+        textBounds.height() + overlayPaddingY * 2);
+}
+
 QPoint ViewportWindow::_clampToOutputPixel(const QPointF &pixel) const {
     const QSize outputSize = _host->outputSize();
     return { std::clamp(static_cast<int>(std::lround(pixel.x())), 0,
@@ -1204,7 +1220,6 @@ void ViewportWindow::_commitPanOffset() {
     _host->panByPixels(delta);
     _dragOrigin = _lastMousePos;
     _panOffset = {};
-    update();
 }
 
 void ViewportWindow::_commitZoomOutPreview() {
@@ -1219,7 +1234,6 @@ void ViewportWindow::_commitZoomOutPreview() {
     _zoomOutPreviewScale = 1.0;
     _zoomOutPendingCommit = false;
     _host->scaleAtPixel(_mapToOutputPixel(viewportCenter), scaleMultiplier);
-    update();
 }
 
 void ViewportWindow::_applyRealtimeZoomStep(bool firstStep) {

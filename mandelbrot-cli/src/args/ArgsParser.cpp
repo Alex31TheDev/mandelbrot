@@ -269,12 +269,12 @@ namespace ArgsParser {
         if (auto status = session.setSeed(args.seed_r, args.seed_i); !status)
             return status;
         if (auto status = session.setFractalType(
-            static_cast<Backend::FractalType>(fractalType)); !status)
+            static_cast<FractalType>(fractalType)); !status)
             return status;
         if (auto status = session.setFractalExponent(args.N); !status)
             return status;
         if (auto status = session.setColorMethod(
-            static_cast<Backend::ColorMethod>(colorMethod)); !status)
+            static_cast<ColorMethod>(colorMethod)); !status)
             return status;
 
         switch (colorMethod) {

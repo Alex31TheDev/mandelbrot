@@ -55,14 +55,18 @@ public:
     [[nodiscard]] int32_t height() const { return _height; }
     [[nodiscard]] float aspect() const { return _aspect; }
 
+    [[nodiscard]] int32_t tailBytes() const { return _tailBytes; }
+    [[nodiscard]] int32_t strideWidth() const { return _strideW; }
+
     [[nodiscard]] float aaScale() const { return _aaScale; }
     [[nodiscard]] bool downscaling() const { return _downscaling; }
 
     [[nodiscard]] int32_t outputWidth() const { return _outputW; }
     [[nodiscard]] int32_t outputHeight() const { return _outputH; }
-
-    [[nodiscard]] int32_t tailBytes() const { return _tailBytes; }
-    [[nodiscard]] int32_t strideWidth() const { return _strideW; }
+    
+    [[nodiscard]] int32_t outputStrideWidth() const {
+        return _downscaling ? _outputStrideW : _strideW;
+    }
 
     [[nodiscard]] size_t size() const { return _bufferSize; }
     [[nodiscard]] uint8_t *pixels() { return _pixels.get(); }
@@ -108,10 +112,7 @@ private:
     BufferUtil::AlignedBuffer<ALIGNMENT> _pixels;
     std::unique_ptr<uint8_t[]> _outputPixels;
 
-    [[nodiscard]] int32_t _getOutputStrideW() const {
-        return _downscaling ? _outputStrideW : _strideW;
-    }
-    [[nodiscard]] const uint8_t *_getOutputBuffer() const {
+    [[nodiscard]] const uint8_t *_outputBuffer() const {
         return _downscaling ? _outputPixels.get() : _pixels.get();
     }
 

@@ -42,6 +42,7 @@ public:
     ~ViewportWindow() override;
 
     void clearPreviewOffset();
+    void presentFrame(const GUI::ViewTextState &displayedView);
     void cycleGridMode();
     void toggleMinimalUI();
     void toggleFullscreen();
@@ -107,6 +108,7 @@ private:
     QRect _restoreGeometry;
     QSize _restoreOutputSize;
     QTimer _fullscreenResizeTimer;
+    GUI::ViewTextState _presentedViewState;
 
     [[nodiscard]] bool _precisionModifierActive() const;
     [[nodiscard]] bool _speedModifierActive() const;
@@ -127,6 +129,7 @@ private:
     void _applyArrowPanStep();
     void _drawGrid(QPainter &painter);
     void _updateWindowTitle();
+    [[nodiscard]] QRect _statusOverlayRect() const;
     QPoint _clampToOutputPixel(const QPointF &pixel) const;
     QPoint _mapToOutputPixel(const QPoint &logicalPoint) const;
     QPoint _mapToOutputPixelRaw(const QPoint &logicalPoint) const;

@@ -585,9 +585,9 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
     sessionState.syncStateSeedFromText();
 
     state.colorMethod
-        = static_cast<Backend::ColorMethod>(_ui->colorMethodCombo->currentIndex());
+        = static_cast<ColorMethod>(_ui->colorMethodCombo->currentIndex());
     state.fractalType
-        = static_cast<Backend::FractalType>(_ui->fractalCombo->currentIndex());
+        = static_cast<FractalType>(_ui->fractalCombo->currentIndex());
 }
 
 void ControlWindow::applyShortcuts(const Shortcuts &shortcuts) {
@@ -806,11 +806,11 @@ void ControlWindow::_retranslateDynamicControls() {
     }
 }
 
-void ControlWindow::_updateModeEnablement(Backend::ColorMethod colorMethod) {
-    const bool paletteMode = colorMethod == Backend::ColorMethod::palette;
-    const bool sineMode = colorMethod == Backend::ColorMethod::iterations
-        || colorMethod == Backend::ColorMethod::smooth_iterations;
-    const bool lightMode = colorMethod == Backend::ColorMethod::light;
+void ControlWindow::_updateModeEnablement(ColorMethod colorMethod) {
+    const bool paletteMode = colorMethod == ColorMethod::palette;
+    const bool sineMode = colorMethod == ColorMethod::iterations
+        || colorMethod == ColorMethod::smooth_iterations;
+    const bool lightMode = colorMethod == ColorMethod::light;
     static_cast<::CollapsibleGroupBox *>(_ui->sineGroup)->setContentEnabled(sineMode);
     static_cast<::CollapsibleGroupBox *>(_ui->paletteGroup)
         ->setContentEnabled(paletteMode);
