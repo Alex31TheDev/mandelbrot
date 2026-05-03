@@ -10,7 +10,7 @@
 #include <mpfr.h>
 
 #include "MPFRGlobals.h"
-#include "ThreadLocalPool.h"
+#include "datastructures/ThreadLocalPool.h"
 #include "util/InlineUtil.h"
 
 namespace MPFRTypes {

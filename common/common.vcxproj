@@ -176,6 +176,15 @@
   <ItemGroup>
     <ClInclude Include="src\BackendAPI.h" />
     <ClInclude Include="src\options\ColorMethods.h" />
+    <ClInclude Include="src\datastructures\cqueue.h" />
+    <ClInclude Include="src\datastructures\cqueue_impl.h" />
+    <ClInclude Include="src\datastructures\cqueue_iter.h" />
+    <ClInclude Include="src\datastructures\ThreadLocalPool.h" />
+    <ClInclude Include="src\datastructures\ThreadLocalPool_impl.h" />
+    <ClInclude Include="src\datastructures\ThreadPool.h" />
+    <ClInclude Include="src\datastructures\ThreadPool_impl.h" />
+    <ClInclude Include="src\datastructures\ThreadSafeQueue.h" />
+    <ClInclude Include="src\datastructures\ThreadSafeQueue_impl.h" />
     <ClInclude Include="src\options\FractalTypes.h" />
     <ClInclude Include="src\prefix.h" />
     <ClInclude Include="src\util\AssertUtil.h" />

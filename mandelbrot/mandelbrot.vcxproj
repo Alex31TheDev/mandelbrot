@@ -1027,16 +1027,7 @@
     <ClInclude Include="src\image\BmpWriter.h" />
     <ClInclude Include="src\mpfr\CommonDefs.h" />
     <ClInclude Include="src\mpfr\MPFRTypes.h" />
-    <ClInclude Include="src\mpfr\ThreadLocalPool.h" />
-    <ClInclude Include="src\mpfr\ThreadLocalPool_impl.h" />
     <ClInclude Include="src\render\RenderGlobals.h" />
-    <ClInclude Include="src\render\cqueue.h" />
-    <ClInclude Include="src\render\cqueue_impl.h" />
-    <ClInclude Include="src\render\cqueue_iter.h" />
-    <ClInclude Include="src\render\ThreadPool.h" />
-    <ClInclude Include="src\render\ThreadPool_impl.h" />
-    <ClInclude Include="src\render\ThreadSafeQueue.h" />
-    <ClInclude Include="src\render\ThreadSafeQueue_impl.h" />
     <ClInclude Include="src\scalar\CommonDefs.h" />
     <ClInclude Include="src\scalar\loop\FractalLoop.h" />
     <ClInclude Include="src\scalar\loop\InnerLoop.h" />
