@@ -49,6 +49,7 @@ public:
         GUI::SelectionTarget selectionTarget
     );
     void syncToSessionState(GUISessionState &sessionState) const;
+    void syncImageSettingsToSessionState(GUISessionState &sessionState) const;
     void applyShortcuts(const Shortcuts &shortcuts);
     void setIterationAutoResolver(std::function<int()> resolver);
     void restoreWindowSettings(const AppSettings &settings);
@@ -93,6 +94,8 @@ signals:
     void toggleViewportFullscreenRequested();
     void navModeChanged(GUI::NavMode mode);
     void selectionTargetChanged(GUI::SelectionTarget target);
+    void panRateChanged(int value);
+    void zoomRateChanged(int value);
     void sineStateEdited();
     void sineSelectionRequested(const QString &name);
     void newSineRequested();

@@ -1,11 +1,7 @@
 #include "NativeFileDialog.h"
 
 #include "util/IncludeWin32.h"
-#ifdef _WIN32
 #include <shobjidl.h>
-#pragma comment(lib, "Ole32.lib")
-#pragma comment(lib, "Shell32.lib")
-#endif
 
 #include <QCoreApplication>
 #include <QDialog>

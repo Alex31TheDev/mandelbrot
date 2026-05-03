@@ -11,11 +11,14 @@
 #include <QComboBox>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMouseEvent>
 #include <QProgressBar>
 #include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSignalBlocker>
+#include <QSlider>
+#include <QStyle>
 #include <QStyleFactory>
 #include <QWheelEvent>
 #include <QWindow>
@@ -46,6 +49,61 @@ static int controlScrollBarExtent(const QScrollArea *area) {
         return std::max(0, scrollBar->sizeHint().width());
     }
     return 0;
+}
+
+static bool blockComboWheelUp(
+    const QComboBox *combo,
+    const QWheelEvent *wheelEvent
+) {
+    static constexpr int firstNamedEntryIndex = 2;
+
+    return combo && wheelEvent && wheelEvent->angleDelta().y() > 0
+        && combo->currentIndex() <= firstNamedEntryIndex;
+}
+
+static int sliderValueForMousePosition(
+    const QSlider *slider,
+    const QPoint &position
+) {
+    if (!slider) return 0;
+
+    if (slider->orientation() == Qt::Vertical) {
+        return QStyle::sliderValueFromPosition(slider->minimum(),
+            slider->maximum(), slider->height() - position.y(),
+            std::max(1, slider->height()));
+    }
+
+    return QStyle::sliderValueFromPosition(slider->minimum(),
+        slider->maximum(), position.x(), std::max(1, slider->width()));
+}
+
+static QStyleOptionSlider makeSliderStyleOption(const QSlider *slider) {
+    QStyleOptionSlider option;
+    option.initFrom(slider);
+    option.orientation = slider->orientation();
+    option.minimum = slider->minimum();
+    option.maximum = slider->maximum();
+    option.sliderPosition = slider->sliderPosition();
+    option.sliderValue = slider->value();
+    option.singleStep = slider->singleStep();
+    option.pageStep = slider->pageStep();
+    option.upsideDown = slider->orientation() == Qt::Horizontal
+        ? (slider->invertedAppearance()
+            != (slider->layoutDirection() == Qt::RightToLeft))
+        : !slider->invertedAppearance();
+    return option;
+}
+
+static bool isSliderHandlePress(
+    const QSlider *slider,
+    const QPoint &position
+) {
+    if (!slider) return false;
+
+    const QStyleOptionSlider option = makeSliderStyleOption(slider);
+    const QRect handleRect = slider->style()->subControlRect(QStyle::CC_Slider,
+        &option, QStyle::SC_SliderHandle, slider);
+    return handleRect.contains(position);
 }
 
 ControlWindow::ControlWindow(QWidget *parent)
@@ -104,7 +162,10 @@ void ControlWindow::_buildUI() {
     if (QLineEdit *iterationsEdit = _ui->iterationsSpin->findChild<QLineEdit *>()) {
         iterationsEdit->installEventFilter(this);
     }
+    _ui->sineCombo->installEventFilter(this);
     _ui->paletteCombo->installEventFilter(this);
+    _ui->panRateSlider->installEventFilter(this);
+    _ui->zoomRateSlider->installEventFilter(this);
 
     if (auto *spin = qobject_cast<::AdaptiveDoubleSpinBox *>(_ui->exponentSpin)) {
         spin->setDefaultDisplayDecimals(2);
@@ -181,8 +242,6 @@ void ControlWindow::_connectUI() {
         [emitRender](bool) { emitRender(); });
     connect(_ui->inverseCheck, &QCheckBox::toggled, this,
         [emitRender](bool) { emitRender(); });
-    connect(_ui->aaSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
-        [emitRender](int) { emitRender(); });
     connect(_ui->exponentSlider, &QSlider::valueChanged, this,
         [this](int value) {
             const double exponent = value / 100.0;
@@ -213,16 +272,19 @@ void ControlWindow::_connectUI() {
     connect(_ui->panRateSlider, &QSlider::valueChanged, this, [this](int value) {
         const QSignalBlocker blocker(_ui->panRateSpin);
         _ui->panRateSpin->setValue(value);
+        emit panRateChanged(value);
         });
     connect(_ui->panRateSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int value) {
             const QSignalBlocker blocker(_ui->panRateSlider);
             _ui->panRateSlider->setValue(std::clamp(value,
                 _ui->panRateSlider->minimum(), _ui->panRateSlider->maximum()));
+            emit panRateChanged(_ui->panRateSlider->value());
         });
     connect(_ui->zoomRateSlider, &QSlider::valueChanged, this, [this](int value) {
         const QSignalBlocker blocker(_ui->zoomRateSpin);
         _ui->zoomRateSpin->setValue(value);
+        emit zoomRateChanged(value);
         });
     connect(_ui->zoomRateSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int value) {
@@ -230,6 +292,7 @@ void ControlWindow::_connectUI() {
             _ui->zoomRateSlider->setValue(std::clamp(value,
                 _ui->zoomRateSlider->minimum(),
                 _ui->zoomRateSlider->maximum()));
+            emit zoomRateChanged(_ui->zoomRateSlider->value());
         });
 
     connect(_ui->sineCombo, &QComboBox::currentTextChanged, this,
@@ -535,7 +598,6 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
     state.useThreads = _ui->useThreadsCheckBox->isChecked();
     state.julia = _ui->juliaCheck->isChecked();
     state.inverse = _ui->inverseCheck->isChecked();
-    state.aaPixels = _ui->aaSpin->value();
     state.preserveRatio = _ui->preserveRatioCheck->isChecked();
     state.panRate = _ui->panRateSlider->value();
     state.zoomRate = _ui->zoomRateSlider->value();
@@ -551,8 +613,6 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
     const auto paletteStops = PaletteStore::configToStops(state.palette);
     state.palette = PaletteStore::stopsToConfig(paletteStops,
         paletteTotalLength, paletteOffset, state.palette.blendEnds);
-    state.outputWidth = _ui->outputWidthSpin->value();
-    state.outputHeight = _ui->outputHeightSpin->value();
     state.viewportScalePercent = std::max(1.0f,
         static_cast<float>(_ui->viewportScaleSpin->value()));
 
@@ -593,6 +653,15 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
         = static_cast<ColorMethod>(_ui->colorMethodCombo->currentIndex());
     state.fractalType
         = static_cast<FractalType>(_ui->fractalCombo->currentIndex());
+}
+
+void ControlWindow::syncImageSettingsToSessionState(
+    GUISessionState &sessionState
+) const {
+    GUIState &state = sessionState.mutableState();
+    state.aaPixels = _ui->aaSpin->value();
+    state.outputWidth = _ui->outputWidthSpin->value();
+    state.outputHeight = _ui->outputHeightSpin->value();
 }
 
 void ControlWindow::applyShortcuts(const Shortcuts &shortcuts) {
@@ -685,10 +754,24 @@ std::pair<double, double> ControlWindow::sinePreviewRange() const {
 }
 
 bool ControlWindow::eventFilter(QObject *watched, QEvent *event) {
-    if (watched == _ui->paletteCombo && event->type() == QEvent::Wheel) {
+    if ((watched == _ui->panRateSlider || watched == _ui->zoomRateSlider)
+        && event->type() == QEvent::MouseButtonPress) {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        auto *slider = qobject_cast<QSlider *>(watched);
+        if (mouseEvent && slider && mouseEvent->button() == Qt::LeftButton
+            && !isSliderHandlePress(slider, mouseEvent->position().toPoint())) {
+            slider->setValue(sliderValueForMousePosition(slider,
+                mouseEvent->position().toPoint()));
+            event->accept();
+            return true;
+        }
+    }
+
+    if ((watched == _ui->sineCombo || watched == _ui->paletteCombo)
+        && event->type() == QEvent::Wheel) {
         auto *wheelEvent = static_cast<QWheelEvent *>(event);
-        if (wheelEvent && wheelEvent->angleDelta().y() > 0
-            && _ui->paletteCombo->currentIndex() <= 2) {
+        auto *combo = qobject_cast<QComboBox *>(watched);
+        if (blockComboWheelUp(combo, wheelEvent)) {
             event->accept();
             return true;
         }

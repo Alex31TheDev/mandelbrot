@@ -339,6 +339,14 @@ void GUIAppController::_connectUI() {
             _viewportController.setSelectionTarget(target);
             _refreshControlState();
         });
+    connect(_controlWindow.get(), &ControlWindow::panRateChanged, this,
+        [this](int value) {
+            _sessionState.mutableState().panRate = value;
+        });
+    connect(_controlWindow.get(), &ControlWindow::zoomRateChanged, this,
+        [this](int value) {
+            _sessionState.mutableState().zoomRate = value;
+        });
     connect(_controlWindow.get(), &ControlWindow::sineStateEdited, this,
         &GUIAppController::_syncSineDirtyStateFromControls);
     connect(_controlWindow.get(), &ControlWindow::sineSelectionRequested, this,

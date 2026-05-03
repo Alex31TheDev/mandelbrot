@@ -308,12 +308,13 @@ void ViewportWindow::paintEvent(QPaintEvent *event) {
 }
 
 void ViewportWindow::mousePressEvent(QMouseEvent *event) {
-    _lastMousePos = event->position().toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
+    const QPointF mousePos = event->position();
+    _lastMousePos = mousePos.toPoint();
+    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
 
     if (_host->viewportUsesDirectPick() && event->button() == Qt::LeftButton
         && !_spacePan) {
-        _host->pickAtPixel(_mapToOutputPixel(_lastMousePos));
+        _host->pickAtPixel(_mapToOutputPixel(mousePos));
         return;
     }
 
@@ -364,8 +365,9 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
 }
 
 void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
-    _lastMousePos = event->position().toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
+    const QPointF mousePos = event->position();
+    _lastMousePos = mousePos.toPoint();
+    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
 
     if (_panning) {
         _panOffset = _lastMousePos - _dragOrigin;
@@ -402,8 +404,9 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
-    _lastMousePos = event->position().toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
+    const QPointF mousePos = event->position();
+    _lastMousePos = mousePos.toPoint();
+    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
 
     if (_panning) {
         if (_panButton == Qt::NoButton || event->button() == _panButton
@@ -434,7 +437,7 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
         if (_zoomOutPendingCommit) {
             _commitZoomOutPreview();
         } else if (!_zoomOutDragMoved) {
-            _host->zoomAtPixel(_mapToOutputPixel(_lastMousePos), false);
+            _host->zoomAtPixel(_mapToOutputPixel(mousePos), false);
         }
         _zoomOutDragMoved = false;
         _zoomOutPendingCommit = false;
@@ -467,13 +470,14 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
 
     if (_zoomOutPending && event->button() == Qt::RightButton) {
         _zoomOutPending = false;
-        _host->zoomAtPixel(_mapToOutputPixel(_lastMousePos), false);
+        _host->zoomAtPixel(_mapToOutputPixel(mousePos), false);
     }
 }
 
 void ViewportWindow::wheelEvent(QWheelEvent *event) {
-    _lastMousePos = event->position().toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(_lastMousePos));
+    const QPointF mousePos = event->position();
+    _lastMousePos = mousePos.toPoint();
+    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
 
     if (_panning) {
         event->accept();
@@ -1143,7 +1147,7 @@ QPoint ViewportWindow::_clampToOutputPixel(const QPointF &pixel) const {
 }
 
 QPoint ViewportWindow::_mapToOutputPixel(const QPoint &logicalPoint) const {
-    return _mapToOutputPixelRaw(logicalPoint);
+    return _mapToOutputPixel(QPointF(logicalPoint));
 }
 
 QPoint ViewportWindow::_mapToOutputPixelRaw(const QPoint &logicalPoint) const {
@@ -1157,10 +1161,19 @@ QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF &logicalPoint) const {
         return {};
     }
 
-    const double x = static_cast<double>(logicalPoint.x()) * outputSize.width()
-        / std::max(1, logicalSize.width());
-    const double y = static_cast<double>(logicalPoint.y()) * outputSize.height()
-        / std::max(1, logicalSize.height());
+    const auto mapAxis = [](double logical, int logicalExtent, int outputExtent) {
+        if (outputExtent <= 1 || logicalExtent <= 1) {
+            return 0.0;
+        }
+
+        return logical * static_cast<double>(outputExtent - 1)
+            / static_cast<double>(logicalExtent - 1);
+        };
+
+    const double x = mapAxis(logicalPoint.x(), logicalSize.width(),
+        outputSize.width());
+    const double y = mapAxis(logicalPoint.y(), logicalSize.height(),
+        outputSize.height());
 
     return { std::clamp(static_cast<int>(std::lround(x)), 0,
                  std::max(0, outputSize.width() - 1)),
@@ -1169,7 +1182,7 @@ QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF &logicalPoint) const {
 }
 
 QPoint ViewportWindow::_mapToOutputPixel(const QPointF &logicalPoint) const {
-    return _mapToOutputPixel(logicalPoint.toPoint());
+    return _mapToOutputPixelRaw(logicalPoint);
 }
 
 QPoint ViewportWindow::_mapToOutputDelta(const QPoint &logicalDelta) const {
