@@ -7,12 +7,17 @@
 #include <QObject>
 #include <QStringList>
 
-#include "locale/GUILocale.h"
+#include "GUISessionState.h"
+
+#include "runtime/RenderController.h"
+
+#include "controllers/ViewportController.h"
+
 #include "settings/AppSettings.h"
 #include "settings/Shortcuts.h"
-#include "controllers/ViewportController.h"
-#include "GUISessionState.h"
-#include "runtime/RenderController.h"
+
+#include "locale/GUILocale.h"
+
 #include "windows/control/ControlWindow.h"
 #include "windows/viewport/ViewportWindow.h"
 

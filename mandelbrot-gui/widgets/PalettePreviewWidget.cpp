@@ -29,8 +29,8 @@ void PalettePreviewWidget::paintEvent(QPaintEvent *) {
     painter.fillRect(rect(), palette().base());
 
     if (!_previewPixmap.isNull()) {
-        const QPixmap scaled = _previewPixmap.scaled(
-            frameRect.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        const QPixmap scaled = _previewPixmap.scaled(frameRect.size(),
+            Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         if (isEnabled()) {
             painter.drawPixmap(frameRect.topLeft(), scaled);
         } else {
@@ -44,6 +44,7 @@ void PalettePreviewWidget::paintEvent(QPaintEvent *) {
     }
 
     painter.setPen(
-        isEnabled() ? palette().dark().color() : palette().mid().color());
+        isEnabled() ? palette().dark().color() : palette().mid().color()
+    );
     painter.drawRect(frameRect);
 }

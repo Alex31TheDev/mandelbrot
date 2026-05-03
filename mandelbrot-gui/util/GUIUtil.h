@@ -13,6 +13,7 @@
 #include <QWidget>
 
 #include "BackendAPI.h"
+
 #include "options/FractalTypes.h"
 
 namespace GUI::Util {
@@ -62,5 +63,4 @@ namespace GUI::Util {
     [[nodiscard]] QImage imageViewToImage(const ImageView &view);
     [[nodiscard]] QImage makeBlankViewportImage();
     void setAdaptiveSpinValue(QDoubleSpinBox *spinBox, double value);
-
 }

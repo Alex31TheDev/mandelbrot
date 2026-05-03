@@ -16,12 +16,12 @@
 #include <QResizeEvent>
 #include <QSize>
 #include <QTimer>
-#include <QWidget>
 #include <QWheelEvent>
-
-#include "ViewportHost.h"
+#include <QWidget>
 
 #include "app/GUITypes.h"
+
+#include "ViewportHost.h"
 
 namespace Ui {
     class ViewportWindow;

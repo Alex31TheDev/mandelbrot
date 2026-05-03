@@ -119,7 +119,6 @@ static bool isZoomAboveMinimum(const std::string &value) {
 #endif
 }
 
-
 static ScalarPaletteColor makePaletteColor(const PaletteRGBEntry &entry) {
     ScalarPaletteColor color{};
     static_cast<ScalarColor &>(color) = { entry.R, entry.G, entry.B };
@@ -802,7 +801,7 @@ private:
 
     std::array<std::unique_ptr<Image>, 2> _images;
     std::atomic_int _frontImageIndex{ 0 };
-    
+
     std::unique_ptr<Image> _palettePreviewImage;
     std::unique_ptr<Image> _sinePreviewImage;
 
@@ -1380,7 +1379,6 @@ private:
         }
         return restoreStatus;
     }
-
 };
 
 extern "C" __declspec(dllexport) Session *mandelbrot_backend_create() {

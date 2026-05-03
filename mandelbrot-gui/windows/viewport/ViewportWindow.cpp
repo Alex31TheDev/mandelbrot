@@ -1,9 +1,12 @@
 #include "ViewportWindow.h"
+#include "ui_ViewportWindow.h"
+
+#include "util/IncludeWin32.h"
 
 #include <QApplication>
-#include "ui_ViewportWindow.h"
+
 #include "app/GUIConstants.h"
-#include "util/IncludeWin32.h"
+
 #include "util/NumberUtil.h"
 
 using namespace GUI;
@@ -113,8 +116,8 @@ ViewTextState ViewportWindow::targetPreviewView() const {
     if (_panning && !_panOffset.isNull()) {
         QString error;
         ViewTextState pannedView;
-        if (_host->previewPannedViewState(
-            _mapToOutputDelta(_panOffset), pannedView, error)) {
+        if (_host->previewPannedViewState(_mapToOutputDelta(_panOffset),
+            pannedView, error)) {
             view = pannedView;
         } else {
             view.valid = false;
@@ -127,8 +130,8 @@ ViewTextState ViewportWindow::targetPreviewView() const {
         ViewTextState scaledView;
         const QPoint outputCenter
             = _mapToOutputPixel(QPoint(width() / 2, height() / 2));
-        if (_host->previewScaledViewState(
-            outputCenter, _zoomOutPreviewScale, scaledView, error)) {
+        if (_host->previewScaledViewState(outputCenter, _zoomOutPreviewScale,
+            scaledView, error)) {
             view = scaledView;
         } else {
             view.valid = false;
@@ -169,13 +172,13 @@ ViewportWindow::previewTransform() const {
     QPointF sourceTop;
     QPointF sourceBottom;
     QString error;
-    if (!_host->mapViewPixelToViewPixel(
-        sourceView, targetView, QPoint(0, targetMidY), sourceLeft, error)
+    if (!_host->mapViewPixelToViewPixel(sourceView, targetView,
+        QPoint(0, targetMidY), sourceLeft, error)
         || !_host->mapViewPixelToViewPixel(sourceView, targetView,
             QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY),
             sourceRight, error)
-        || !_host->mapViewPixelToViewPixel(
-            sourceView, targetView, QPoint(targetMidX, 0), sourceTop, error)
+        || !_host->mapViewPixelToViewPixel(sourceView, targetView,
+            QPoint(targetMidX, 0), sourceTop, error)
         || !_host->mapViewPixelToViewPixel(sourceView, targetView,
             QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1)),
             sourceBottom, error)) {
@@ -201,10 +204,12 @@ ViewportWindow::previewTransform() const {
     const QPointF sourceBottomLogical = sourceToLogical(sourceBottom);
     const QPointF targetLeftLogical = targetToLogical(QPoint(0, targetMidY));
     const QPointF targetRightLogical = targetToLogical(
-        QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY));
+        QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY)
+    );
     const QPointF targetTopLogical = targetToLogical(QPoint(targetMidX, 0));
     const QPointF targetBottomLogical = targetToLogical(
-        QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1)));
+        QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1))
+    );
 
     const double sourceSpanX = sourceRightLogical.x() - sourceLeftLogical.x();
     const double sourceSpanY = sourceBottomLogical.y() - sourceTopLogical.y();
@@ -264,9 +269,8 @@ void ViewportWindow::paintEvent(QPaintEvent *event) {
                 painter.save();
                 painter.translate(availableTransform->translation);
                 painter.translate(availableTransform->center);
-                painter.scale(
-                    availableTransform->scaleX, availableTransform->scaleY
-                );
+                painter.scale(availableTransform->scaleX,
+                    availableTransform->scaleY);
                 painter.translate(-availableTransform->center);
                 painter.drawImage(rect(), image);
                 painter.restore();
@@ -483,7 +487,8 @@ void ViewportWindow::wheelEvent(QWheelEvent *event) {
         const QSize output = _host->outputSize();
         const QPointF defaultAnchor(
             static_cast<double>(std::max(0, output.width() / 2)),
-            static_cast<double>(std::max(0, output.height() / 2)));
+            static_cast<double>(std::max(0, output.height() / 2))
+        );
         const QPointF anchor = _rtZoomAnchorPixel.value_or(defaultAnchor);
         _rtZoomAnchorPixel = anchor;
         _host->zoomAtPixel(_clampToOutputPixel(anchor), zoomIn);
@@ -512,7 +517,8 @@ void ViewportWindow::wheelEvent(QWheelEvent *event) {
             static_cast<int>(std::lround(center.x() - nextWidth / 2.0)),
             static_cast<int>(std::lround(center.y() - nextHeight / 2.0)),
             std::max(2, static_cast<int>(std::lround(nextWidth))),
-            std::max(2, static_cast<int>(std::lround(nextHeight))));
+            std::max(2, static_cast<int>(std::lround(nextHeight)))
+        );
         const QRect bounds(0, 0, std::max(1, width()), std::max(1, height()));
         scaled = scaled.intersected(bounds);
         if (scaled.width() < 2 || scaled.height() < 2) {
@@ -643,7 +649,7 @@ void ViewportWindow::resizeEvent(QResizeEvent *event) {
     if (!_host || isFullScreen() || !event->spontaneous()) {
         return;
     }
-    
+
     emit viewportScaleAdjustmentRequested(event->size());
 }
 
@@ -685,10 +691,12 @@ bool ViewportWindow::nativeEvent(
             if (GetWindowRect(hwnd, &windowRect) && GetClientRect(hwnd, &clientRect)) {
                 nonClientWidth = static_cast<int>(
                     (windowRect.right - windowRect.left)
-                    - (clientRect.right - clientRect.left));
+                    - (clientRect.right - clientRect.left)
+                    );
                 nonClientHeight = static_cast<int>(
                     (windowRect.bottom - windowRect.top)
-                    - (clientRect.bottom - clientRect.top));
+                    - (clientRect.bottom - clientRect.top)
+                    );
             }
         }
 
@@ -828,11 +836,10 @@ void ViewportWindow::finalizeFullscreenTransition() {
     if (isFullScreen()) {
         const double dpr = devicePixelRatioF();
         const QSize logicalSize = size();
-        _host->applyViewportOutputSize(QSize(
-            std::max(
-                1, static_cast<int>(std::lround(logicalSize.width() * dpr))),
-            std::max(
-                1, static_cast<int>(std::lround(logicalSize.height() * dpr)))));
+        _host->applyViewportOutputSize(QSize(std::max(1,
+            static_cast<int>(std::lround(logicalSize.width() * dpr))),
+            std::max(1,
+                static_cast<int>(std::lround(logicalSize.height() * dpr)))));
         return;
     }
 
@@ -1056,8 +1063,7 @@ void ViewportWindow::_applyArrowPanStep() {
     }
     if (_speedModifierActive()) {
         step = std::max(1,
-            static_cast<int>(std::lround(
-                static_cast<double>(step)
+            static_cast<int>(std::lround(static_cast<double>(step)
                 * Constants::boostedPanSpeedFactor)));
     }
     _host->panByPixels(QPoint(xDir * step, yDir * step));
@@ -1075,9 +1081,11 @@ void ViewportWindow::_drawGrid(QPainter &painter) {
 
     for (int i = 1; i < _gridDivisions; i++) {
         const int x = static_cast<int>(std::lround(
-            static_cast<double>(area.width()) * i / _gridDivisions));
+            static_cast<double>(area.width()) * i / _gridDivisions
+        ));
         const int y = static_cast<int>(std::lround(
-            static_cast<double>(area.height()) * i / _gridDivisions));
+            static_cast<double>(area.height()) * i / _gridDivisions
+        ));
         painter.drawLine(x, area.top(), x, area.bottom());
         painter.drawLine(area.left(), y, area.right(), y);
     }
@@ -1120,8 +1128,8 @@ QRect ViewportWindow::_statusOverlayRect() const {
         overlayMargin + overlayPaddingY,
         std::max(1, overlayWidth - overlayPaddingX * 2),
         std::max(1, height() - (overlayMargin + overlayPaddingY) * 2));
-    const QRect textBounds = metrics.boundingRect(
-        textRect, Qt::AlignTop | Qt::AlignLeft, statusText);
+    const QRect textBounds = metrics.boundingRect(textRect,
+        Qt::AlignTop | Qt::AlignLeft, statusText);
     return QRect(overlayMargin, overlayMargin, overlayWidth,
         textBounds.height() + overlayPaddingY * 2);
 }
@@ -1266,8 +1274,8 @@ void ViewportWindow::_applyRealtimeZoomStep(bool firstStep) {
         : std::pow(scalePerSecond, elapsedSeconds);
     if (!(scaleMultiplier > 0.0) || !std::isfinite(scaleMultiplier)) return;
 
-    _host->scaleAtPixel(
-        _clampToOutputPixel(*_rtZoomAnchorPixel), scaleMultiplier);
+    _host->scaleAtPixel(_clampToOutputPixel(*_rtZoomAnchorPixel),
+        scaleMultiplier);
 }
 
 void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {

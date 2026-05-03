@@ -30,11 +30,9 @@ namespace FileUtil {
         const size_t lastDot = filePath.find_last_of('.'),
             lastSlash = filePath.find_last_of("/\\");
 
-        if (
-            lastDot != std::string::npos &&
+        if(lastDot != std::string::npos &&
             lastDot != filePath.length() - 1 &&
-            (lastSlash == std::string::npos || lastDot > lastSlash)
-            ) {
+            (lastSlash == std::string::npos || lastDot > lastSlash)){
             name = filePath.substr(0, lastDot);
             ext = filePath.substr(lastDot);
         } else {
@@ -126,8 +124,8 @@ namespace FileUtil {
             return false;
         }
 
-        return SetFileAttributesW(
-            path.c_str(), attributes | FILE_ATTRIBUTE_HIDDEN) != 0;
+        return SetFileAttributesW(path.c_str(),
+            attributes | FILE_ATTRIBUTE_HIDDEN)!= 0;
 #else
         (void)path;
         return false;

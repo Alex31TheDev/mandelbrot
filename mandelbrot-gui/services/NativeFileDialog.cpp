@@ -1,15 +1,14 @@
 #include "NativeFileDialog.h"
 
 #include "util/IncludeWin32.h"
-
 #ifdef _WIN32
 #include <shobjidl.h>
 #pragma comment(lib, "Ole32.lib")
 #pragma comment(lib, "Shell32.lib")
 #endif
 
-#include <QDialog>
 #include <QCoreApplication>
+#include <QDialog>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QStringList>
@@ -56,8 +55,8 @@ namespace GUI {
         const std::vector<NativeDialogFilter> parsedFilters
             = parseNativeDialogFilters(filters);
 
-        HRESULT initHr = CoInitializeEx(
-            nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        HRESULT initHr = CoInitializeEx(nullptr,
+            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         const bool shouldUninitialize = SUCCEEDED(initHr);
 
         IFileSaveDialog *dialog = nullptr;
@@ -90,9 +89,8 @@ namespace GUI {
         }
 
         if (!filterSpecs.empty()) {
-            dialog->SetFileTypes(
-                static_cast<UINT>(filterSpecs.size()), filterSpecs.data()
-            );
+            dialog->SetFileTypes(static_cast<UINT>(filterSpecs.size()),
+                filterSpecs.data());
             dialog->SetFileTypeIndex(1);
             const QString defaultExt
                 = defaultExtensionFromPattern(parsedFilters.front().patternText);
@@ -111,8 +109,8 @@ namespace GUI {
         std::filesystem::create_directories(directory, ec);
         IShellItem *folder = nullptr;
         const std::wstring dir = directory.wstring();
-        if (SUCCEEDED(SHCreateItemFromParsingName(
-            dir.c_str(), nullptr, IID_PPV_ARGS(&folder)))) {
+        if (SUCCEEDED(SHCreateItemFromParsingName(dir.c_str(), nullptr,
+            IID_PPV_ARGS(&folder)))) {
             dialog->SetFolder(folder);
             folder->Release();
         }
@@ -184,8 +182,8 @@ namespace GUI {
         const std::vector<NativeDialogFilter> parsedFilters
             = parseNativeDialogFilters(filters);
 
-        HRESULT initHr = CoInitializeEx(
-            nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        HRESULT initHr = CoInitializeEx(nullptr,
+            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         const bool shouldUninitialize = SUCCEEDED(initHr);
 
         IFileOpenDialog *dialog = nullptr;
@@ -212,9 +210,8 @@ namespace GUI {
             );
         }
         if (!filterSpecs.empty()) {
-            dialog->SetFileTypes(
-                static_cast<UINT>(filterSpecs.size()), filterSpecs.data()
-            );
+            dialog->SetFileTypes(static_cast<UINT>(filterSpecs.size()),
+                filterSpecs.data());
             dialog->SetFileTypeIndex(1);
         }
 
@@ -225,8 +222,8 @@ namespace GUI {
 
         IShellItem *folder = nullptr;
         const std::wstring dir = directory.wstring();
-        if (SUCCEEDED(SHCreateItemFromParsingName(
-            dir.c_str(), nullptr, IID_PPV_ARGS(&folder)))) {
+        if (SUCCEEDED(SHCreateItemFromParsingName(dir.c_str(), nullptr,
+            IID_PPV_ARGS(&folder)))) {
             dialog->SetFolder(folder);
             folder->Release();
         }
@@ -289,8 +286,8 @@ namespace GUI {
 
         SaveDialogResult result;
 #ifdef _WIN32
-        HRESULT initHr = CoInitializeEx(
-            nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        HRESULT initHr = CoInitializeEx(nullptr,
+            COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         const bool shouldUninitialize = SUCCEEDED(initHr);
 
         IFileSaveDialog *dialog = nullptr;
@@ -306,9 +303,11 @@ namespace GUI {
         const QString pngFilterLabel
             = QCoreApplication::translate("NativeFileDialog", "PNG Files (*.png)");
         const QString jpegFilterLabel = QCoreApplication::translate(
-            "NativeFileDialog", "JPEG Files (*.jpg;*.jpeg)");
+            "NativeFileDialog", "JPEG Files (*.jpg;*.jpeg)"
+        );
         const QString bmpFilterLabel = QCoreApplication::translate(
-            "NativeFileDialog", "Bitmap Files (*.bmp)");
+            "NativeFileDialog", "Bitmap Files (*.bmp)"
+        );
         const QString appendDateLabel
             = QCoreApplication::translate("NativeFileDialog", "Append Date");
         const std::wstring saveImageTitleW = saveImageTitle.toStdWString();
@@ -335,8 +334,8 @@ namespace GUI {
 
         IShellItem *folder = nullptr;
         const std::wstring savesDirText = savesDir.wstring();
-        if (SUCCEEDED(SHCreateItemFromParsingName(
-            savesDirText.c_str(), nullptr, IID_PPV_ARGS(&folder)))) {
+        if (SUCCEEDED(SHCreateItemFromParsingName(savesDirText.c_str(), nullptr,
+            IID_PPV_ARGS(&folder)))) {
             dialog->SetFolder(folder);
             folder->Release();
         }
@@ -413,16 +412,16 @@ namespace GUI {
             = QCoreApplication::translate("NativeFileDialog", "Save Image");
         const QString saveImageFilters = QCoreApplication::translate(
             "NativeFileDialog",
-            "PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)");
+            "PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)"
+        );
         result.path = showNativeSaveDialog(parent, saveImageTitle, savesDir,
             suggestedFile, saveImageFilters, &selectedFilter);
         if (result.path.isEmpty()) return std::nullopt;
 
         const QMessageBox::StandardButton appendDateChoice
             = QMessageBox::question(parent, saveImageTitle,
-                QCoreApplication::translate(
-                    "NativeFileDialog", "Append date to filename?"
-                ),
+                QCoreApplication::translate("NativeFileDialog",
+                    "Append date to filename?"),
                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
                 QMessageBox::Yes
             );
@@ -440,7 +439,8 @@ namespace GUI {
 #endif
 
         result.path = QString::fromStdString(FileUtil::appendExtension(
-            result.path.toStdString(), result.type.toStdString()));
+            result.path.toStdString(), result.type.toStdString()
+        ));
         return result;
     }
 }

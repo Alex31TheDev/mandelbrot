@@ -48,8 +48,8 @@ Shortcuts::Shortcuts(AppSettings &settings)
 void Shortcuts::reload() {
     _sequences.clear();
     for (const ShortcutDef &def : defs()) {
-        const QString stored = _settings.shortcut(
-            def.id, def.defaultSequence.toString(QKeySequence::PortableText));
+        const QString stored = _settings.shortcut(def.id,
+            def.defaultSequence.toString(QKeySequence::PortableText));
         _sequences.push_back(
             QKeySequence::fromString(stored, QKeySequence::PortableText)
         );
@@ -74,9 +74,8 @@ void Shortcuts::setSequence(const QString &id, const QKeySequence &sequence) {
 
 void Shortcuts::save() {
     for (size_t i = 0; i < defs().size(); i++) {
-        _settings.setShortcut(
-            defs()[i].id, _sequences[i].toString(QKeySequence::PortableText)
-        );
+        _settings.setShortcut(defs()[i].id,
+            _sequences[i].toString(QKeySequence::PortableText));
     }
     _settings.sync();
 }

@@ -1,9 +1,9 @@
 #include "ControlWindow.h"
 #include "ui_ControlWindow.h"
 
+#include <cmath>
 #include <algorithm>
 #include <array>
-#include <cmath>
 
 #include <QApplication>
 #include <QBrush>
@@ -12,15 +12,21 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QProgressBar>
+#include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
-#include <QScreen>
 #include <QSignalBlocker>
 #include <QStyleFactory>
 #include <QWheelEvent>
 #include <QWindow>
 
+#include "BackendAPI.h"
+using namespace Backend;
+
+#include "app/GUISessionState.h"
+
 #include "services/PaletteStore.h"
+
 #include "widgets/AdaptiveDoubleSpinBox.h"
 #include "widgets/CollapsibleGroupBox.h"
 #include "widgets/IterationSpinBox.h"
@@ -28,13 +34,9 @@
 #include "widgets/PalettePreviewWidget.h"
 #include "widgets/SinePreviewWidget.h"
 
-#include "app/GUISessionState.h"
-using namespace GUI;
-
-#include "BackendAPI.h"
-using namespace Backend;
-
 #include "util/GUIUtil.h"
+
+using namespace GUI;
 
 static const int controlWindowScreenPadding = 48;
 
@@ -76,8 +78,8 @@ void ControlWindow::_buildUI() {
             scrollBar->setStyle(QStyleFactory::create("windowsvista"));
         }
 
-        const int scrollBarWidth = std::max(
-            scrollBar->sizeHint().width(), scrollBar->minimumSizeHint().width());
+        const int scrollBarWidth = std::max(scrollBar->sizeHint().width(),
+            scrollBar->minimumSizeHint().width());
         scrollBar->setMinimumWidth(scrollBarWidth);
         scrollBar->setMaximumWidth(scrollBarWidth);
     }
@@ -136,10 +138,11 @@ void ControlWindow::_buildUI() {
         [this](double, double) { emit previewRefreshRequested(); });
 
     _ui->statusRightLabel->setMinimumWidth(0);
-    _ui->statusRightLabel->setSizePolicy(
-        QSizePolicy::Ignored, QSizePolicy::Preferred);
+    _ui->statusRightLabel->setSizePolicy(QSizePolicy::Ignored,
+        QSizePolicy::Preferred);
     _ui->statusLayout->setStretch(
-        _ui->statusLayout->indexOf(_ui->statusRightLabel), 1);
+        _ui->statusLayout->indexOf(_ui->statusRightLabel), 1
+    );
     connect(_ui->statusRightLabel, &MarqueeLabel::layoutWidthChanged, this,
         [this]() {
             _updateStatusRightEdgeAlignment();
@@ -151,10 +154,12 @@ void ControlWindow::_populateStaticControls() {
     _ui->colorMethodCombo->addItems({ tr("Iterations"), tr("Smooth Iterations"),
         tr("Palette"), tr("Light") });
     _ui->fractalCombo->addItems(
-        { tr("Mandelbrot"), tr("Perpendicular"), tr("Burning Ship") });
+        { tr("Mandelbrot"), tr("Perpendicular"), tr("Burning Ship") }
+    );
     _ui->navModeCombo->addItems({ tr("Realtime Zoom"), tr("Box Zoom"), tr("Pan") });
     _ui->pickTargetCombo->addItems(
-        { tr("Zoom Point"), tr("Seed Point"), tr("Light Point") });
+        { tr("Zoom Point"), tr("Seed Point"), tr("Light Point") }
+    );
 }
 
 void ControlWindow::_connectUI() {
@@ -191,7 +196,8 @@ void ControlWindow::_connectUI() {
         this, [this](double value) {
             const QSignalBlocker blocker(_ui->exponentSlider);
             _ui->exponentSlider->setValue(
-                static_cast<int>(std::round(std::max(1.01, value) * 100.0)));
+                static_cast<int>(std::round(std::max(1.01, value) * 100.0))
+            );
             emit renderRequested();
         });
 
@@ -211,8 +217,8 @@ void ControlWindow::_connectUI() {
     connect(_ui->panRateSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int value) {
             const QSignalBlocker blocker(_ui->panRateSlider);
-            _ui->panRateSlider->setValue(std::clamp(
-                value, _ui->panRateSlider->minimum(), _ui->panRateSlider->maximum()));
+            _ui->panRateSlider->setValue(std::clamp(value,
+                _ui->panRateSlider->minimum(), _ui->panRateSlider->maximum()));
         });
     connect(_ui->zoomRateSlider, &QSlider::valueChanged, this, [this](int value) {
         const QSignalBlocker blocker(_ui->zoomRateSpin);
@@ -221,8 +227,9 @@ void ControlWindow::_connectUI() {
     connect(_ui->zoomRateSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
         [this](int value) {
             const QSignalBlocker blocker(_ui->zoomRateSlider);
-            _ui->zoomRateSlider->setValue(std::clamp(
-                value, _ui->zoomRateSlider->minimum(), _ui->zoomRateSlider->maximum()));
+            _ui->zoomRateSlider->setValue(std::clamp(value,
+                _ui->zoomRateSlider->minimum(),
+                _ui->zoomRateSlider->maximum()));
         });
 
     connect(_ui->sineCombo, &QComboBox::currentTextChanged, this,
@@ -234,8 +241,7 @@ void ControlWindow::_connectUI() {
                 return;
             }
 
-            emit sineSelectionRequested(
-                selected.isEmpty()
+            emit sineSelectionRequested(selected.isEmpty()
                 ? Util::undecoratedLabel(_ui->sineCombo->currentText())
                 : selected);
         });
@@ -263,8 +269,7 @@ void ControlWindow::_connectUI() {
                 return;
             }
 
-            emit paletteSelectionRequested(
-                selected.isEmpty()
+            emit paletteSelectionRequested(selected.isEmpty()
                 ? Util::undecoratedLabel(_ui->paletteCombo->currentText())
                 : selected);
         });
@@ -302,8 +307,7 @@ void ControlWindow::_connectUI() {
     connect(_ui->preserveRatioCheck, &QCheckBox::toggled, this,
         [this](bool checked) {
             if (!checked) return;
-            _lastOutputSize = QSize(
-                std::max(1, _ui->outputWidthSpin->value()),
+            _lastOutputSize = QSize(std::max(1, _ui->outputWidthSpin->value()),
                 std::max(1, _ui->outputHeightSpin->value()));
             _aspectReferenceInitialized = true;
         });
@@ -318,8 +322,7 @@ void ControlWindow::_connectUI() {
         &ControlWindow::saveImageRequested);
     connect(_ui->resizeButton, &QPushButton::clicked, this,
         [this]() {
-            _lastOutputSize = QSize(
-                std::max(1, _ui->outputWidthSpin->value()),
+            _lastOutputSize = QSize(std::max(1, _ui->outputWidthSpin->value()),
                 std::max(1, _ui->outputHeightSpin->value()));
             _aspectReferenceInitialized = true;
             emit viewportResizeRequested();
@@ -411,7 +414,8 @@ void ControlWindow::setCpuInfo(const QString &name, int cores, int threads) {
     _ui->cpuNameEdit->setText(name);
     _ui->cpuCoresEdit->setText(cores > 0 ? QString::number(cores) : QString());
     _ui->cpuThreadsEdit->setText(
-        threads > 0 ? QString::number(threads) : QString());
+        threads > 0 ? QString::number(threads) : QString()
+    );
 }
 
 void ControlWindow::setSessionState(
@@ -459,12 +463,11 @@ void ControlWindow::setSessionState(
     _ui->panRateSpin->setValue(sessionState.state().panRate);
     _ui->zoomRateSlider->setValue(sessionState.state().zoomRate);
     _ui->zoomRateSpin->setValue(sessionState.state().zoomRate);
-    _ui->exponentSlider->setValue(
-        static_cast<int>(std::round(
-            std::max(1.01, sessionState.state().exponent) * 100.0))
-    );
-    Util::setAdaptiveSpinValue(
-        _ui->exponentSpin, std::max(1.01, sessionState.state().exponent));
+    _ui->exponentSlider->setValue(static_cast<int>(std::round(
+        std::max(1.01, sessionState.state().exponent) * 100.0
+    )));
+    Util::setAdaptiveSpinValue(_ui->exponentSpin,
+        std::max(1.01, sessionState.state().exponent));
     if (!sessionState.state().sineName.isEmpty()) {
         const int sineIndex
             = _ui->sineCombo->findData(sessionState.state().sineName);
@@ -474,14 +477,14 @@ void ControlWindow::setSessionState(
             _ui->sineCombo->setCurrentText(sessionState.state().sineName);
         }
     }
-    Util::setAdaptiveSpinValue(
-        _ui->freqRSpin, sessionState.state().sinePalette.freqR);
-    Util::setAdaptiveSpinValue(
-        _ui->freqGSpin, sessionState.state().sinePalette.freqG);
-    Util::setAdaptiveSpinValue(
-        _ui->freqBSpin, sessionState.state().sinePalette.freqB);
-    Util::setAdaptiveSpinValue(
-        _ui->freqMultSpin, sessionState.state().sinePalette.freqMult);
+    Util::setAdaptiveSpinValue(_ui->freqRSpin,
+        sessionState.state().sinePalette.freqR);
+    Util::setAdaptiveSpinValue(_ui->freqGSpin,
+        sessionState.state().sinePalette.freqG);
+    Util::setAdaptiveSpinValue(_ui->freqBSpin,
+        sessionState.state().sinePalette.freqB);
+    Util::setAdaptiveSpinValue(_ui->freqMultSpin,
+        sessionState.state().sinePalette.freqMult);
     if (!sessionState.state().paletteName.isEmpty()) {
         const int paletteIndex
             = _ui->paletteCombo->findData(sessionState.state().paletteName);
@@ -491,22 +494,24 @@ void ControlWindow::setSessionState(
             _ui->paletteCombo->setCurrentText(sessionState.state().paletteName);
         }
     }
-    Util::setAdaptiveSpinValue(
-        _ui->paletteLengthSpin, sessionState.state().palette.totalLength);
-    Util::setAdaptiveSpinValue(
-        _ui->paletteOffsetSpin, sessionState.state().palette.offset);
+    Util::setAdaptiveSpinValue(_ui->paletteLengthSpin,
+        sessionState.state().palette.totalLength);
+    Util::setAdaptiveSpinValue(_ui->paletteOffsetSpin,
+        sessionState.state().palette.offset);
     _ui->outputWidthSpin->setValue(sessionState.state().outputWidth);
     _ui->outputHeightSpin->setValue(sessionState.state().outputHeight);
-    _ui->viewportScaleSpin->setValue(static_cast<double>(std::max(
-        1.0f, sessionState.state().viewportScalePercent)));
+    _ui->viewportScaleSpin->setValue(static_cast<double>(std::max(1.0f,
+        sessionState.state().viewportScalePercent)));
     if (!_aspectReferenceInitialized || !state.preserveRatio) {
         _lastOutputSize = QSize(state.outputWidth, state.outputHeight);
         _aspectReferenceInitialized = true;
     }
     _ui->colorMethodCombo->setCurrentIndex(
-        static_cast<int>(sessionState.state().colorMethod));
+        static_cast<int>(sessionState.state().colorMethod)
+    );
     _ui->fractalCombo->setCurrentIndex(
-        static_cast<int>(sessionState.state().fractalType));
+        static_cast<int>(sessionState.state().fractalType)
+    );
     _ui->navModeCombo->setCurrentIndex(static_cast<int>(displayedNavMode));
     _ui->pickTargetCombo->setCurrentIndex(static_cast<int>(selectionTarget));
 
@@ -544,12 +549,12 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
     const float paletteOffset
         = static_cast<float>(_ui->paletteOffsetSpin->value());
     const auto paletteStops = PaletteStore::configToStops(state.palette);
-    state.palette = PaletteStore::stopsToConfig(
-        paletteStops, paletteTotalLength, paletteOffset, state.palette.blendEnds);
+    state.palette = PaletteStore::stopsToConfig(paletteStops,
+        paletteTotalLength, paletteOffset, state.palette.blendEnds);
     state.outputWidth = _ui->outputWidthSpin->value();
     state.outputHeight = _ui->outputHeightSpin->value();
-    state.viewportScalePercent = std::max(
-        1.0f, static_cast<float>(_ui->viewportScaleSpin->value()));
+    state.viewportScalePercent = std::max(1.0f,
+        static_cast<float>(_ui->viewportScaleSpin->value()));
 
     QString sineName = _ui->sineCombo->currentData().toString();
     if (sineName.isEmpty()) {
@@ -729,10 +734,10 @@ void ControlWindow::changeEvent(QEvent *event) {
         _retranslateMenus();
         _retranslateDynamicControls();
         _updateWindowTitle();
-        _refreshNamedCombo(
-            _ui->sineCombo, _sineNames, _currentSineName, _sineDirty);
-        _refreshNamedCombo(
-            _ui->paletteCombo, _paletteNames, _currentPaletteName, _paletteDirty);
+        _refreshNamedCombo(_ui->sineCombo, _sineNames, _currentSineName,
+            _sineDirty);
+        _refreshNamedCombo(_ui->paletteCombo, _paletteNames,
+            _currentPaletteName, _paletteDirty);
         _updateStatusLabels();
         _updateControlWindowSize();
     }
@@ -833,11 +838,13 @@ void ControlWindow::_updateControlWindowSize() {
         + (_ui->controlScrollArea ? (_ui->controlScrollArea->frameWidth() * 2) : 0);
 
     const QSize contentSize = _ui->controlScrollContent->sizeHint().expandedTo(
-        _ui->controlScrollContent->minimumSizeHint());
+        _ui->controlScrollContent->minimumSizeHint()
+    );
     const int controlContentMinWidth = std::max(
         { contentSize.width(), _ui->controlScrollContent->minimumSizeHint().width(),
             _ui->controlLayout ? _ui->controlLayout->minimumSize().width() : 0,
-            _ui->controlScrollContent->width() });
+            _ui->controlScrollContent->width() }
+    );
     const int controlContentHeight = contentSize.height();
     const int defaultVisibleContentHeight = std::max(0,
         _ui->viewportGroup->geometry().bottom() + 1
@@ -867,8 +874,7 @@ void ControlWindow::_updateControlWindowSize() {
     }
     const int minimumWidthForFixedPanels
         = std::max(1, fixedPanelsMinWidth + outerHorizontalMargins);
-    const int desiredWidth = std::max(
-        { baseTarget.width(), minimumHint.width(),
+    const int desiredWidth = std::max({ baseTarget.width(), minimumHint.width(),
             controlContentMinWidth + outerHorizontalMargins + scrollAreaNonContentWidth,
             minimumWidthForFixedPanels });
 
@@ -953,16 +959,16 @@ void ControlWindow::_updateStatusLabels() {
         = (_progressActive || _progressCancelled) ? _progressValue : 0;
     _ui->progressLabel->setText(QStringLiteral("%1%").arg(shownProgressValue));
     _ui->progressLabel->setStyleSheet(
-        _progressCancelled ? QStringLiteral("color: rgb(215, 80, 80);") : QString());
+        _progressCancelled ? QStringLiteral("color: rgb(215, 80, 80);") : QString()
+    );
     _ui->progressBar->setValue(shownProgressValue);
     _ui->progressBar->setStyleSheet(_progressCancelled
         ? QStringLiteral("QProgressBar::chunk { background-color: rgb(215, 80, 80); }")
         : QString());
     _ui->statusRightLabel->setEmphasisEnabled(_progressCancelled);
-    _ui->pixelsPerSecondLabel->setText(
-        ((_progressActive
-            || _pixelsPerSecondText != Util::defaultPixelsPerSecondText())
-            && !_pixelsPerSecondText.isEmpty())
+    _ui->pixelsPerSecondLabel->setText(((_progressActive
+        || _pixelsPerSecondText != Util::defaultPixelsPerSecondText())
+        && !_pixelsPerSecondText.isEmpty())
         ? _pixelsPerSecondText
         : QString());
     _ui->imageMemoryLabel->setText(_imageMemoryText);

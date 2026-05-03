@@ -3,23 +3,25 @@
 #include <functional>
 #include <memory>
 
+#include <QCloseEvent>
 #include <QColor>
 #include <QComboBox>
-#include <QCloseEvent>
 #include <QEvent>
 #include <QImage>
 #include <QMainWindow>
 #include <QPixmap>
 #include <QShowEvent>
 
+#include "BackendAPI.h"
+
+#include "app/GUISessionState.h"
+#include "app/GUITypes.h"
+
 #include "settings/AppSettings.h"
 #include "settings/Shortcuts.h"
 
-#include "BackendAPI.h"
 #include "options/ColorMethods.h"
 
-#include "app/GUITypes.h"
-#include "app/GUISessionState.h"
 #include "util/GUIUtil.h"
 
 namespace Ui {

@@ -63,7 +63,7 @@ public:
 
     [[nodiscard]] int32_t outputWidth() const { return _outputW; }
     [[nodiscard]] int32_t outputHeight() const { return _outputH; }
-    
+
     [[nodiscard]] int32_t outputStrideWidth() const {
         return _downscaling ? _outputStrideW : _strideW;
     }

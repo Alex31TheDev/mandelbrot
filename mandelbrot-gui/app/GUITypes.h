@@ -10,6 +10,7 @@
 #include <QString>
 
 #include "BackendAPI.h"
+
 #include "GUIConstants.h"
 
 #include "options/ColorMethods.h"

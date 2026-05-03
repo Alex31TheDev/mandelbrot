@@ -16,37 +16,37 @@
 #include <QScreen>
 #include <QWindow>
 
+#include "BackendAPI.h"
+using namespace Backend;
+
 #include "CPUInfo.h"
+
+#include "services/PointStore.h"
+#include "services/PaletteStore.h"
+#include "services/SineStore.h"
+#include "services/BackendCatalog.h"
+#include "services/NativeFileDialog.h"
 
 #include "dialogs/about/AboutDialog.h"
 #include "dialogs/help/HelpDialog.h"
 #include "dialogs/palette/PaletteDialog.h"
 #include "dialogs/settings/SettingsDialog.h"
-#include "services/BackendCatalog.h"
-#include "services/NativeFileDialog.h"
-#include "services/PaletteStore.h"
-#include "services/PointStore.h"
-#include "services/SineStore.h"
 
-#include "util/GUIUtil.h"
-#include "util/FormatUtil.h"
 #include "util/FileUtil.h"
-
-#include "BackendAPI.h"
-using namespace Backend;
+#include "util/FormatUtil.h"
+#include "util/GUIUtil.h"
 
 using namespace GUI;
 
-static QString recoveryNameFromPath(
-    const std::filesystem::path &path
-) {
+static QString recoveryNameFromPath(const std::filesystem::path &path) {
     const QString stem = QString::fromStdWString(path.stem().wstring());
     if (!stem.startsWith('.') || !stem.endsWith("_recovery")) {
         return QString();
     }
 
     return PaletteStore::normalizeName(
-        stem.mid(1, stem.size() - QStringLiteral("_recovery").size() - 1));
+        stem.mid(1, stem.size() - QStringLiteral("_recovery").size() - 1)
+    );
 }
 
 static std::filesystem::path findRecoveryPath(
@@ -137,17 +137,19 @@ static std::optional<NamedAssetSaveTarget> resolveNamedAssetSaveTarget(
         }
         if (choice == QMessageBox::No) {
             const QString savePath = showNativeSaveDialog(parent, saveAsTitle, directory,
-                QFileInfo(Util::uniqueIndexedPathWithExtension(
-                    directory, targetName, "txt")).fileName(),
+                QFileInfo(Util::uniqueIndexedPathWithExtension(directory,
+                    targetName, "txt")).fileName(),
                 dialogFilter);
             if (savePath.isEmpty()) {
                 return NamedAssetSaveTarget{ .cancelled = true };
             }
 
             const QString savePathWithExtension = QString::fromStdString(
-                FileUtil::appendExtension(savePath.toStdString(), "txt"));
+                FileUtil::appendExtension(savePath.toStdString(), "txt")
+            );
             const QString saveName = normalizeName(
-                QFileInfo(savePathWithExtension).completeBaseName());
+                QFileInfo(savePathWithExtension).completeBaseName()
+            );
             if (!isValidName(saveName)) {
                 QMessageBox::warning(parent, saveTitle, invalidNameMessage);
                 return std::nullopt;
@@ -174,8 +176,7 @@ static bool syncNamedAssetState(
     ConfigEqual &&configEqual, CacheRecovery &&cacheRecovery
 ) {
     const bool changed = normalizeName(previousName)
-            .compare(normalizeName(currentName), Qt::CaseInsensitive)
-            != 0
+        .compare(normalizeName(currentName), Qt::CaseInsensitive) != 0
         || !configEqual(previousConfig, currentConfig);
     const bool dirtyChanged = isDirty != wasDirty;
     if (changed || dirtyChanged) {
@@ -187,15 +188,15 @@ static bool syncNamedAssetState(
 }
 
 GUIAppController::GUIAppController(
-    GUILocale &locale, AppSettings &settings, QObject *parent)
+    GUILocale &locale, AppSettings &settings, QObject *parent
+)
     : QObject(parent)
     , _locale(locale)
     , _settings(settings)
     , _shortcuts(settings)
     , _sessionState(this)
     , _renderController(this)
-    , _viewportController(
-        _sessionState, _renderController, _shortcuts, this)
+    , _viewportController(_sessionState, _renderController, _shortcuts, this)
     , _controlWindow(std::make_unique<ControlWindow>())
     , _viewportWindow(std::make_unique<ViewportWindow>(&_viewportController)) {
     connect(qApp, &QCoreApplication::aboutToQuit, this,
@@ -447,7 +448,8 @@ void GUIAppController::_requestRender(
     const std::optional<PendingPickAction> &pickAction
 ) {
     _sessionState.mutableState().zoom = Util::clampGUIZoom(
-        _sessionState.state().zoom);
+        _sessionState.state().zoom
+    );
     _statusText.clear();
     _statusLinkPath.clear();
     if (_viewportWindow) {
@@ -475,7 +477,8 @@ void GUIAppController::_clearSavedSettings() {
     const QMessageBox::StandardButton choice = QMessageBox::question(
         _controlWindow.get(), tr("Clear Saved Settings"),
         tr("This will remove the persisted GUI settings and close the application. Continue?"),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No
+    );
     if (choice != QMessageBox::Yes) {
         return;
     }
@@ -502,8 +505,10 @@ void GUIAppController::_refreshControlState() {
         = Util::lightColorToQColor(_sessionState.state().lightColor);
     _controlWindow->setLightColorButton(lightColor,
         QString::fromStdString(FormatUtil::formatHexColor(
-            _sessionState.state().lightColor.R, _sessionState.state().lightColor.G,
-            _sessionState.state().lightColor.B)));
+            _sessionState.state().lightColor.R,
+            _sessionState.state().lightColor.G,
+            _sessionState.state().lightColor.B
+        )));
 }
 
 void GUIAppController::_refreshStatus() {
@@ -524,7 +529,8 @@ void GUIAppController::_refreshPreviews() {
         _sessionState.state().sinePalette,
         _controlWindow->findChild<QWidget *>("sinePreview")->size(),
         _controlWindow->sinePreviewRange().first,
-        _controlWindow->sinePreviewRange().second));
+        _controlWindow->sinePreviewRange().second
+    ));
 
     const QImage paletteImage
         = _renderController.renderPalettePreview(_sessionState.state().palette);
@@ -648,8 +654,8 @@ void GUIAppController::_initializeSessionState() {
         const QString fallbackSineName = QString::fromUtf8(SineStore::defaultName);
         if (!_loadSineByName(fallbackSineName, false, nullptr, false)) {
             state.sineName = recoveredSineName.isEmpty()
-                ? Util::uniqueIndexedNameFromList(
-                    tr("New Sine"), SineStore::listNames())
+                ? Util::uniqueIndexedNameFromList(tr("New Sine"),
+                    SineStore::listNames())
                 : recoveredSineName;
             state.sinePalette = SineStore::makeNewConfig();
             _sessionState.markSineSavedState();
@@ -661,8 +667,8 @@ void GUIAppController::_initializeSessionState() {
         const QString fallbackPaletteName = QString::fromUtf8(PaletteStore::defaultName);
         if (!_loadPaletteByName(fallbackPaletteName, false, nullptr, false)) {
             state.paletteName = recoveredPaletteName.isEmpty()
-                ? Util::uniqueIndexedNameFromList(
-                    tr("New Palette"), PaletteStore::listNames())
+                ? Util::uniqueIndexedNameFromList(tr("New Palette"),
+                    PaletteStore::listNames())
                 : recoveredPaletteName;
             state.palette = PaletteStore::makeNewConfig();
             _sessionState.markPaletteSavedState();
@@ -774,8 +780,8 @@ void GUIAppController::_saveImage() {
 
     QString errorMessage;
     QString savedPath;
-    if (!_renderController.saveImage(
-        result->path, result->appendDate, result->type, &savedPath, errorMessage)) {
+    if (!_renderController.saveImage(result->path, result->appendDate,
+        result->type, &savedPath, errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Save"), errorMessage);
         return;
     }
@@ -787,7 +793,8 @@ void GUIAppController::_quickSaveImage() {
     std::error_code ec;
     std::filesystem::create_directories(Util::savesDirectoryPath(), ec);
     const QString path = QString::fromStdWString(
-        (Util::savesDirectoryPath() / "mandelbrot.png").wstring());
+        (Util::savesDirectoryPath() / "mandelbrot.png").wstring()
+    );
     QString errorMessage;
     QString savedPath;
     if (!_renderController.saveImage(path, true, "png", &savedPath, errorMessage)) {
@@ -845,15 +852,17 @@ bool GUIAppController::_savePointViewInteractive() {
     }
 
     const QString defaultPath = Util::uniqueIndexedPathWithExtension(
-        PointStore::directoryPath(), tr("View"), "txt");
+        PointStore::directoryPath(), tr("View"), "txt"
+    );
     const QString selectedPath = showNativeSaveDialog(_controlWindow.get(),
         tr("Save View"), PointStore::directoryPath(),
         QFileInfo(defaultPath).fileName(), tr("View Files (*.txt);;All Files (*.*)"));
     if (selectedPath.isEmpty()) return false;
 
-    PointConfig point{ .fractal = Util::fractalTypeToConfigString(
-                            _sessionState.state().fractalType)
-                            .toStdString(),
+    PointConfig point{
+        .fractal = Util::fractalTypeToConfigString(
+        _sessionState.state().fractalType
+        ).toStdString(),
         .inverse = _sessionState.state().inverse,
         .julia = _sessionState.state().julia,
         .iterations = _sessionState.state().iterations,
@@ -861,12 +870,14 @@ bool GUIAppController::_savePointViewInteractive() {
         .imag = _sessionState.pointImagText().toStdString(),
         .zoom = _sessionState.zoomText().toStdString(),
         .seedReal = _sessionState.seedRealText().toStdString(),
-        .seedImag = _sessionState.seedImagText().toStdString() };
+        .seedImag = _sessionState.seedImagText().toStdString()
+    };
 
     const QString outputPathWithExtension = QString::fromStdString(
-        FileUtil::appendExtension(selectedPath.toStdString(), "txt"));
-    if (!PointStore::saveToPath(
-        outputPathWithExtension.toStdString(), point, errorMessage)) {
+        FileUtil::appendExtension(selectedPath.toStdString(), "txt")
+    );
+    if (!PointStore::saveToPath(outputPathWithExtension.toStdString(), point,
+        errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Save View"), errorMessage);
         return false;
     }
@@ -889,15 +900,16 @@ void GUIAppController::_loadPointView() {
     if (selectedPath.isEmpty()) return;
 
     PointConfig point;
-    if (!PointStore::loadFromPath(
-        selectedPath.toStdString(), point, errorMessage)) {
+    if (!PointStore::loadFromPath(selectedPath.toStdString(), point,
+        errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Load View"), errorMessage);
         return;
     }
 
     GUIState &state = _sessionState.mutableState();
     state.fractalType = Util::fractalTypeFromConfigString(
-        QString::fromStdString(point.fractal));
+        QString::fromStdString(point.fractal)
+    );
     state.inverse = point.inverse;
     state.julia = point.julia;
     state.iterations = std::max(0, point.iterations);
@@ -922,8 +934,8 @@ void GUIAppController::_importSine() {
 
     Backend::SinePaletteConfig loaded;
     QString errorMessage;
-    if (!SineStore::loadFromPath(
-        sourcePath.toStdString(), loaded, errorMessage)) {
+    if (!SineStore::loadFromPath(sourcePath.toStdString(), loaded,
+        errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Sine Color"), errorMessage);
         return;
     }
@@ -935,7 +947,8 @@ void GUIAppController::_importSine() {
 
     const QStringList existingNames = SineStore::listNames();
     const QString importedName = PaletteStore::uniqueName(
-        QFileInfo(sourcePath).completeBaseName(), existingNames);
+        QFileInfo(sourcePath).completeBaseName(), existingNames
+    );
     const std::filesystem::path destinationPath = SineStore::filePath(importedName);
     if (!SineStore::saveToPath(destinationPath, loaded, errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Sine Color"), errorMessage);
@@ -975,8 +988,8 @@ void GUIAppController::_saveSine() {
     if (!target) return;
     if (target->cancelled) return;
 
-    if (!SineStore::saveToPath(
-        target->path, _sessionState.state().sinePalette, errorMessage)) {
+    if (!SineStore::saveToPath(target->path, _sessionState.state().sinePalette,
+        errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Save Sine Color"), errorMessage);
         return;
     }
@@ -1036,8 +1049,8 @@ void GUIAppController::_savePalette() {
     if (target->cancelled) return;
     std::filesystem::path destinationPath = target->path;
 
-    if (!PaletteStore::saveNamed(
-        target->name, _sessionState.state().palette, destinationPath, errorMessage)) {
+    if (!PaletteStore::saveNamed(target->name, _sessionState.state().palette,
+        destinationPath, errorMessage)) {
         QMessageBox::warning(_controlWindow.get(), tr("Save Palette"), errorMessage);
         return;
     }
@@ -1080,7 +1093,8 @@ void GUIAppController::_createNewSinePalette(bool requestRenderOnSuccess) {
     _discardSineRecovery();
     const QStringList existingNames = SineStore::listNames();
     _sessionState.mutableState().sineName = Util::uniqueIndexedNameFromList(
-        tr("New Sine"), existingNames);
+        tr("New Sine"), existingNames
+    );
     _sessionState.mutableState().sinePalette = SineStore::makeNewConfig();
     _refreshAllViews();
     _cacheSineRecovery();
@@ -1093,7 +1107,8 @@ void GUIAppController::_createNewColorPalette(bool requestRenderOnSuccess) {
     _discardPaletteRecovery();
     const QStringList existingNames = PaletteStore::listNames();
     _sessionState.mutableState().paletteName = Util::uniqueIndexedNameFromList(
-        tr("New Palette"), existingNames);
+        tr("New Palette"), existingNames
+    );
     _sessionState.mutableState().palette = PaletteStore::makeNewConfig();
     _refreshAllViews();
     _cachePaletteRecovery();
@@ -1171,7 +1186,8 @@ bool GUIAppController::_confirmDiscardDirtySine() {
     const QMessageBox::StandardButton choice = QMessageBox::question(
         _controlWindow.get(), tr("Sine Color"),
         tr("Current sine palette has unsaved changes. Discard them?"),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No
+    );
     return choice == QMessageBox::Yes;
 }
 
@@ -1181,14 +1197,16 @@ bool GUIAppController::_confirmDiscardDirtyPalette() {
     const QMessageBox::StandardButton choice = QMessageBox::question(
         _controlWindow.get(), tr("Palette"),
         tr("Current palette has unsaved changes. Discard them?"),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No
+    );
     return choice == QMessageBox::Yes;
 }
 
 bool GUIAppController::_promptForDirtyViewOnClose() {
     _controlWindow->syncToSessionState(_sessionState);
     _sessionState.mutableState().zoom = Util::clampGUIZoom(
-        _sessionState.state().zoom);
+        _sessionState.state().zoom
+    );
 
     if (!_sessionState.isPointViewDirty() || _sessionState.isHomeView()) {
         return true;
@@ -1198,7 +1216,8 @@ bool GUIAppController::_promptForDirtyViewOnClose() {
         _controlWindow.get(), tr("Save View"),
         tr("Current view has unsaved changes. Save it before closing?"),
         QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
-        QMessageBox::Yes);
+        QMessageBox::Yes
+    );
 
     if (choice == QMessageBox::Cancel) {
         return false;
@@ -1215,14 +1234,18 @@ std::filesystem::path GUIAppController::_paletteRecoveryPath(
     const QString normalizedName = PaletteStore::normalizeName(name);
     return PaletteStore::directoryPath()
         / std::filesystem::path(
-            QString(".%1_recovery.txt").arg(normalizedName).toStdString());
+            QString(".%1_recovery.txt").arg(normalizedName).toStdString()
+        );
 }
 
-std::filesystem::path GUIAppController::_sineRecoveryPath(const QString &name) const {
+std::filesystem::path GUIAppController::_sineRecoveryPath(
+    const QString &name
+) const {
     const QString normalizedName = PaletteStore::normalizeName(name);
     return SineStore::directoryPath()
         / std::filesystem::path(
-            QString(".%1_recovery.txt").arg(normalizedName).toStdString());
+            QString(".%1_recovery.txt").arg(normalizedName).toStdString()
+        );
 }
 
 void GUIAppController::_restorePaletteRecovery() {

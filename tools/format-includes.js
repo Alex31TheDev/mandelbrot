@@ -83,6 +83,35 @@ const IncludeConfig = Object.freeze({
         "winuser.h"
     ]),
 
+    compatibilityHeaders: new Set([
+        "cassert",
+        "ccomplex",
+        "cctype",
+        "cerrno",
+        "cfenv",
+        "cfloat",
+        "cinttypes",
+        "ciso646",
+        "climits",
+        "clocale",
+        "cmath",
+        "csetjmp",
+        "csignal",
+        "cstdalign",
+        "cstdarg",
+        "cstdbool",
+        "cstddef",
+        "cstdint",
+        "cstdio",
+        "cstdlib",
+        "cstring",
+        "ctgmath",
+        "ctime",
+        "cuchar",
+        "cwchar",
+        "cwctype"
+    ]),
+
     includeWin32: "IncludeWin32.h",
     backendInclude: "BackendAPI.h",
     backendUsing: "using namespace Backend;",
@@ -94,8 +123,8 @@ const IncludeRules = Object.freeze({
     [IncludeGroups.stl]: {
         sort: SortTypes.weighted,
         fallback: SortTypes.alphabetical,
-        weights: ["^c(?!omplex$)[a-z0-9_]*$"],
-        match: MatchTypes.regex
+        weights: [...IncludeConfig.compatibilityHeaders],
+        match: MatchTypes.leafName
     },
     [IncludeGroups.win32]: {
         sort: SortTypes.weighted,
@@ -119,40 +148,40 @@ const IncludeRules = Object.freeze({
         match: MatchTypes.leafStem
     },
     [IncludeGroups.runtime]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.controllers]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.services]: {
         sort: SortTypes.weighted,
-        fallback: SortTypes.preserve,
+        fallback: SortTypes.alphabetical,
         weights: ["point", "palette", "sine"],
         match: MatchTypes.substring
     },
     [IncludeGroups.settings]: {
         sort: SortTypes.weighted,
-        fallback: SortTypes.preserve,
+        fallback: SortTypes.alphabetical,
         weights: ["AppSettings", "Shortcuts"],
         match: MatchTypes.leafStem
     },
     [IncludeGroups.locale]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.windows]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.dialogs]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.widgets]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     },
     [IncludeGroups.options]: {
         sort: SortTypes.alphabetical
     },
     [IncludeGroups.util]: {
-        sort: SortTypes.preserve
+        sort: SortTypes.alphabetical
     }
 });
 
@@ -357,6 +386,18 @@ function shouldShortenSameFolderInclude(fileInfo, includePath) {
     return false;
 }
 
+function resolveIncludePath(fileInfo, includePath) {
+    const localCandidatePath = path.resolve(fileInfo.directory, includePath);
+    if (fs.existsSync(localCandidatePath)) return localCandidatePath;
+
+    for (const rootPath of getIncludeSearchRoots(fileInfo)) {
+        const candidatePath = path.resolve(rootPath, includePath);
+        if (fs.existsSync(candidatePath)) return candidatePath;
+    }
+
+    return null;
+}
+
 function buildIncludeLine(delimiter, includePath) {
     const closingDelimiter = delimiter === "<" ? ">" : '"';
     return `#include ${delimiter}${includePath}${closingDelimiter}`;
@@ -413,7 +454,22 @@ function isIncludeWin32Include(includePath) {
     return Util.getLeafName(includePath).toLowerCase() === IncludeConfig.includeWin32.toLowerCase();
 }
 
-function getIncludeGroup(includeInfo) {
+function inferResolvedIncludeGroup(fileInfo, resolvedIncludePath) {
+    for (const rootPath of getIncludeSearchRoots(fileInfo)) {
+        const relativePath = FormatterUtil.normalizeSlashes(path.relative(rootPath, resolvedIncludePath));
+
+        if (!relativePath || relativePath.startsWith("../") || path.isAbsolute(relativePath)) {
+            continue;
+        }
+
+        const firstSegment = relativePath.split("/")[0];
+        return IncludeConfig.pathGroups[firstSegment] ?? IncludeGroups.external;
+    }
+
+    return IncludeGroups.external;
+}
+
+function getIncludeGroup(fileInfo, includeInfo) {
     if (isBackendApiInclude(includeInfo.includePath)) {
         return IncludeGroups.backend;
     }
@@ -428,18 +484,23 @@ function getIncludeGroup(includeInfo) {
         return IncludeGroups.win32;
     }
 
+    const resolvedIncludePath = resolveIncludePath(fileInfo, includeInfo.includePath);
+    if (resolvedIncludePath) {
+        return inferResolvedIncludeGroup(fileInfo, resolvedIncludePath);
+    }
+
     const firstSegment = FormatterUtil.normalizeSlashes(includeInfo.includePath).split("/")[0];
     return IncludeConfig.pathGroups[firstSegment] ?? IncludeGroups.external;
 }
 
-function getConditionalGroup(entry) {
+function getConditionalGroup(fileInfo, entry) {
     const groups = new Set();
 
     for (const line of entry.lines) {
         const includeInfo = parseIncludeLine(line);
         if (!includeInfo) continue;
 
-        groups.add(getIncludeGroup(includeInfo));
+        groups.add(getIncludeGroup(fileInfo, includeInfo));
     }
 
     if (groups.size === 1) {
@@ -700,7 +761,8 @@ function formatIncludePreamble(fileInfo, preamble) {
         groupedEntries = new Map(orderedGroupIds.map(groupId => [groupId, []]));
 
     for (const entry of entries) {
-        const groupId = entry.type === "conditional" ? getConditionalGroup(entry) : getIncludeGroup(entry);
+        const groupId =
+            entry.type === "conditional" ? getConditionalGroup(fileInfo, entry) : getIncludeGroup(fileInfo, entry);
         groupedEntries.get(groupId).push(entry);
     }
 

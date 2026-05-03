@@ -7,15 +7,15 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 
+#include "BackendAPI.h"
+using namespace Backend;
+
 #include "parsers/palette/PaletteParser.h"
 #include "parsers/palette/PaletteWriter.h"
 
+#include "util/FileUtil.h"
 #include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
-#include "util/FileUtil.h"
-
-#include "BackendAPI.h"
-using namespace Backend;
 
 using namespace GUI;
 
@@ -82,8 +82,8 @@ namespace GUI::PaletteStore {
         std::filesystem::create_directories(directoryPath(), ec);
         if (!ec) return true;
 
-        errorMessage = QCoreApplication::translate(
-            "PaletteStore", "Failed to create palette directory: %1")
+        errorMessage = QCoreApplication::translate("PaletteStore",
+            "Failed to create palette directory: %1")
             .arg(QString::fromStdString(ec.message()));
         return false;
     }
@@ -206,8 +206,8 @@ namespace GUI::PaletteStore {
     ) {
         const QString normalizedName = normalizeName(name);
         if (normalizedName.isEmpty()) {
-            errorMessage = QCoreApplication::translate(
-                "PaletteStore", "Palette name is empty.");
+            errorMessage = QCoreApplication::translate("PaletteStore",
+                "Palette name is empty.");
             return false;
         }
 
@@ -216,8 +216,8 @@ namespace GUI::PaletteStore {
             return loadFromPath(sourcePath, palette, errorMessage);
         }
 
-        errorMessage = QCoreApplication::translate(
-            "PaletteStore", "Palette not found: %1")
+        errorMessage = QCoreApplication::translate("PaletteStore",
+            "Palette not found: %1")
             .arg(normalizedName);
         return false;
     }
@@ -239,7 +239,8 @@ namespace GUI::PaletteStore {
         importedName = uniqueName(
             QFileInfo(QString::fromStdWString(sourcePath.wstring()))
             .completeBaseName(),
-            listNames());
+            listNames()
+        );
         destinationPath = filePath(importedName);
         if (!saveToPath(destinationPath, loaded, errorMessage)) return false;
 
@@ -271,9 +272,11 @@ namespace GUI::PaletteStore {
         std::filesystem::path &destinationPath, QString &errorMessage
     ) {
         const QString savePathWithExtension = QString::fromStdString(
-            FileUtil::appendExtension(savePath.toStdString(), "txt"));
+            FileUtil::appendExtension(savePath.toStdString(), "txt")
+        );
         savedName = normalizeName(
-            QFileInfo(savePathWithExtension).completeBaseName());
+            QFileInfo(savePathWithExtension).completeBaseName()
+        );
         if (!isValidName(savedName)) {
             errorMessage = QCoreApplication::translate("PaletteStore",
                 "Use an ASCII name with letters, numbers, spaces, ., _, or -.");
@@ -294,7 +297,8 @@ namespace GUI::PaletteStore {
         }
 
         return Util::imageViewToImage(
-            session->renderPalettePreview(width, height));
+            session->renderPalettePreview(width, height)
+        );
     }
 
     std::vector<PaletteStop> configToStops(const PaletteRGBConfig &palette) {
@@ -362,8 +366,7 @@ namespace GUI::PaletteStore {
             });
 
         if (blendEnds && sorted.size() >= 2 && sorted.back().pos >= 1.0) {
-            const double minPos = std::min(
-                1.0 - loopEndpointEpsilon,
+            const double minPos = std::min(1.0 - loopEndpointEpsilon,
                 sorted[sorted.size() - 2].pos + loopEndpointEpsilon);
             sorted.back().pos = minPos;
         }
@@ -379,14 +382,14 @@ namespace GUI::PaletteStore {
                         static_cast<float>(sorted[i].color.greenF()),
                         static_cast<float>(sorted[i].color.blueF()),
                         static_cast<float>(len) }
-                    );
+                );
             }
 
             palette.entries.push_back(
                 { static_cast<float>(sorted.back().color.redF()),
                     static_cast<float>(sorted.back().color.greenF()),
                     static_cast<float>(sorted.back().color.blueF()), 0.0f }
-                );
+            );
             return palette;
         }
 
@@ -401,7 +404,7 @@ namespace GUI::PaletteStore {
                     static_cast<float>(sorted[i].color.greenF()),
                     static_cast<float>(sorted[i].color.blueF()),
                     static_cast<float>(len) }
-                );
+            );
         }
 
         return palette;

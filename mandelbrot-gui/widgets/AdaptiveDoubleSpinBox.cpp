@@ -16,7 +16,8 @@ AdaptiveDoubleSpinBox::AdaptiveDoubleSpinBox(QWidget *parent)
 }
 
 AdaptiveDoubleSpinBox::AdaptiveDoubleSpinBox(
-    int defaultDisplayDecimals, QWidget *parent)
+    int defaultDisplayDecimals, QWidget *parent
+)
     : QDoubleSpinBox(parent)
     , _defaultDisplayDecimals(std::max(0, defaultDisplayDecimals))
     , _displayDecimals(_defaultDisplayDecimals) {

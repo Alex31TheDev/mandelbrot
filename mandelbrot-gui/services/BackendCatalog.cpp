@@ -36,8 +36,8 @@ namespace GUI {
         std::error_code ec;
         const std::filesystem::path dir = FileUtil::executableDir() / "backends";
         if (!std::filesystem::exists(dir, ec) || ec) {
-            errorMessage = QCoreApplication::translate(
-                "BackendCatalog", "Backend directory was not found.");
+            errorMessage = QCoreApplication::translate("BackendCatalog",
+                "Backend directory was not found.");
             return names;
         }
 
@@ -67,8 +67,7 @@ namespace GUI {
             }
         );
         if (names.isEmpty()) {
-            errorMessage = QCoreApplication::translate(
-                "BackendCatalog",
+            errorMessage = QCoreApplication::translate("BackendCatalog",
                 "No backend DLLs were found in the backends directory.");
         }
 

@@ -15,14 +15,14 @@
 #include <QRegularExpressionValidator>
 #include <QSignalBlocker>
 
-#include "services/NativeFileDialog.h"
-#include "services/PaletteStore.h"
-
-#include "util/GUIUtil.h"
-#include "util/FileUtil.h"
-
 #include "BackendAPI.h"
 using namespace Backend;
+
+#include "services/PaletteStore.h"
+#include "services/NativeFileDialog.h"
+
+#include "util/FileUtil.h"
+#include "util/GUIUtil.h"
 
 using namespace GUI;
 
@@ -40,7 +40,8 @@ PaletteDialog::PaletteDialog(const PaletteRGBConfig &palette,
         ? QString::fromLatin1(PaletteStore::defaultName)
         : _savedPaletteName);
     _ui->nameEdit->setValidator(new QRegularExpressionValidator(
-        QRegularExpression("[A-Za-z0-9 _.\\-]*"), _ui->nameEdit));
+        QRegularExpression("[A-Za-z0-9 _.\\-]*"), _ui->nameEdit
+    ));
 
     Util::stabilizePushButton(_ui->addButton);
     Util::stabilizePushButton(_ui->removeButton);
@@ -194,15 +195,16 @@ void PaletteDialog::_savePalette() {
         if (choice == QMessageBox::No) {
             const QString savePath = showNativeSaveDialog(this,
                 tr("Save Palette As"), PaletteStore::directoryPath(),
-                QFileInfo(
-                    Util::uniqueIndexedPathWithExtension(
-                        PaletteStore::directoryPath(), targetName, "txt"))
+                QFileInfo(Util::uniqueIndexedPathWithExtension(
+                    PaletteStore::directoryPath(), targetName, "txt"
+                ))
                 .fileName(),
                 tr("Palette Files (*.txt);;All Files (*.*)"));
             if (savePath.isEmpty()) return;
 
             const QString savePathWithExtension = QString::fromStdString(
-                FileUtil::appendExtension(savePath.toStdString(), "txt"));
+                FileUtil::appendExtension(savePath.toStdString(), "txt")
+            );
             QString saveName;
             if (!PaletteStore::saveFromDialogPath(savePathWithExtension,
                 _palette, saveName, destinationPath, errorMessage)) {
@@ -212,16 +214,16 @@ void PaletteDialog::_savePalette() {
             }
 
             targetName = saveName;
-        } else if (!PaletteStore::saveNamed(
-            targetName, _palette, destinationPath, errorMessage)) {
+        } else if (!PaletteStore::saveNamed(targetName, _palette,
+            destinationPath, errorMessage)) {
             QMessageBox::warning(this, tr("Palette"), errorMessage);
             return;
         }
     }
 
     if (!destinationExists
-        && !PaletteStore::saveNamed(
-            targetName, _palette, destinationPath, errorMessage)) {
+        && !PaletteStore::saveNamed(targetName, _palette, destinationPath,
+            errorMessage)) {
         QMessageBox::warning(this, tr("Palette"), errorMessage);
         return;
     }

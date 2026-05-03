@@ -1,27 +1,28 @@
 #include "GUIUtil.h"
 
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 #include <system_error>
 
+#include <QApplication>
 #include <QDoubleSpinBox>
 #include <QLayout>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QApplication>
 #include <QWidget>
-
-#include "widgets/AdaptiveDoubleSpinBox.h"
-
-#include "app/GUIConstants.h"
-using namespace GUI;
 
 #include "BackendAPI.h"
 using namespace Backend;
 
-#include "util/FormatUtil.h"
+#include "app/GUIConstants.h"
+
+#include "widgets/AdaptiveDoubleSpinBox.h"
+
 #include "util/FileUtil.h"
+#include "util/FormatUtil.h"
 #include "util/StringUtil.h"
+
+using namespace GUI;
 
 const char committedLineEditTextProperty[] = "_mandelbrotCommittedText";
 
@@ -44,8 +45,8 @@ namespace GUI::Util {
 
     void markLineEditTextCommitted(QLineEdit *edit) {
         if (!edit) return;
-        edit->setProperty(
-            committedLineEditTextProperty, committedLineEditText(edit));
+        edit->setProperty(committedLineEditTextProperty,
+            committedLineEditText(edit));
     }
 
     void setCommittedLineEditText(QLineEdit *edit, const QString &text) {
@@ -63,14 +64,16 @@ namespace GUI::Util {
     QString decorateUnsavedLabel(const QString &name, bool unsaved) {
         if (!unsaved) return name;
         return QString::fromStdString(
-            StringUtil::appendSuffix(
-                name.toStdString(), translatedUnsavedLabelSuffix().toStdString()));
+            StringUtil::appendSuffix(name.toStdString(),
+                translatedUnsavedLabelSuffix().toStdString())
+        );
     }
 
     QString undecoratedLabel(const QString &name) {
         return QString::fromStdString(
-            StringUtil::stripSuffix(
-                name.toStdString(), translatedUnsavedLabelSuffix().toStdString()));
+            StringUtil::stripSuffix(name.toStdString(),
+                translatedUnsavedLabelSuffix().toStdString())
+        );
     }
 
     QString uniqueIndexedNameFromList(
@@ -82,8 +85,10 @@ namespace GUI::Util {
                     return existingNames.contains(
                         QString::fromUtf8(candidate.data(),
                             static_cast<int>(candidate.size())),
-                        Qt::CaseInsensitive);
-                }));
+                        Qt::CaseInsensitive
+                    );
+                })
+        );
     }
 
     QString uniqueIndexedPathWithExtension(
@@ -96,7 +101,8 @@ namespace GUI::Util {
                     std::error_code ec;
                     const std::filesystem::path path = directory
                         / std::filesystem::path(
-                            std::string(candidate) + "." + extension.toStdString());
+                            std::string(candidate) + "." + extension.toStdString()
+                        );
                     return std::filesystem::exists(path, ec) && !ec;
                 });
 
@@ -156,14 +162,16 @@ namespace GUI::Util {
 
     QString formatImageMemoryText(const ImageEvent &event) {
         const QString renderBytes = QString::fromStdString(
-            FormatUtil::formatBufferSize(event.primaryBytes));
+            FormatUtil::formatBufferSize(event.primaryBytes)
+        );
         if (!event.downscaling) {
             return QApplication::translate("GUI::Util", "Render: %1  x2")
                 .arg(renderBytes);
         }
 
         const QString outputBytesText = QString::fromStdString(
-            FormatUtil::formatBufferSize(event.secondaryBytes));
+            FormatUtil::formatBufferSize(event.secondaryBytes)
+        );
         return QApplication::translate("GUI::Util", "Render: %1  Output: %2  x2")
             .arg(renderBytes, outputBytesText);
     }
@@ -172,7 +180,8 @@ namespace GUI::Util {
         return QColor::fromRgbF(
             std::clamp(static_cast<double>(color.R), 0.0, 1.0),
             std::clamp(static_cast<double>(color.G), 0.0, 1.0),
-            std::clamp(static_cast<double>(color.B), 0.0, 1.0));
+            std::clamp(static_cast<double>(color.B), 0.0, 1.0)
+        );
     }
 
     LightColor lightColorFromQColor(const QColor &color) {
@@ -265,5 +274,4 @@ namespace GUI::Util {
 
         spinBox->setValue(value);
     }
-
 }

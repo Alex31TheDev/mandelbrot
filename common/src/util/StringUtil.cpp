@@ -24,7 +24,8 @@ namespace StringUtil {
 
         for (size_t i = 0; i < str.size(); i++) {
             out[i] = static_cast<char>(
-                tolower(static_cast<unsigned char>(str[i])));
+                tolower(static_cast<unsigned char>(str[i]))
+            );
         }
 
         return out;
@@ -35,7 +36,8 @@ namespace StringUtil {
 
         for (size_t i = 0; i < str.size(); i++) {
             out[i] = static_cast<char>(
-                toupper(static_cast<unsigned char>(str[i])));
+                toupper(static_cast<unsigned char>(str[i]))
+            );
         }
 
         return out;

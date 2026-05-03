@@ -75,11 +75,9 @@ bool PaletteParser::_parseCLIEntry(
     const size_t split = str.find(':');
 
     std::string hex = str.substr(0, split);
-    hex.erase(
-        std::remove_if(hex.begin(), hex.end(),
+    hex.erase(std::remove_if(hex.begin(), hex.end(),
             [](const char c) { return c == '\'' || c == '"'; }),
-        hex.end()
-    );
+        hex.end());
 
     const std::string length =
         split == std::string::npos ? "1"

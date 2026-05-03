@@ -2,14 +2,14 @@
 
 #include <algorithm>
 
+#include "BackendAPI.h"
+using namespace Backend;
+
 #include "services/PaletteStore.h"
 #include "services/SineStore.h"
 
 #include "util/GUIUtil.h"
 #include "util/NumberUtil.h"
-
-#include "BackendAPI.h"
-using namespace Backend;
 
 using namespace GUI;
 
@@ -183,17 +183,15 @@ bool GUISessionState::isPointViewDirty() const {
         || current.inverse != _savedPointViewState.inverse
         || current.julia != _savedPointViewState.julia
         || current.iterations != _savedPointViewState.iterations
-        || !NumberUtil::equalParsedDoubleText(
-            current.real.toStdString(), _savedPointViewState.real.toStdString())
-        || !NumberUtil::equalParsedDoubleText(
-            current.imag.toStdString(), _savedPointViewState.imag.toStdString())
-        || !NumberUtil::equalParsedDoubleText(
-            current.zoom.toStdString(), _savedPointViewState.zoom.toStdString())
-        || !NumberUtil::equalParsedDoubleText(
-            current.seedReal.toStdString(),
+        || !NumberUtil::equalParsedDoubleText(current.real.toStdString(),
+            _savedPointViewState.real.toStdString())
+        || !NumberUtil::equalParsedDoubleText(current.imag.toStdString(),
+            _savedPointViewState.imag.toStdString())
+        || !NumberUtil::equalParsedDoubleText(current.zoom.toStdString(),
+            _savedPointViewState.zoom.toStdString())
+        || !NumberUtil::equalParsedDoubleText(current.seedReal.toStdString(),
             _savedPointViewState.seedReal.toStdString())
-        || !NumberUtil::equalParsedDoubleText(
-            current.seedImag.toStdString(),
+        || !NumberUtil::equalParsedDoubleText(current.seedImag.toStdString(),
             _savedPointViewState.seedImag.toStdString());
 }
 

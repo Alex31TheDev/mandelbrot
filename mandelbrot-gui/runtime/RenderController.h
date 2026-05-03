@@ -7,16 +7,17 @@
 #include <semaphore>
 #include <thread>
 
-#include <QObject>
 #include <QImage>
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
 #include "BackendAPI.h"
+
 #include "BackendModule.h"
 
-#include "app/GUITypes.h"
 #include "app/GUISessionState.h"
+#include "app/GUITypes.h"
 
 #include "util/GUIUtil.h"
 
@@ -165,12 +166,10 @@ private:
     [[nodiscard]] QString _backendForRank(
         int rank, const QString &currentBackend
     ) const;
-    void _publishCompletedRender(
-        const GUI::ViewTextState &viewState,
+    void _publishCompletedRender(const GUI::ViewTextState &viewState,
         uint64_t stateId,
         qint64 renderMs,
         double renderFPS,
-        bool previewFallbackLatched
-    );
+        bool previewFallbackLatched);
     void _applyPreviewDevicePixelRatio(QImage &image) const;
 };

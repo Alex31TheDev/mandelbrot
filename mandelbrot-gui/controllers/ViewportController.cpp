@@ -1,7 +1,7 @@
 #include "ViewportController.h"
 
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 
 #include "windows/viewport/ViewportWindow.h"
 
@@ -82,15 +82,15 @@ void ViewportController::scaleAtPixel(
 
     ViewTextState nextView;
     QString error;
-    if (!_renderController.zoomViewAtPixel(
-        _snapshot(), _clampPixelToOutput(pixel), scaleMultiplier, nextView,
-        error)) {
+    if (!_renderController.zoomViewAtPixel(_snapshot(),
+        _clampPixelToOutput(pixel), scaleMultiplier, nextView, error)) {
         emit statusMessageChanged(error);
         return;
     }
     if (NumberUtil::equalParsedDoubleText(
         _sessionState.zoomText().toStdString(),
-        nextView.zoomText.toStdString())
+        nextView.zoomText.toStdString()
+    )
         && _sessionState.pointRealText() == nextView.pointReal
         && _sessionState.pointImagText() == nextView.pointImag) {
         return;
@@ -138,8 +138,8 @@ void ViewportController::panByPixels(const QPoint &delta) {
     QString pointReal;
     QString pointImag;
     QString error;
-    if (!_renderController.panPointByDelta(
-        _snapshot(), delta, pointReal, pointImag, error)) {
+    if (!_renderController.panPointByDelta(_snapshot(), delta, pointReal,
+        pointImag, error)) {
         emit statusMessageChanged(error);
         return;
     }
@@ -155,8 +155,8 @@ void ViewportController::pickAtPixel(const QPoint &pixel) {
     QString real;
     QString imag;
     QString error;
-    if (!_renderController.pointAtPixel(
-        _snapshot(), clampedPixel, real, imag, error)) {
+    if (!_renderController.pointAtPixel(_snapshot(), clampedPixel, real, imag,
+        error)) {
         emit statusMessageChanged(error);
         return;
     }
@@ -186,8 +186,8 @@ void ViewportController::pickAtPixel(const QPoint &pixel) {
     if (_selectionTarget == SelectionTarget::zoomPoint) {
         emit renderRequested();
     } else {
-        emit renderRequestedWithPickAction(
-            static_cast<int>(_selectionTarget), clampedPixel);
+        emit renderRequestedWithPickAction(static_cast<int>(_selectionTarget),
+            clampedPixel);
     }
 }
 
@@ -248,7 +248,9 @@ void ViewportController::prepareViewportFullscreenTransition() {
     if (_viewport) _viewport->clearPreviewOffset();
 }
 
-void ViewportController::resizeViewportForScalePercent(float scalePercent) const {
+void ViewportController::resizeViewportForScalePercent(
+    float scalePercent
+) const {
     if (!_viewport || _viewport->isFullScreen()) {
         return;
     }
@@ -260,21 +262,22 @@ void ViewportController::resizeViewportForScalePercent(float scalePercent) const
 
     const float dpr = std::max(1.0f, static_cast<float>(_viewport->devicePixelRatioF()));
     const float scale = std::max(1.0f, scalePercent) / 100.0f;
-    const QSize requestedClientSize(
+    const QSize requestedClientSize(std::max(1,
+        static_cast<int>(
+            std::lroundf(static_cast<float>(output.width()) * scale / dpr)
+            )
+    ),
         std::max(1,
             static_cast<int>(
-                std::lroundf(static_cast<float>(output.width()) * scale / dpr))
-        ),
-        std::max(1,
-            static_cast<int>(
-                std::lroundf(static_cast<float>(output.height()) * scale / dpr))
-        )
-    );
+                std::lroundf(static_cast<float>(output.height()) * scale / dpr)
+                )
+        ));
     const QSize nonClientSize = nonClientSizeForViewport(_viewport);
     const QSize constrainedOuterSize = constrainViewportSize(
         QSize(requestedClientSize.width() + nonClientSize.width(),
             requestedClientSize.height() + nonClientSize.height()),
-        nonClientSize);
+        nonClientSize
+    );
     const QSize constrainedClientSize
         = clientSizeFromOuter(constrainedOuterSize, nonClientSize);
 
@@ -293,7 +296,8 @@ float ViewportController::viewportScalePercentForLogicalSize(
     }
 
     const float dpr = std::max(1.0f, static_cast<float>(
-        _viewport ? _viewport->devicePixelRatioF() : 1.0)
+        _viewport ? _viewport->devicePixelRatioF() : 1.0
+        )
     );
     const QSize nonClientSize = nonClientSizeForViewport(_viewport);
     const QSize constrainedClientSize = clientSizeFromOuter(
@@ -370,31 +374,31 @@ QSize ViewportController::constrainViewportSize(
 bool ViewportController::previewPannedViewState(
     const QPoint &delta, ViewTextState &view, QString &errorMessage
 ) {
-    return _renderController.previewPannedViewState(
-        _snapshot(), delta, view, errorMessage);
+    return _renderController.previewPannedViewState(_snapshot(),
+        delta, view, errorMessage);
 }
 
 bool ViewportController::previewScaledViewState(
     const QPoint &pixel, double scaleMultiplier,
     ViewTextState &view, QString &errorMessage
 ) {
-    return _renderController.previewScaledViewState(
-        _snapshot(), _clampPixelToOutput(pixel), scaleMultiplier, view, errorMessage);
+    return _renderController.previewScaledViewState(_snapshot(),
+        _clampPixelToOutput(pixel), scaleMultiplier, view, errorMessage);
 }
 
 bool ViewportController::previewBoxZoomViewState(
     const QRect &selectionRect, ViewTextState &view, QString &errorMessage
 ) {
-    return _renderController.previewBoxZoomViewState(
-        _snapshot(), selectionRect.normalized(), view, errorMessage);
+    return _renderController.previewBoxZoomViewState(_snapshot(),
+        selectionRect.normalized(), view, errorMessage);
 }
 
 bool ViewportController::mapViewPixelToViewPixel(
     const ViewTextState &sourceView, const ViewTextState &targetView,
     const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage
 ) {
-    return _renderController.mapViewPixelToViewPixel(
-        sourceView, targetView, pixel, mappedPixel, errorMessage);
+    return _renderController.mapViewPixelToViewPixel(sourceView, targetView,
+        pixel, mappedPixel, errorMessage);
 }
 
 QString ViewportController::viewportStatusText() const {
@@ -416,8 +420,8 @@ int ViewportController::interactionFrameIntervalMs() const {
         _sessionState.state().interactionTargetFPS > 0
         ? _sessionState.state().interactionTargetFPS
         : Constants::defaultInteractionTargetFPS);
-    return std::max(
-        1, static_cast<int>(std::lround(1000.0 / static_cast<double>(fps))));
+    return std::max(1,
+        static_cast<int>(std::lround(1000.0 / static_cast<double>(fps))));
 }
 
 bool ViewportController::matchesShortcut(
@@ -428,8 +432,8 @@ bool ViewportController::matchesShortcut(
     const QKeySequence configured = _shortcuts.sequence(id);
     if (configured.isEmpty()) return false;
 
-    const QKeyCombination combo(
-        event->modifiers(), static_cast<Qt::Key>(event->key()));
+    const QKeyCombination combo(event->modifiers(),
+        static_cast<Qt::Key>(event->key()));
     return configured.matches(QKeySequence(combo)) == QKeySequence::ExactMatch;
 }
 
@@ -439,8 +443,7 @@ int ViewportController::panRateValue() const {
 
 double ViewportController::panRateFactor() const {
     const int clamped = Util::clampSliderValue(_sessionState.state().panRate);
-    return std::pow(
-        Constants::panRateBase, static_cast<double>(clamped - 8));
+    return std::pow(Constants::panRateBase, static_cast<double>(clamped - 8));
 }
 
 double ViewportController::zoomRateFactor() const {

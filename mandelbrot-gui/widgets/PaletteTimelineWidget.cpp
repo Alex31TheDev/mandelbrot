@@ -1,7 +1,7 @@
 #include "PaletteTimelineWidget.h"
 
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 
 #include <QIntValidator>
 #include <QMouseEvent>
@@ -194,8 +194,8 @@ void PaletteTimelineWidget::paintEvent(QPaintEvent *) {
         gradient.setColorAt(std::clamp(stop.pos, 0.0, 1.0), stop.color);
     }
     if (!_stops.empty()) {
-        gradient.setColorAt(
-            1.0, _blendEnds ? _stops.front().color : _stops.back().color);
+        gradient.setColorAt(1.0,
+            _blendEnds ? _stops.front().color : _stops.back().color);
     }
 
     painter.fillRect(grad, gradient);
@@ -206,10 +206,10 @@ void PaletteTimelineWidget::paintEvent(QPaintEvent *) {
         const QPoint handlePos = _stopPoint(stop.pos);
         QPainterPath path;
         path.moveTo(handlePos.x(), grad.bottom() + 4);
-        path.lineTo(
-            handlePos.x() - handleWidth / 2, grad.bottom() + 4 + handleHeight);
-        path.lineTo(
-            handlePos.x() + handleWidth / 2, grad.bottom() + 4 + handleHeight);
+        path.lineTo(handlePos.x() - handleWidth / 2,
+            grad.bottom() + 4 + handleHeight);
+        path.lineTo(handlePos.x() + handleWidth / 2,
+            grad.bottom() + 4 + handleHeight);
         path.closeSubpath();
 
         painter.fillPath(path, stop.color);
@@ -586,7 +586,8 @@ void PaletteTimelineWidget::_updatePositionEditor() {
     }
 
     const QString text = QString::number(
-        static_cast<int>(std::lround(_stops[index].pos * 100.0)));
+        static_cast<int>(std::lround(_stops[index].pos * 100.0))
+    );
     if (!_positionEditor->hasFocus()) {
         _positionEditor->setText(text);
     }

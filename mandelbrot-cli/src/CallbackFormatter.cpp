@@ -17,7 +17,8 @@ static void printAllocatedImageEvent(const ImageEvent &event) {
 
         printf("Memory required: %s (%s + %s)\n",
             FormatUtil::formatBufferSize(
-                event.primaryBytes + event.secondaryBytes).c_str(),
+                event.primaryBytes + event.secondaryBytes
+            ).c_str(),
             FormatUtil::formatBufferSize(event.primaryBytes).c_str(),
             FormatUtil::formatBufferSize(event.secondaryBytes).c_str()
         );
