@@ -2,11 +2,10 @@
 using namespace Backend;
 
 #include <algorithm>
-#include <array>
-#include <atomic>
 #include <cmath>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "image/Image.h"
 
@@ -263,9 +262,7 @@ public:
 
     void setCallbacks(const Callbacks &callbacks) override {
         _callbacks = callbacks;
-        for (const auto &image : _images) {
-            if (image) image->setCallbacks(&_callbacks);
-        }
+        if (_image) _image->setCallbacks(&_callbacks);
     }
 
     Status getPointAtPixel(
@@ -706,17 +703,10 @@ public:
     }
 
     Status render() override {
-        if (!_images[0] || !_images[1]) {
+        if (!_image) {
             return makeFailure("Image size must be set before rendering.");
         }
-
-        const int backImageIndex = _backImageIndex();
-        Image *backImage = _images[backImageIndex].get();
-        if (!backImage) {
-            return makeFailure("Image size must be set before rendering.");
-        }
-
-        backImage->clear();
+        _image->clear();
 
         initVectors();
         initMPFRValues(
@@ -734,15 +724,14 @@ public:
         );
 
         RenderIterationStats iterStats;
-        renderImage(backImage, &_callbacks,
+        renderImage(_image.get(), &_callbacks,
             static_cast<bool>(_callbacks.onProgress),
             static_cast<bool>(_callbacks.onInfo) || _autoIterations,
             _autoIterations
             ? OptionalIterationStats(std::ref(iterStats))
             : std::nullopt);
 
-        backImage->resolve();
-        _frontImageIndex.store(backImageIndex, std::memory_order_release);
+        _image->resolve();
 
         if (_autoIterations) {
             applyAutoIterations(iterStats);
@@ -752,9 +741,7 @@ public:
     }
 
     void clearImage() override {
-        for (const auto &image : _images) {
-            if (image) image->clear();
-        }
+        if (_image) _image->clear();
     }
 
     void forceKill() override {
@@ -762,24 +749,18 @@ public:
     }
 
     ImageView imageView() const override {
-        return makeImageView(
-            _images[_frontImageIndex.load(std::memory_order_acquire)].get()
-        );
+        return makeImageView(_image.get());
     }
 
     Status saveImage(
         const std::string &path,
         bool appendDate, const std::string &type
     ) override {
-        const Image *frontImage = _images[
-            _frontImageIndex.load(std::memory_order_acquire)
-        ].get();
-
-        if (!frontImage) {
+        if (!_image) {
             return makeFailure("No rendered image is available.");
         }
 
-        if (!frontImage->saveToFile(path, appendDate, type)) {
+        if (!_image->saveToFile(path, appendDate, type)) {
             return makeFailure("Failed to save image.");
         }
 
@@ -799,15 +780,10 @@ private:
     std::string _zoomValue = "0";
     std::string _exponent = "2";
 
-    std::array<std::unique_ptr<Image>, 2> _images;
-    std::atomic_int _frontImageIndex{ 0 };
+    std::unique_ptr<Image> _image;
 
     std::unique_ptr<Image> _palettePreviewImage;
     std::unique_ptr<Image> _sinePreviewImage;
-
-    [[nodiscard]] int _backImageIndex() const {
-        return _frontImageIndex.load(std::memory_order_acquire) == 0 ? 1 : 0;
-    }
 
     void applyAutoIterations(const RenderIterationStats &stats) {
         if (!stats.valid) return;
@@ -852,8 +828,7 @@ private:
 
     Status _refreshRenderImage() {
         if (outputWidth <= 0 || outputHeight <= 0 || aaPixels <= 0) {
-            _images = {};
-            _frontImageIndex.store(0, std::memory_order_release);
+            _image.reset();
             return Status::success();
         }
 
@@ -863,26 +838,20 @@ private:
         constexpr bool simdSafe = false;
 #endif
 
-        const bool needsNewImage = !_images[0] || !_images[1] ||
-            _images[0]->outputWidth() != outputWidth ||
-            _images[0]->outputHeight() != outputHeight ||
-            _images[0]->aaScale() != Image::calcAAScale(aaPixels);
+        const bool needsNewImage = !_image
+            || _image->outputWidth() != outputWidth
+            || _image->outputHeight() != outputHeight
+            || _image->aaScale() != Image::calcAAScale(aaPixels);
 
         if (needsNewImage) {
-            _images = {};
-            for (auto &image : _images) {
-                image = Image::create(outputWidth, outputHeight,
-                    simdSafe, aaPixels);
-
-                if (!image) {
-                    _images = {};
-                    return makeFailure("Failed to allocate image.");
-                }
-
-                image->setCallbacks(&_callbacks);
+            auto image = Image::create(outputWidth, outputHeight,
+                simdSafe, aaPixels);
+            if (!image) {
+                _image.reset();
+                return makeFailure("Failed to allocate image.");
             }
-
-            _frontImageIndex.store(0, std::memory_order_release);
+            _image = std::move(image);
+            _image->setCallbacks(&_callbacks);
         }
 
         return Status::success();

@@ -8,6 +8,7 @@
 #include <QPointF>
 #include <QSize>
 #include <QString>
+#include <QtTypes>
 
 #include "BackendAPI.h"
 
@@ -28,6 +29,23 @@ namespace GUI {
         QString pointImag = "0";
         QString zoomText = "0";
         QSize outputSize;
+        bool valid = false;
+    };
+
+    struct ParsedViewState {
+        double pointReal = 0.0;
+        double pointImag = 0.0;
+        double zoom = 0.0;
+        QSize outputSize;
+        bool valid = false;
+    };
+
+    struct PresentedFrame {
+        uint64_t stateId = 0;
+        ViewTextState view;
+        ParsedViewState parsedView;
+        qint64 renderMs = 0;
+        double renderFPS = 0.0;
         bool valid = false;
     };
 
@@ -88,3 +106,4 @@ namespace GUI {
 }
 
 Q_DECLARE_METATYPE(GUI::ViewTextState)
+Q_DECLARE_METATYPE(GUI::PresentedFrame)

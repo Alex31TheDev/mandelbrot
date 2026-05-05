@@ -3,7 +3,6 @@
 #include <functional>
 #include <optional>
 
-#include <QImage>
 #include <QKeyEvent>
 #include <QPoint>
 #include <QPointF>
@@ -12,6 +11,7 @@
 #include <QString>
 
 #include "app/GUITypes.h"
+#include "runtime/D3DPresentationSurface.h"
 
 class ViewportHost {
 public:
@@ -40,10 +40,7 @@ public:
     [[nodiscard]] virtual bool viewportUsesDirectPick() const = 0;
     [[nodiscard]] virtual bool renderInFlight() const = 0;
     [[nodiscard]] virtual QSize outputSize() const = 0;
-    virtual bool withPreviewImage(
-        const std::function<void(const QImage &)> &visitor
-    ) const = 0;
-    [[nodiscard]] virtual bool hasDisplayedViewState() const = 0;
+    virtual void setPresentationSurface(const D3DPresentationSurface &surface) = 0;
     [[nodiscard]] virtual GUI::ViewTextState currentViewTextState() const = 0;
     virtual bool previewPannedViewState(
         const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage
@@ -56,9 +53,11 @@ public:
         const QRect &selectionRect, GUI::ViewTextState &view,
         QString &errorMessage
     ) = 0;
-    virtual bool mapViewPixelToViewPixel(const GUI::ViewTextState &sourceView,
+    virtual bool mapViewPixelToViewPixel(
+        const GUI::ViewTextState &sourceView,
         const GUI::ViewTextState &targetView,
-        const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage) = 0;
+        const QPoint &pixel, QPointF &mappedPixel, QString &errorMessage
+    ) = 0;
     [[nodiscard]] virtual QString viewportStatusText() const = 0;
     [[nodiscard]] virtual int interactionFrameIntervalMs() const = 0;
     [[nodiscard]] virtual bool shouldUseInteractionPreviewFallback() const = 0;

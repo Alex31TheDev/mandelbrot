@@ -4,8 +4,21 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 
 #include "util/IncludeWin32.h"
+
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
+#ifdef _WIN32
+#include <d3d11.h>
+#endif
 
 #include <QCoreApplication>
 #include <QEventLoop>
@@ -24,12 +37,6 @@ using namespace Backend;
 
 using namespace GUI;
 
-struct DesiredRenderState {
-    GUIRenderSnapshot snapshot;
-    std::optional<PendingPickAction> pickAction;
-    uint64_t stateId = 0;
-};
-
 struct RenderCallbackState {
     std::atomic_uint64_t activeStateId{ 0 };
     std::atomic_uint64_t publishedStateId{ 0 };
@@ -40,10 +47,168 @@ static QString stateToString(double value, int precision = 17) {
     return QString::number(value, 'g', precision);
 }
 
+static bool tryParseFiniteDouble(const QString &text, double &value) {
+    bool ok = false;
+    value = text.toDouble(&ok);
+    return ok && std::isfinite(value);
+}
+
+static PresentedFrame makePresentedFrame(const GUIRenderSnapshot &snapshot,
+    const ImageView &image, uint64_t stateId, qint64 renderMs, double renderFPS) {
+    PresentedFrame frame;
+    frame.stateId = stateId;
+    frame.view = ViewTextState{
+        .pointReal = snapshot.pointRealText,
+        .pointImag = snapshot.pointImagText,
+        .zoomText = snapshot.zoomText,
+        .outputSize = QSize(image.outputWidth, image.outputHeight),
+        .valid = image.outputWidth > 0 && image.outputHeight > 0
+    };
+    frame.parsedView.outputSize = frame.view.outputSize;
+    frame.parsedView.valid = frame.view.valid
+        && tryParseFiniteDouble(frame.view.pointReal, frame.parsedView.pointReal)
+        && tryParseFiniteDouble(frame.view.pointImag, frame.parsedView.pointImag)
+        && tryParseFiniteDouble(frame.view.zoomText, frame.parsedView.zoom);
+    frame.renderMs = renderMs;
+    frame.renderFPS = renderFPS;
+    frame.valid = frame.view.valid;
+    return frame;
+}
+
+static void retainPresentationSurface(D3DPresentationSurface &surface) {
+#ifdef _WIN32
+    if (!surface.valid()) {
+        return;
+    }
+
+    if (surface.device) {
+        static_cast<ID3D11Device *>(surface.device)->AddRef();
+    }
+    if (surface.deviceContext) {
+        static_cast<ID3D11DeviceContext *>(surface.deviceContext)->AddRef();
+    }
+    if (surface.texture) {
+        static_cast<ID3D11Texture2D *>(surface.texture)->AddRef();
+    }
+#else
+    (void)surface;
+#endif
+}
+
+static void releasePresentationSurface(D3DPresentationSurface &surface) {
+#ifdef _WIN32
+    if (surface.texture) {
+        static_cast<ID3D11Texture2D *>(surface.texture)->Release();
+    }
+    if (surface.deviceContext) {
+        static_cast<ID3D11DeviceContext *>(surface.deviceContext)->Release();
+    }
+    if (surface.device) {
+        static_cast<ID3D11Device *>(surface.device)->Release();
+    }
+#endif
+    surface = {};
+}
+
+static Status copyImageViewToBGRA(const ImageView &image,
+    std::vector<uint8_t> &scratch) {
+#ifndef _WIN32
+    (void)image;
+    (void)scratch;
+    return Status::failure("D3D11 presentation is unavailable on this platform.");
+#else
+    if (image.outputPixels == nullptr) {
+        return Status::failure("Rendered image pixels are unavailable.");
+    }
+    if (image.outputWidth <= 0 || image.outputHeight <= 0) {
+        return Status::failure("Rendered image has invalid dimensions.");
+    }
+
+    static constexpr size_t sourcePixelStride = 3u;
+    static constexpr size_t targetPixelStride = 4u;
+    const size_t rowBytes
+        = static_cast<size_t>(image.outputWidth) * targetPixelStride;
+    const size_t requiredSize
+        = rowBytes * static_cast<size_t>(image.outputHeight);
+    scratch.resize(requiredSize);
+    for (int y = 0; y < image.outputHeight; y++) {
+        const uint8_t *srcRow = image.outputPixels
+            + static_cast<size_t>(y) * static_cast<size_t>(image.outputStrideWidth);
+        uint8_t *dstRow = scratch.data() + static_cast<size_t>(y) * rowBytes;
+
+        for (int x = 0; x < image.outputWidth; x++) {
+            const size_t srcOffset = static_cast<size_t>(x) * sourcePixelStride;
+            const size_t dstOffset = static_cast<size_t>(x) * targetPixelStride;
+            dstRow[dstOffset] = srcRow[srcOffset + 2];
+            dstRow[dstOffset + 1] = srcRow[srcOffset + 1];
+            dstRow[dstOffset + 2] = srcRow[srcOffset];
+            dstRow[dstOffset + 3] = 255;
+        }
+    }
+
+    return Status::success();
+#endif
+}
+
+static Status uploadBGRAImageToSurface(const uint8_t *pixels, int width, int height,
+    const D3DPresentationSurface &surface) {
+#ifndef _WIN32
+    (void)pixels;
+    (void)width;
+    (void)height;
+    (void)surface;
+    return Status::failure("D3D11 presentation is unavailable on this platform.");
+#else
+    if (!surface.valid()) {
+        return Status::success();
+    }
+    if (!pixels) {
+        return Status::failure("Rendered image pixels are unavailable.");
+    }
+    if (width <= 0 || height <= 0) {
+        return Status::failure("Rendered image has invalid dimensions.");
+    }
+    if (surface.width != width || surface.height != height) {
+        return Status::success();
+    }
+
+    ID3D11DeviceContext *context
+        = static_cast<ID3D11DeviceContext *>(surface.deviceContext);
+    ID3D11Texture2D *texture = static_cast<ID3D11Texture2D *>(surface.texture);
+    if (!context || !texture) {
+        return Status::failure("D3D11 presentation surface is incomplete.");
+    }
+
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+    if (desc.Width != static_cast<UINT>(width)
+        || desc.Height != static_cast<UINT>(height)
+        || desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+        return Status::failure("D3D11 texture does not match the rendered image.");
+    }
+
+    static constexpr size_t targetPixelStride = 4u;
+    const size_t rowBytes = static_cast<size_t>(width) * targetPixelStride;
+
+    D3D11_BOX box{};
+    box.left = 0;
+    box.top = 0;
+    box.front = 0;
+    box.right = static_cast<UINT>(width);
+    box.bottom = static_cast<UINT>(height);
+    box.back = 1;
+    ID3D11ShaderResourceView *nullSRV = nullptr;
+    context->PSSetShaderResources(0, 1, &nullSRV);
+    context->UpdateSubresource(texture, 0, &box, pixels,
+        static_cast<UINT>(rowBytes), 0);
+    context->Flush();
+    return Status::success();
+#endif
+}
+
 RenderController::RenderController(QObject *parent)
     : QObject(parent),
     _renderCallbackState(std::make_shared<RenderCallbackState>()) {
-    _displayedZoomText = stateToString(Constants::homeZoom);
     _imageMemoryText = Util::defaultImageMemoryText();
     _pixelsPerSecondText = Util::defaultPixelsPerSecondText();
 }
@@ -51,14 +216,12 @@ RenderController::RenderController(QObject *parent)
 RenderController::~RenderController() {
     cancelQueuedRenders();
     shutdown(true, 0);
+    releasePresentationSurface(_presentationSurfaceSlots[0]);
+    releasePresentationSurface(_presentationSurfaceSlots[1]);
 }
 
 void RenderController::setAvailableBackends(const QStringList &backendNames) {
     _backendNames = backendNames;
-}
-
-void RenderController::setPreviewDevicePixelRatio(double devicePixelRatio) {
-    _previewDevicePixelRatio = std::max(1.0, devicePixelRatio);
 }
 
 bool RenderController::loadBackend(
@@ -168,7 +331,7 @@ void RenderController::requestRender(
         .snapshot = snapshot,
         .pickAction = pickAction,
         .stateId = stateId
-        });
+    });
     _desiredRenderState.store(std::move(desired), std::memory_order_release);
 
     const bool wasInFlight = _renderInFlight;
@@ -188,9 +351,8 @@ void RenderController::requestRender(
 }
 
 void RenderController::cancelQueuedRenders() {
-    const bool hasQueuedRender = static_cast<bool>(
-        _desiredRenderState.load(std::memory_order_acquire)
-        );
+    const bool hasQueuedRender
+        = static_cast<bool>(_desiredRenderState.load(std::memory_order_acquire));
     const bool hasActiveRender
         = _renderCallbackState->activeStateId.load(std::memory_order_acquire) != 0;
     if (!_renderInFlight && !hasQueuedRender && !hasActiveRender) {
@@ -209,6 +371,9 @@ void RenderController::cancelQueuedRenders() {
     if (_backend) {
         _backend.forceKill();
     }
+    if (!_renderWakePending.exchange(true, std::memory_order_acq_rel)) {
+        _renderWake.release();
+    }
 
     _interactionPreviewFallbackLatched = false;
     _renderInFlight = false;
@@ -223,42 +388,11 @@ void RenderController::cancelQueuedRenders() {
 }
 
 void RenderController::freezePreview() {
-    _hasDisplayedViewState = false;
     _interactionPreviewFallbackLatched = false;
     _previewFallbackResetRequested.store(true, std::memory_order_release);
     _viewportFPSText = Util::defaultViewportFPSText();
     _viewportRenderTimeText.clear();
-    emit previewImageChanged({});
-}
-
-bool RenderController::withPreviewImage(
-    const std::function<void(const QImage &)> &visitor
-) const {
-    if (!visitor || !_renderSession || !_hasDisplayedViewState) {
-        return false;
-    }
-
-    QImage image = Util::wrapImageViewToImage(_renderSession->imageView());
-    if (image.isNull()) {
-        return false;
-    }
-
-    _applyPreviewDevicePixelRatio(image);
-    visitor(image);
-    return true;
-}
-
-ViewTextState RenderController::displayedViewTextState() const {
-    if (!_hasDisplayedViewState) {
-        return {};
-    }
-
-    return { .pointReal = _displayedPointRealText,
-        .pointImag = _displayedPointImagText,
-        .zoomText = _displayedZoomText,
-        .outputSize = _displayedOutputSize,
-        .valid = _displayedOutputSize.width() > 0
-            && _displayedOutputSize.height() > 0 };
+    emit frameReady({});
 }
 
 int RenderController::currentIterationCount() const {
@@ -269,16 +403,28 @@ int RenderController::currentIterationCount() const {
     return 0;
 }
 
+void RenderController::setPresentationSurface(
+    const D3DPresentationSurface &surface
+) {
+    const int activeSlot = _activePresentationSurfaceSlot.load(
+        std::memory_order_acquire
+    );
+    const int nextSlot = activeSlot == 0 ? 1 : 0;
+    D3DPresentationSurface nextSurface = surface;
+    retainPresentationSurface(nextSurface);
+    releasePresentationSurface(_presentationSurfaceSlots[static_cast<size_t>(
+        nextSlot
+    )]);
+    _presentationSurfaceSlots[static_cast<size_t>(nextSlot)] = nextSurface;
+    _activePresentationSurfaceSlot.store(nextSlot, std::memory_order_release);
+}
+
 bool RenderController::saveImage(
     const QString &path, bool appendDate,
     const QString &type, QString *savedPath,
     QString &errorMessage
 ) {
     if (!_ensureBackendReady(errorMessage)) return false;
-    if (!_hasDisplayedViewState) {
-        errorMessage = tr("No image is available.");
-        return false;
-    }
 
     const std::string outputPath = appendDate
         ? FileUtil::appendIsoDate(path.toStdString())
@@ -485,7 +631,9 @@ bool RenderController::mapViewPixelToViewPixel(
     const ViewTextState &targetView, const QPoint &pixel, QPointF &mappedPixel,
     QString &errorMessage
 ) {
-    if (!_ensureNavigationSessionReady(errorMessage)) return false;
+    if (!_ensureNavigationSessionReady(errorMessage)) {
+        return false;
+    }
 
     ViewportState source{ .outputWidth = sourceView.outputSize.width(),
         .outputHeight = sourceView.outputSize.height(),
@@ -742,6 +890,8 @@ void RenderController::_startRenderWorker() {
                 Status status;
                 auto renderStart = std::chrono::steady_clock::now();
                 auto renderEnd = renderStart;
+                PresentedFrame presentedFrame;
+                std::vector<uint8_t> framePixels;
                 if (!_applyStateToSession(_renderSession,
                     active.snapshot, active.pickAction, error)) {
                     status = Status::failure(error.toStdString());
@@ -755,6 +905,29 @@ void RenderController::_startRenderWorker() {
                         renderStart = std::chrono::steady_clock::now();
                         status = _renderSession->render();
                         renderEnd = std::chrono::steady_clock::now();
+                        if (status) {
+                            const auto renderElapsed
+                                = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                    renderEnd - renderStart
+                                );
+                            const qint64 renderMs = std::max<qint64>(1,
+                                renderElapsed.count());
+                            const double renderFPS
+                                = 1000.0 / static_cast<double>(renderMs);
+                            const ImageView image = _renderSession->imageView();
+                            presentedFrame = makePresentedFrame(active.snapshot,
+                                image, active.stateId, renderMs, renderFPS);
+                            status = copyImageViewToBGRA(image, framePixels);
+                        }
+                        if (status) {
+                            D3DPresentationSurface surface = _presentationSurface();
+                            if (surface.valid() && presentedFrame.valid) {
+                                status = uploadBGRAImageToSurface(framePixels.data(),
+                                    presentedFrame.view.outputSize.width(),
+                                    presentedFrame.view.outputSize.height(), surface);
+                            }
+                            releasePresentationSurface(surface);
+                        }
                     }
                 }
 
@@ -763,6 +936,12 @@ void RenderController::_startRenderWorker() {
                 if (backendGeneration
                     != _backendGeneration.load(std::memory_order_acquire)) {
                     return;
+                }
+
+                if (active.stateId
+                    != _latestDesiredStateId.load(std::memory_order_acquire)) {
+                    desired = _desiredRenderState.exchange({}, std::memory_order_acq_rel);
+                    continue;
                 }
 
                 if (!status) {
@@ -834,12 +1013,8 @@ void RenderController::_startRenderWorker() {
                 } else {
                     callbackState->publishedStateId.store(active.stateId,
                         std::memory_order_release);
-                    const auto renderElapsed
-                        = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            renderEnd - renderStart
-                        );
-                    const qint64 renderMs = std::max<qint64>(1, renderElapsed.count());
-                    const double renderFPS = 1000.0 / static_cast<double>(renderMs);
+                    const qint64 renderMs = presentedFrame.renderMs;
+                    const double renderFPS = presentedFrame.renderFPS;
                     const int fallbackFPS = std::max(0,
                         active.snapshot.state.interactionTargetFPS);
                     const int targetFrameMs = fallbackFPS > 0
@@ -860,18 +1035,8 @@ void RenderController::_startRenderWorker() {
                         previewFallbackLatched = true;
                     }
 
-                    const ViewTextState viewState{
-                        .pointReal = active.snapshot.pointRealText,
-                        .pointImag = active.snapshot.pointImagText,
-                        .zoomText = active.snapshot.zoomText,
-                        .outputSize = QSize(active.snapshot.state.outputWidth,
-                            active.snapshot.state.outputHeight),
-                        .valid = active.snapshot.state.outputWidth > 0
-                            && active.snapshot.state.outputHeight > 0
-                    };
-
                     QMetaObject::invokeMethod(this,
-                        [this, viewState, stateId = active.stateId,
+                        [this, frame = presentedFrame, stateId = active.stateId,
                         renderMs, renderFPS, previewFallbackLatched,
                         backendGeneration]() {
                             if (backendGeneration
@@ -880,7 +1045,7 @@ void RenderController::_startRenderWorker() {
                                 )) {
                                 return;
                             }
-                            _publishCompletedRender(viewState, stateId,
+                            _publishCompletedRender(frame, stateId,
                                 renderMs, renderFPS, previewFallbackLatched);
                         });
                 }
@@ -888,7 +1053,7 @@ void RenderController::_startRenderWorker() {
                 desired = _desiredRenderState.exchange({}, std::memory_order_acq_rel);
             }
         }
-        });
+    });
 }
 
 void RenderController::_finishRenderThread(
@@ -1118,8 +1283,18 @@ QString RenderController::_backendForRank(
     return best.isEmpty() ? fallback : best;
 }
 
+D3DPresentationSurface RenderController::_presentationSurface() const {
+    const int activeSlot = _activePresentationSurfaceSlot.load(
+        std::memory_order_acquire
+    );
+    D3DPresentationSurface surface
+        = _presentationSurfaceSlots[static_cast<size_t>(activeSlot)];
+    retainPresentationSurface(surface);
+    return surface;
+}
+
 void RenderController::_publishCompletedRender(
-    const ViewTextState &viewState,
+    const PresentedFrame &frame,
     uint64_t stateId,
     qint64 renderMs,
     double renderFPS,
@@ -1134,12 +1309,6 @@ void RenderController::_publishCompletedRender(
         FormatUtil::formatDuration(renderMs)
     );
     _interactionPreviewFallbackLatched = previewFallbackLatched;
-
-    _displayedPointRealText = viewState.pointReal;
-    _displayedPointImagText = viewState.pointImag;
-    _displayedZoomText = viewState.zoomText;
-    _displayedOutputSize = viewState.outputSize;
-    _hasDisplayedViewState = viewState.valid;
 
     const uint64_t latestStateId
         = _latestDesiredStateId.load(std::memory_order_acquire);
@@ -1157,12 +1326,6 @@ void RenderController::_publishCompletedRender(
         _progressText = tr("Rendering");
     }
 
-    emit previewImageChanged(displayedViewTextState());
+    emit frameReady(frame);
     emit renderStateChanged();
-}
-
-void RenderController::_applyPreviewDevicePixelRatio(QImage &image) const {
-    if (!image.isNull()) {
-        image.setDevicePixelRatio(_previewDevicePixelRatio);
-    }
 }

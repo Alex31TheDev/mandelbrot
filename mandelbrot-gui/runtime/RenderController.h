@@ -1,13 +1,14 @@
 #pragma once
 
 #include <atomic>
+#include <array>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <semaphore>
 #include <thread>
+#include <vector>
 
-#include <QImage>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -18,11 +19,16 @@
 
 #include "app/GUISessionState.h"
 #include "app/GUITypes.h"
+#include "runtime/D3DPresentationSurface.h"
 
 #include "util/GUIUtil.h"
 
 struct RenderCallbackState;
-struct DesiredRenderState;
+struct DesiredRenderState {
+    GUI::GUIRenderSnapshot snapshot;
+    std::optional<GUI::PendingPickAction> pickAction;
+    uint64_t stateId = 0;
+};
 
 class RenderController final : public QObject {
     Q_OBJECT
@@ -32,7 +38,6 @@ public:
     ~RenderController() override;
 
     void setAvailableBackends(const QStringList &backendNames);
-    void setPreviewDevicePixelRatio(double devicePixelRatio);
     bool loadBackend(const QString &backendName, QString &errorMessage);
     void shutdown(bool forceKillOnTimeout = true,
         int timeoutMs = GUI::Constants::renderShutdownTimeoutMs);
@@ -46,11 +51,6 @@ public:
     [[nodiscard]] bool shouldUseInteractionPreviewFallback() const {
         return _interactionPreviewFallbackLatched;
     }
-    [[nodiscard]] bool hasDisplayedViewState() const {
-        return _hasDisplayedViewState;
-    }
-    bool withPreviewImage(const std::function<void(const QImage &)> &visitor) const;
-    [[nodiscard]] GUI::ViewTextState displayedViewTextState() const;
     [[nodiscard]] QString statusMessage() const { return _statusText; }
     [[nodiscard]] QString progressText() const { return _progressText; }
     [[nodiscard]] int progressValue() const { return _progressValue; }
@@ -65,6 +65,7 @@ public:
         return _viewportRenderTimeText;
     }
     [[nodiscard]] int currentIterationCount() const;
+    void setPresentationSurface(const D3DPresentationSurface &surface);
 
     bool saveImage(const QString &path, bool appendDate,
         const QString &type, QString *savedPath,
@@ -103,7 +104,7 @@ public:
         QPointF &mappedPixel, QString &errorMessage);
 
 signals:
-    void previewImageChanged(const GUI::ViewTextState &viewState);
+    void frameReady(const GUI::PresentedFrame &frame);
     void renderStateChanged();
     void renderFailed(const QString &message);
     void automaticBackendSwitchRequested(const QString &backendName,
@@ -126,17 +127,8 @@ private:
     bool _progressActive = false;
     bool _progressCancelled = false;
     bool _renderInFlight = false;
-    double _previewDevicePixelRatio = 1.0;
     QStringList _backendNames;
     std::shared_ptr<RenderCallbackState> _renderCallbackState;
-
-    QString _displayedPointRealText = QStringLiteral("0");
-    QString _displayedPointImagText = QStringLiteral("0");
-    QString _displayedZoomText;
-    QSize _displayedOutputSize{
-        GUI::Constants::defaultOutputWidth, GUI::Constants::defaultOutputHeight
-    };
-    bool _hasDisplayedViewState = false;
 
     std::thread _renderThread;
     std::atomic<std::shared_ptr<const DesiredRenderState>> _desiredRenderState;
@@ -147,6 +139,9 @@ private:
     std::atomic_uint64_t _latestDesiredStateId{ 0 };
     std::atomic_uint64_t _discardBeforeStateId{ 0 };
     std::atomic_uint64_t _backendGeneration{ 1 };
+    std::array<D3DPresentationSurface, 2> _presentationSurfaceSlots{};
+    std::atomic_int _activePresentationSurfaceSlot{ 0 };
+    std::vector<uint8_t> _presentationScratch;
     bool _interactionPreviewFallbackLatched = false;
 
     void _bindBackendCallbacks();
@@ -166,10 +161,10 @@ private:
     [[nodiscard]] QString _backendForRank(
         int rank, const QString &currentBackend
     ) const;
-    void _publishCompletedRender(const GUI::ViewTextState &viewState,
+    [[nodiscard]] D3DPresentationSurface _presentationSurface() const;
+    void _publishCompletedRender(const GUI::PresentedFrame &frame,
         uint64_t stateId,
         qint64 renderMs,
         double renderFPS,
         bool previewFallbackLatched);
-    void _applyPreviewDevicePixelRatio(QImage &image) const;
 };

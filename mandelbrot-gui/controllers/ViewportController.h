@@ -82,13 +82,8 @@ public:
     [[nodiscard]] QSize outputSize() const override {
         return _sessionState.outputSize();
     }
-    bool withPreviewImage(
-        const std::function<void(const QImage &)> &visitor
-    ) const override {
-        return _renderController.withPreviewImage(visitor);
-    }
-    [[nodiscard]] bool hasDisplayedViewState() const override {
-        return _renderController.hasDisplayedViewState();
+    void setPresentationSurface(const D3DPresentationSurface &surface) override {
+        _renderController.setPresentationSurface(surface);
     }
     [[nodiscard]] GUI::ViewTextState currentViewTextState() const override {
         return _sessionState.currentViewTextState();
@@ -96,8 +91,10 @@ public:
     bool previewPannedViewState(
         const QPoint &delta, GUI::ViewTextState &view, QString &errorMessage
     ) override;
-    bool previewScaledViewState(const QPoint &pixel, double scaleMultiplier,
-        GUI::ViewTextState &view, QString &errorMessage) override;
+    bool previewScaledViewState(
+        const QPoint &pixel, double scaleMultiplier,
+        GUI::ViewTextState &view, QString &errorMessage
+    ) override;
     bool previewBoxZoomViewState(
         const QRect &selectionRect, GUI::ViewTextState &view,
         QString &errorMessage

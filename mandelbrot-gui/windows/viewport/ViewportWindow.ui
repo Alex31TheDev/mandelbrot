@@ -10,16 +10,44 @@
     <height>540</height>
    </rect>
   </property>
- <property name="windowTitle">
-  <string>Viewport</string>
- </property>
+  <property name="windowTitle">
+   <string>Viewport</string>
+  </property>
   <property name="mouseTracking">
    <bool>true</bool>
   </property>
   <property name="focusPolicy">
    <enum>Qt::FocusPolicy::StrongFocus</enum>
   </property>
+  <widget class="D3DWidget" name="d3dWidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>960</width>
+     <height>540</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::FocusPolicy::NoFocus</enum>
+   </property>
+   <property name="mouseTracking">
+    <bool>true</bool>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <zorder>d3dWidget</zorder>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>D3DWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/D3DWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

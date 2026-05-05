@@ -1,13 +1,27 @@
 #include "ViewportWindow.h"
+
 #include "ui_ViewportWindow.h"
 
 #include "util/IncludeWin32.h"
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 #include <QApplication>
+#include <QHideEvent>
+#include <QMoveEvent>
+#include <QShowEvent>
 
 #include "app/GUIConstants.h"
 
 #include "util/NumberUtil.h"
+
+#include "ViewportOverlayWindow.h"
 
 using namespace GUI;
 
@@ -16,6 +30,11 @@ ViewportWindow::ViewportWindow(ViewportHost *host)
     , _ui(std::make_unique<Ui::ViewportWindow>())
     , _host(host) {
     _ui->setupUi(this);
+    _d3dWidget = _ui->d3dWidget;
+    _overlayWindow = new ViewportOverlayWindow(host, this);
+    _d3dWidget->setHost(host);
+    _syncPresentationSize();
+    _syncOverlayWindow();
     _updateWindowTitle();
 
     const int interactionTickIntervalMs
@@ -72,247 +91,86 @@ ViewportWindow::ViewportWindow(ViewportHost *host)
 ViewportWindow::~ViewportWindow() = default;
 
 void ViewportWindow::clearPreviewOffset() {
-    const bool panNeedsClear = !_panning && !_panOffset.isNull();
-    const bool zoomNeedsClear = !_zoomOutDragActive
-        && !NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0);
+    const bool panNeedsClear
+        = !_panning && _d3dWidget && !_d3dWidget->panPreviewOffset().isNull();
+    const bool zoomNeedsClear = !_zoomOutDragActive && _d3dWidget
+        && !NumberUtil::almostEqual(_d3dWidget->zoomPreviewScale(), 1.0);
     if (!panNeedsClear && !zoomNeedsClear && !_zoomOutPendingCommit) {
         return;
     }
 
+    if (!_d3dWidget) {
+        return;
+    }
+
     if (!_panning) {
-        _panOffset = {};
+        _d3dWidget->setPanPreviewOffset({});
     }
     if (!_zoomOutDragActive) {
         _zoomOutPending = false;
         _zoomOutDragMoved = false;
         _zoomOutPendingCommit = false;
-        _zoomOutPreviewScale = 1.0;
+        _d3dWidget->setZoomPreviewScale(1.0);
     }
-    presentFrame(_presentedViewState);
+    _d3dWidget->refreshPreviewTransform();
+    refreshOverlay();
 }
 
-void ViewportWindow::presentFrame(const ViewTextState &displayedView) {
-    _presentedViewState = displayedView;
+void ViewportWindow::refreshPreviewTransform() {
+    _syncPresentationSize();
+    if (_d3dWidget) {
+        _d3dWidget->refreshPreviewTransform();
+    }
+    refreshOverlay();
+}
+
+void ViewportWindow::presentFrame(const PresentedFrame &frame) {
+    if (_d3dWidget) {
+        if (frame.valid) {
+            _syncPresentationSize();
+            _d3dWidget->presentFrame(frame);
+        } else {
+            _d3dWidget->clearFrame();
+        }
+    }
+    refreshOverlay();
     _updateWindowTitle();
-    update();
 }
 
-ViewTextState ViewportWindow::displayedPreviewView() const {
-    if (!_host || !_host->hasDisplayedViewState() || !_presentedViewState.valid) {
-        return {};
+void ViewportWindow::refreshOverlay() {
+    if (_overlayWindow) {
+        _overlayWindow->refreshOverlay();
     }
-
-    return _presentedViewState;
+    _updateWindowTitle();
 }
 
-ViewTextState ViewportWindow::targetPreviewView() const {
-    if (!_host) {
-        return {};
+bool ViewportWindow::event(QEvent *event) {
+    const bool handled = QWidget::event(event);
+    if (!event) {
+        return handled;
     }
 
-    ViewTextState view = _host->currentViewTextState();
-    if (!view.valid) return view;
-
-    if (_panning && !_panOffset.isNull()) {
-        QString error;
-        ViewTextState pannedView;
-        if (_host->previewPannedViewState(_mapToOutputDelta(_panOffset),
-            pannedView, error)) {
-            view = pannedView;
-        } else {
-            view.valid = false;
-            return view;
-        }
+    switch (event->type()) {
+        case QEvent::ActivationChange:
+        case QEvent::WindowActivate:
+        case QEvent::ZOrderChange:
+            _syncOverlayWindow();
+            break;
+        default:
+            break;
     }
 
-    if (!NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0)) {
-        QString error;
-        ViewTextState scaledView;
-        const QPoint outputCenter
-            = _mapToOutputPixel(QPoint(width() / 2, height() / 2));
-        if (_host->previewScaledViewState(outputCenter, _zoomOutPreviewScale,
-            scaledView, error)) {
-            view = scaledView;
-        } else {
-            view.valid = false;
-            return view;
-        }
-    }
-
-    return view;
-}
-
-std::optional<ViewportWindow::PreviewTransform>
-ViewportWindow::previewTransform() const {
-    const QSize logicalSize = size();
-    if (!_host || logicalSize.width() <= 0 || logicalSize.height() <= 0) {
-        return std::nullopt;
-    }
-
-    const ViewTextState sourceView = displayedPreviewView();
-    const ViewTextState targetView = targetPreviewView();
-    if (!sourceView.valid || !targetView.valid) {
-        return std::nullopt;
-    }
-
-    if (sourceView.outputSize.width() <= 0
-        || sourceView.outputSize.height() <= 0
-        || targetView.outputSize.width() <= 0
-        || targetView.outputSize.height() <= 0) {
-        return std::nullopt;
-    }
-
-    const int targetMidX = std::clamp(targetView.outputSize.width() / 2, 0,
-        std::max(0, targetView.outputSize.width() - 1));
-    const int targetMidY = std::clamp(targetView.outputSize.height() / 2, 0,
-        std::max(0, targetView.outputSize.height() - 1));
-
-    QPointF sourceLeft;
-    QPointF sourceRight;
-    QPointF sourceTop;
-    QPointF sourceBottom;
-    QString error;
-    if (!_host->mapViewPixelToViewPixel(sourceView, targetView,
-        QPoint(0, targetMidY), sourceLeft, error)
-        || !_host->mapViewPixelToViewPixel(sourceView, targetView,
-            QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY),
-            sourceRight, error)
-        || !_host->mapViewPixelToViewPixel(sourceView, targetView,
-            QPoint(targetMidX, 0), sourceTop, error)
-        || !_host->mapViewPixelToViewPixel(sourceView, targetView,
-            QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1)),
-            sourceBottom, error)) {
-        return std::nullopt;
-    }
-
-    const auto sourceToLogical = [&](const QPointF &pixel) {
-        return QPointF(pixel.x() * logicalSize.width()
-            / std::max(1, sourceView.outputSize.width()),
-            pixel.y() * logicalSize.height()
-            / std::max(1, sourceView.outputSize.height()));
-        };
-    const auto targetToLogical = [&](const QPoint &pixel) {
-        return QPointF(static_cast<double>(pixel.x()) * logicalSize.width()
-            / std::max(1, targetView.outputSize.width()),
-            static_cast<double>(pixel.y()) * logicalSize.height()
-            / std::max(1, targetView.outputSize.height()));
-        };
-
-    const QPointF sourceLeftLogical = sourceToLogical(sourceLeft);
-    const QPointF sourceRightLogical = sourceToLogical(sourceRight);
-    const QPointF sourceTopLogical = sourceToLogical(sourceTop);
-    const QPointF sourceBottomLogical = sourceToLogical(sourceBottom);
-    const QPointF targetLeftLogical = targetToLogical(QPoint(0, targetMidY));
-    const QPointF targetRightLogical = targetToLogical(
-        QPoint(std::max(0, targetView.outputSize.width() - 1), targetMidY)
-    );
-    const QPointF targetTopLogical = targetToLogical(QPoint(targetMidX, 0));
-    const QPointF targetBottomLogical = targetToLogical(
-        QPoint(targetMidX, std::max(0, targetView.outputSize.height() - 1))
-    );
-
-    const double sourceSpanX = sourceRightLogical.x() - sourceLeftLogical.x();
-    const double sourceSpanY = sourceBottomLogical.y() - sourceTopLogical.y();
-    if (NumberUtil::almostEqual(sourceSpanX, 0.0, 1e-9)
-        || NumberUtil::almostEqual(sourceSpanY, 0.0, 1e-9)) {
-        return std::nullopt;
-    }
-
-    const QPointF center(static_cast<double>(logicalSize.width()) / 2.0,
-        static_cast<double>(logicalSize.height()) / 2.0);
-    const double scaleX
-        = (targetRightLogical.x() - targetLeftLogical.x()) / sourceSpanX;
-    const double scaleY
-        = (targetBottomLogical.y() - targetTopLogical.y()) / sourceSpanY;
-    const double translationXLeft = targetLeftLogical.x() - center.x()
-        - scaleX * (sourceLeftLogical.x() - center.x());
-    const double translationXRight = targetRightLogical.x() - center.x()
-        - scaleX * (sourceRightLogical.x() - center.x());
-    const double translationYTop = targetTopLogical.y() - center.y()
-        - scaleY * (sourceTopLogical.y() - center.y());
-    const double translationYBottom = targetBottomLogical.y() - center.y()
-        - scaleY * (sourceBottomLogical.y() - center.y());
-    const QPointF translation((translationXLeft + translationXRight) * 0.5,
-        (translationYTop + translationYBottom) * 0.5);
-    if (!std::isfinite(translation.x()) || !std::isfinite(translation.y())
-        || !std::isfinite(scaleX) || !std::isfinite(scaleY) || !(scaleX > 0.0)
-        || !(scaleY > 0.0)) {
-        return std::nullopt;
-    }
-
-    const bool active = !NumberUtil::almostEqual(scaleX, 1.0, 1e-6)
-        || !NumberUtil::almostEqual(scaleY, 1.0, 1e-6)
-        || !NumberUtil::almostEqual(translation.x(), 0.0, 1e-3)
-        || !NumberUtil::almostEqual(translation.y(), 0.0, 1e-3);
-    if (!active) {
-        return std::nullopt;
-    }
-
-    return PreviewTransform{ center, translation, scaleX, scaleY };
-}
-
-void ViewportWindow::paintEvent(QPaintEvent *event) {
-    QPainter painter(this);
-    if (event) {
-        painter.setClipRegion(event->region());
-    }
-    painter.fillRect(rect(), Qt::black);
-
-    const bool selectionPreviewActive = !_selectionRect.isNull();
-    const std::optional<PreviewTransform> availableTransform
-        = (_usePreviewFallback() || selectionPreviewActive)
-        ? previewTransform()
-        : std::nullopt;
-    if (_host) {
-        _host->withPreviewImage([&](const QImage &image) {
-            if (availableTransform) {
-                painter.save();
-                painter.translate(availableTransform->translation);
-                painter.translate(availableTransform->center);
-                painter.scale(availableTransform->scaleX,
-                    availableTransform->scaleY);
-                painter.translate(-availableTransform->center);
-                painter.drawImage(rect(), image);
-                painter.restore();
-            } else {
-                painter.drawImage(rect(), image);
-            }
-            });
-    }
-
-    if (_minimalUI) {
-        return;
-    }
-
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    _drawGrid(painter);
-
-    if (!_selectionRect.isNull()) {
-        painter.setPen(QPen(QColor(255, 255, 255, 180), 1.0, Qt::DashLine));
-        painter.drawRect(_selectionRect.normalized());
-    }
-
-    const QString statusText = _host->viewportStatusText();
-    constexpr int overlayPaddingX = 8;
-    constexpr int overlayPaddingY = 6;
-    const QRect overlayRect = _statusOverlayRect();
-
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(80, 80, 80, 150));
-    painter.drawRoundedRect(overlayRect, 8.0, 8.0);
-
-    painter.setPen(QColor(230, 230, 230));
-    painter.drawText(overlayRect.adjusted(overlayPaddingX, overlayPaddingY,
-        -overlayPaddingX, -overlayPaddingY),
-        Qt::AlignTop | Qt::AlignLeft, statusText);
+    return handled;
 }
 
 void ViewportWindow::mousePressEvent(QMouseEvent *event) {
     const QPointF mousePos = event->position();
     _lastMousePos = mousePos.toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    if (_host) {
+        _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    }
 
-    if (_host->viewportUsesDirectPick() && event->button() == Qt::LeftButton
+    if (_host && _host->viewportUsesDirectPick() && event->button() == Qt::LeftButton
         && !_spacePan) {
         _host->pickAtPixel(_mapToOutputPixel(mousePos));
         return;
@@ -337,15 +195,17 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
 
     if (_effectiveMode() == NavMode::zoom) {
         if (event->button() == Qt::LeftButton) {
-            _selectionOrigin = event->position().toPoint();
-            _selectionRect = QRect(_selectionOrigin, QSize(1, 1));
+            if (_overlayWindow) {
+                _overlayWindow->beginZoomSelection(event->position().toPoint());
+            }
             _zoomOutPending = false;
             _zoomOutDragActive = false;
             _zoomOutDragMoved = false;
             _zoomOutPendingCommit = false;
-            _zoomOutPreviewScale = 1.0;
+            _d3dWidget->setZoomPreviewScale(1.0);
             _zoomOutRedrawTimer.stop();
             grabMouse();
+            refreshOverlay();
             return;
         }
 
@@ -355,10 +215,13 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
             _zoomOutDragMoved = false;
             _zoomOutDragLastPos = _lastMousePos;
             _zoomOutPendingCommit = false;
-            _zoomOutPreviewScale = 1.0;
-            _selectionRect = {};
+            if (_overlayWindow) {
+                _overlayWindow->clearZoomSelection();
+            }
+            _d3dWidget->setZoomPreviewScale(1.0);
             _zoomOutRedrawTimer.stop();
             grabMouse();
+            refreshOverlay();
             return;
         }
     }
@@ -367,11 +230,12 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
 void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
     const QPointF mousePos = event->position();
     _lastMousePos = mousePos.toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    if (_host) {
+        _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    }
 
     if (_panning) {
-        _panOffset = _lastMousePos - _dragOrigin;
-        update();
+        _d3dWidget->setPanPreviewOffset(_lastMousePos - _dragOrigin);
         return;
     }
 
@@ -386,27 +250,33 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
             const double zoomOutDragPixelsPerStep = 12.0;
             const double stepScale = std::pow(zoomFactor,
                 static_cast<double>(dragMagnitude) / zoomOutDragPixelsPerStep);
-            _zoomOutPreviewScale
-                = std::clamp(_zoomOutPreviewScale * stepScale, 1.0, 64.0);
-            _zoomOutPendingCommit = _zoomOutPreviewScale > 1.0001;
+            const double nextScale = std::clamp(_d3dWidget->zoomPreviewScale()
+                * stepScale, 1.0, 64.0);
+            _d3dWidget->setZoomPreviewScale(nextScale);
+            _zoomOutPendingCommit = nextScale > 1.0001;
             if (_zoomOutPendingCommit && !_zoomOutRedrawTimer.isActive()) {
                 _zoomOutRedrawTimer.start();
             }
-            update();
         }
         return;
     }
 
-    if (!_selectionRect.isNull()) {
-        _selectionRect.setBottomRight(_lastMousePos);
-        update();
+    if (mouseGrabber() == this
+        && !_zoomOutDragActive && !_panning && _effectiveMode() == NavMode::zoom
+        && (event->buttons() & Qt::LeftButton)) {
+        if (_overlayWindow) {
+            _overlayWindow->updateZoomSelection(_lastMousePos);
+        }
+        refreshOverlay();
     }
 }
 
 void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
     const QPointF mousePos = event->position();
     _lastMousePos = mousePos.toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    if (_host) {
+        _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    }
 
     if (_panning) {
         if (_panButton == Qt::NoButton || event->button() == _panButton
@@ -421,7 +291,6 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
         _rtZoomLastStepAt = {};
         releaseMouse();
         _updateCursor();
-        update();
         return;
     }
 
@@ -436,48 +305,55 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
         }
         if (_zoomOutPendingCommit) {
             _commitZoomOutPreview();
-        } else if (!_zoomOutDragMoved) {
+        } else if (!_zoomOutDragMoved && _host) {
             _host->zoomAtPixel(_mapToOutputPixel(mousePos), false);
         }
         _zoomOutDragMoved = false;
         _zoomOutPendingCommit = false;
-        _zoomOutPreviewScale = 1.0;
+        _d3dWidget->setZoomPreviewScale(1.0);
         _updateCursor();
-        update();
+        refreshOverlay();
         return;
     }
 
-    if (!_selectionRect.isNull()) {
-        const bool commitSelection = event->button() == Qt::LeftButton
-            || event->button() == Qt::NoButton;
-        const QRect rect = _mapToOutputRect(_selectionRect.normalized());
-        _selectionRect = {};
+    const QRect normalized = _overlayWindow
+        ? _overlayWindow->zoomSelectionRect().normalized()
+        : QRect();
+    const bool selectionActive
+        = !_zoomOutDragActive && mouseGrabber() == this
+        && !_panning && _effectiveMode() == NavMode::zoom
+        && (event->button() == Qt::LeftButton || event->button() == Qt::NoButton)
+        && !normalized.isNull();
+    if (selectionActive) {
+        const QRect rect = _mapToOutputRect(normalized);
+        if (_overlayWindow) {
+            _overlayWindow->clearZoomSelection();
+        }
         if (mouseGrabber() == this) {
             releaseMouse();
         }
-
-        if (commitSelection) {
-            if (rect.width() >= 8 && rect.height() >= 8) {
-                _host->boxZoom(rect);
-            }
+        if (_host && rect.width() >= 8 && rect.height() >= 8) {
+            _host->boxZoom(rect);
         }
-
         _zoomOutPending = false;
         _updateCursor();
-        update();
+        refreshOverlay();
         return;
     }
 
-    if (_zoomOutPending && event->button() == Qt::RightButton) {
+    if (_zoomOutPending && event->button() == Qt::RightButton && _host) {
         _zoomOutPending = false;
         _host->zoomAtPixel(_mapToOutputPixel(mousePos), false);
+        refreshOverlay();
     }
 }
 
 void ViewportWindow::wheelEvent(QWheelEvent *event) {
     const QPointF mousePos = event->position();
     _lastMousePos = mousePos.toPoint();
-    _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    if (_host) {
+        _host->updateMouseCoords(_mapToOutputPixel(mousePos));
+    }
 
     if (_panning) {
         event->accept();
@@ -501,38 +377,19 @@ void ViewportWindow::wheelEvent(QWheelEvent *event) {
 
     if (mode == NavMode::zoom) {
         const bool resizeSelection
-            = !_selectionRect.isNull() && (event->buttons() & Qt::LeftButton);
+            = mouseGrabber() == this && (event->buttons() & Qt::LeftButton);
         if (!resizeSelection) {
             event->accept();
             return;
         }
 
-        const QRect current = _selectionRect.normalized();
-        const QPointF center = current.center();
         const double factor = zoomIn ? 0.9 : 1.1;
-        const double maxWidth = std::max(2.0, static_cast<double>(width() - 2));
-        const double maxHeight
-            = std::max(2.0, static_cast<double>(height() - 2));
-        const double nextWidth
-            = std::clamp(current.width() * factor, 2.0, maxWidth);
-        const double nextHeight
-            = std::clamp(current.height() * factor, 2.0, maxHeight);
-        QRect scaled(
-            static_cast<int>(std::lround(center.x() - nextWidth / 2.0)),
-            static_cast<int>(std::lround(center.y() - nextHeight / 2.0)),
-            std::max(2, static_cast<int>(std::lround(nextWidth))),
-            std::max(2, static_cast<int>(std::lround(nextHeight)))
-        );
-        const QRect bounds(0, 0, std::max(1, width()), std::max(1, height()));
-        scaled = scaled.intersected(bounds);
-        if (scaled.width() < 2 || scaled.height() < 2) {
+        if (!_overlayWindow || !_overlayWindow->scaleZoomSelection(factor)) {
             event->accept();
             return;
         }
 
-        _selectionOrigin = scaled.topLeft();
-        _selectionRect = QRect(_selectionOrigin, scaled.bottomRight());
-        update();
+        refreshOverlay();
         event->accept();
         return;
     }
@@ -553,7 +410,7 @@ void ViewportWindow::keyPressEvent(QKeyEvent *event) {
     if (event->isAutoRepeat()) return;
 
     if (_host && _host->matchesShortcut("cancel", event)) {
-        if (_host) _host->cancelQueuedRenders();
+        _host->cancelQueuedRenders();
         event->accept();
         return;
     }
@@ -564,17 +421,8 @@ void ViewportWindow::keyPressEvent(QKeyEvent *event) {
         return;
     }
 
-    if (event->key() == Qt::Key_Space) {
-        _spacePan = true;
-        if (_host) {
-            _host->setDisplayedNavModeOverride(NavMode::pan);
-        }
-        _updateCursor();
-        return;
-    }
-
-    if (_host && _host->matchesShortcut("overlay", event)) {
-        toggleMinimalUI();
+    if (_host && _host->matchesShortcut("home", event)) {
+        _host->applyHomeView();
         event->accept();
         return;
     }
@@ -591,14 +439,21 @@ void ViewportWindow::keyPressEvent(QKeyEvent *event) {
         return;
     }
 
-    if (_host && _host->matchesShortcut("home", event)) {
-        _host->applyHomeView();
+    if (_host && _host->matchesShortcut("overlay", event)) {
+        toggleMinimalUI();
         event->accept();
         return;
     }
 
     if (_host && _host->matchesShortcut("cycleGrid", event)) {
         cycleGridMode();
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Space) {
+        _spacePan = true;
+        _updateCursor();
         event->accept();
         return;
     }
@@ -616,21 +471,15 @@ void ViewportWindow::keyReleaseEvent(QKeyEvent *event) {
         return;
     }
     if (event->isAutoRepeat()) return;
-    if (event->key() != Qt::Key_Space) {
-        QWidget::keyReleaseEvent(event);
+
+    if (event->key() == Qt::Key_Space) {
+        _spacePan = false;
+        _updateCursor();
+        event->accept();
         return;
     }
 
-    _spacePan = false;
-    if (_panning && _panButton == Qt::NoButton) {
-        _endPanInteraction();
-        return;
-    }
-
-    if (_host && !_panning) {
-        _host->setDisplayedNavModeOverride(std::nullopt);
-    }
-    _updateCursor();
+    QWidget::keyReleaseEvent(event);
 }
 
 void ViewportWindow::enterEvent(QEnterEvent *) {
@@ -643,31 +492,47 @@ void ViewportWindow::leaveEvent(QEvent *) {
     }
 }
 
+void ViewportWindow::moveEvent(QMoveEvent *event) {
+    QWidget::moveEvent(event);
+    _syncOverlayWindow();
+}
+
+void ViewportWindow::showEvent(QShowEvent *event) {
+    QWidget::showEvent(event);
+    _syncOverlayWindow();
+}
+
+void ViewportWindow::hideEvent(QHideEvent *event) {
+    QWidget::hideEvent(event);
+    _hideOverlayWindow();
+}
+
 void ViewportWindow::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
-    if (_fullscreenTransitionPending) {
-        _fullscreenResizeTimer.start();
-        return;
+    if (_d3dWidget) {
+        _d3dWidget->setGeometry(rect());
+        _d3dWidget->refreshPreviewTransform();
     }
+    _syncOverlayWindow();
+    if (!event) return;
 
-    if (!_host || isFullScreen() || !event->spontaneous()) {
-        return;
+    const QSize logicalSize = event->size();
+    if (logicalSize.isValid()) {
+        emit viewportScaleAdjustmentRequested(logicalSize);
     }
-
-    emit viewportScaleAdjustmentRequested(event->size());
 }
 
 bool ViewportWindow::nativeEvent(
-    const QByteArray &eventType,
-    void *message, qintptr *result
+    const QByteArray &eventType, void *message, qintptr *result
 ) {
-    Q_UNUSED(eventType);
     const bool handled = QWidget::nativeEvent(eventType, message, result);
     if (!message || !result || isFullScreen()) {
         return handled;
     }
 
     MSG *msg = static_cast<MSG *>(message);
+    if (!msg) return handled;
+
     if (msg->message == WM_NCHITTEST) {
         switch (*result) {
             case HTLEFT:
@@ -681,11 +546,9 @@ bool ViewportWindow::nativeEvent(
         }
     }
 
-    if (msg->message == WM_SIZING && _host) {
+    if (msg->message == WM_SIZING && _host && _host->outputSize().isValid()) {
         RECT *rect = reinterpret_cast<RECT *>(msg->lParam);
-        if (!rect) {
-            return handled;
-        }
+        if (!rect) return handled;
 
         int nonClientWidth = 0;
         int nonClientHeight = 0;
@@ -696,11 +559,11 @@ bool ViewportWindow::nativeEvent(
                 nonClientWidth = static_cast<int>(
                     (windowRect.right - windowRect.left)
                     - (clientRect.right - clientRect.left)
-                    );
+                );
                 nonClientHeight = static_cast<int>(
                     (windowRect.bottom - windowRect.top)
                     - (clientRect.bottom - clientRect.top)
-                    );
+                );
             }
         }
 
@@ -728,35 +591,11 @@ bool ViewportWindow::nativeEvent(
                 rect->bottom = rect->top + newSize.height();
                 break;
             default:
-                return true;
+                return handled;
         }
 
         *result = TRUE;
         return true;
-    }
-
-    if (msg->message == WM_NCLBUTTONDOWN) {
-        switch (msg->wParam) {
-            case HTLEFT:
-            case HTRIGHT:
-            case HTTOP:
-            case HTBOTTOM:
-                *result = 0;
-                return true;
-            default:
-                break;
-        }
-    }
-
-    if (msg->message == WM_SYSCOMMAND) {
-        if ((msg->wParam & 0xFFF0) == SC_SIZE) {
-            const WPARAM direction = (msg->wParam & 0x000F);
-            if (direction == WMSZ_LEFT || direction == WMSZ_RIGHT
-                || direction == WMSZ_TOP || direction == WMSZ_BOTTOM) {
-                *result = 0;
-                return true;
-            }
-        }
     }
 
     return handled;
@@ -778,25 +617,22 @@ void ViewportWindow::closeEvent(QCloseEvent *event) {
         emit closeRequested(skipDirtyViewPrompt);
         return;
     }
+    _hideOverlayWindow();
     event->accept();
 }
 
 void ViewportWindow::cycleGridMode() {
-    int idx = 0;
-    while (idx < static_cast<int>(Constants::gridModes.size())
-        && Constants::gridModes[idx] != _gridDivisions) {
-        idx++;
+    if (_overlayWindow) {
+        _overlayWindow->cycleGridMode();
     }
-    idx = (idx + 1) % static_cast<int>(Constants::gridModes.size());
-
-    _gridDivisions = Constants::gridModes[idx];
-    presentFrame(_presentedViewState);
 }
 
 void ViewportWindow::toggleMinimalUI() {
-    _minimalUI = !_minimalUI;
+    if (_overlayWindow) {
+        _overlayWindow->toggleMinimalUI();
+    }
     _updateCursor();
-    presentFrame(_presentedViewState);
+    _syncOverlayWindow();
 }
 
 void ViewportWindow::toggleFullscreen() {
@@ -808,19 +644,15 @@ void ViewportWindow::toggleFullscreen() {
         _restoreGeometry = geometry();
         _restoreMaximized = isMaximized();
         _restoreOutputSize = _host->outputSize();
-        _fullscreenManaged = true;
         _fullscreenTransitionPending = true;
         setMinimumSize(1, 1);
         setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
-        raise();
-        activateWindow();
-        setFocus(Qt::ActiveWindowFocusReason);
+        _syncOverlayWindow();
         _fullscreenResizeTimer.start();
         return;
     }
 
-    _fullscreenManaged = false;
     _fullscreenTransitionPending = true;
     if (_restoreMaximized) {
         showMaximized();
@@ -830,6 +662,7 @@ void ViewportWindow::toggleFullscreen() {
             setGeometry(_restoreGeometry);
         }
     }
+    _syncOverlayWindow();
     _fullscreenResizeTimer.start();
 }
 
@@ -844,12 +677,14 @@ void ViewportWindow::finalizeFullscreenTransition() {
             static_cast<int>(std::lround(logicalSize.width() * dpr))),
             std::max(1,
                 static_cast<int>(std::lround(logicalSize.height() * dpr)))));
+        _syncOverlayWindow();
         return;
     }
 
     if (_restoreOutputSize.isValid()) {
         _host->applyViewportOutputSize(_restoreOutputSize);
     }
+    _syncOverlayWindow();
 }
 
 bool ViewportWindow::_precisionModifierActive() const {
@@ -893,7 +728,9 @@ void ViewportWindow::_resetZoomOutDragState() {
     _zoomOutDragActive = false;
     _zoomOutDragMoved = false;
     _zoomOutPendingCommit = false;
-    _zoomOutPreviewScale = 1.0;
+    if (_d3dWidget) {
+        _d3dWidget->setZoomPreviewScale(1.0);
+    }
 }
 
 void ViewportWindow::_stopRealtimeZoom() {
@@ -902,19 +739,24 @@ void ViewportWindow::_stopRealtimeZoom() {
 }
 
 bool ViewportWindow::_canBeginPanInteraction() const {
-    return !_panning && !_rtZoomTimer.isActive() && _selectionRect.isNull()
-        && !_zoomOutDragActive;
+    return !_panning && !_rtZoomTimer.isActive() && !_zoomOutDragActive;
 }
 
 void ViewportWindow::_beginPanInteraction(Qt::MouseButton button) {
+    if (!_canBeginPanInteraction()) return;
+
     _panning = true;
     _panButton = button;
     if (_host) {
         _host->setDisplayedNavModeOverride(NavMode::pan);
     }
     _dragOrigin = _lastMousePos;
-    _panOffset = {};
-    _selectionRect = {};
+    if (_overlayWindow) {
+        _overlayWindow->clearZoomSelection();
+    }
+    if (_d3dWidget) {
+        _d3dWidget->setPanPreviewOffset({});
+    }
     _resetZoomOutDragState();
     _stopRealtimeZoom();
     _panRedrawTimer.stop();
@@ -923,7 +765,7 @@ void ViewportWindow::_beginPanInteraction(Qt::MouseButton button) {
     _panRedrawTimer.start();
     grabMouse();
     _updateCursor();
-    update();
+    refreshOverlay();
 }
 
 void ViewportWindow::_endPanInteraction() {
@@ -938,10 +780,11 @@ void ViewportWindow::_endPanInteraction() {
         releaseMouse();
     }
     _updateCursor();
-    update();
+    refreshOverlay();
 }
 
 void ViewportWindow::_beginRealtimeZoom(bool zoomIn) {
+    if (!_host) return;
     if (!_rtZoomAnchorPixel.has_value()) {
         const QSize output = _host->outputSize();
         _rtZoomAnchorPixel
@@ -962,8 +805,7 @@ bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent *event) {
     if (!_host || _effectiveMode() != NavMode::pan) {
         return false;
     }
-    if (_zoomOutDragActive || !_selectionRect.isNull()
-        || _rtZoomTimer.isActive()) {
+    if (_zoomOutDragActive || _rtZoomTimer.isActive()) {
         return false;
     }
 
@@ -1039,7 +881,7 @@ void ViewportWindow::_applyArrowPanStep() {
         _arrowPanTimer.stop();
         return;
     }
-    if (_zoomOutDragActive || !_selectionRect.isNull() || _rtZoomTimer.isActive()) {
+    if (_zoomOutDragActive || _rtZoomTimer.isActive()) {
         return;
     }
 
@@ -1073,28 +915,32 @@ void ViewportWindow::_applyArrowPanStep() {
     _host->panByPixels(QPoint(xDir * step, yDir * step));
 }
 
-void ViewportWindow::_drawGrid(QPainter &painter) {
-    if (_gridDivisions <= 1) return;
-
-    const QRect area = rect();
-    if (area.width() <= 1 || area.height() <= 1) return;
-
-    painter.save();
-    painter.setRenderHint(QPainter::Antialiasing, false);
-    painter.setPen(QPen(QColor(255, 255, 255, 110), 1.0));
-
-    for (int i = 1; i < _gridDivisions; i++) {
-        const int x = static_cast<int>(std::lround(
-            static_cast<double>(area.width()) * i / _gridDivisions
-        ));
-        const int y = static_cast<int>(std::lround(
-            static_cast<double>(area.height()) * i / _gridDivisions
-        ));
-        painter.drawLine(x, area.top(), x, area.bottom());
-        painter.drawLine(area.left(), y, area.right(), y);
+void ViewportWindow::_syncOverlayWindow() {
+    if (!_overlayWindow) {
+        return;
     }
 
-    painter.restore();
+    const bool visible = isVisible() && !isMinimized()
+        && _d3dWidget && _d3dWidget->isVisible();
+    if (!visible) {
+        _hideOverlayWindow();
+        return;
+    }
+
+    _overlayWindow->syncToViewportRect(_viewportClientGlobalRect(), true);
+    _overlayWindow->raiseAboveViewport();
+}
+
+void ViewportWindow::_hideOverlayWindow() {
+    if (_overlayWindow) {
+        _overlayWindow->syncToViewportRect({}, false);
+    }
+}
+
+void ViewportWindow::_syncPresentationSize() {
+    if (_d3dWidget) {
+        _d3dWidget->setPresentationSize(_host ? _host->outputSize() : QSize());
+    }
 }
 
 void ViewportWindow::_updateWindowTitle() {
@@ -1103,43 +949,26 @@ void ViewportWindow::_updateWindowTitle() {
         return;
     }
 
-    setWindowTitle(_usePreviewFallback() ? tr("Viewport (Preview)")
-        : tr("Viewport (Direct)"));
+    setWindowTitle(_host->shouldUseInteractionPreviewFallback()
+            ? tr("Viewport (Preview)")
+            : tr("Viewport (Direct)"));
 }
 
-QRect ViewportWindow::_statusOverlayRect() const {
-    if (_minimalUI || !_host) {
+QRect ViewportWindow::_viewportClientGlobalRect() const {
+    if (!_d3dWidget || !_d3dWidget->isVisible()) {
         return {};
     }
 
-    const QString statusText = _host->viewportStatusText();
-    constexpr int overlayMargin = 8;
-    constexpr int overlayPaddingX = 8;
-    constexpr int overlayPaddingY = 6;
-    const QFontMetrics metrics(font());
-    const QString maxPrecisionMouseLine = "Mouse: 999999, 999999  |  "
-        "-1.7976931348623157e+308  "
-        "-1.7976931348623157e+308";
-    int overlayTextWidth = metrics.horizontalAdvance(maxPrecisionMouseLine);
-    for (const QString &line : statusText.split('\n')) {
-        overlayTextWidth
-            = std::max(overlayTextWidth, metrics.horizontalAdvance(line));
+    const QSize size = _d3dWidget->size();
+    if (!size.isValid()) {
+        return {};
     }
 
-    const int overlayWidth = std::min(std::max(1, width() - overlayMargin * 2),
-        overlayTextWidth + overlayPaddingX * 2 + 2);
-    const QRect textRect(overlayMargin + overlayPaddingX,
-        overlayMargin + overlayPaddingY,
-        std::max(1, overlayWidth - overlayPaddingX * 2),
-        std::max(1, height() - (overlayMargin + overlayPaddingY) * 2));
-    const QRect textBounds = metrics.boundingRect(textRect,
-        Qt::AlignTop | Qt::AlignLeft, statusText);
-    return QRect(overlayMargin, overlayMargin, overlayWidth,
-        textBounds.height() + overlayPaddingY * 2);
+    return QRect(_d3dWidget->mapToGlobal(QPoint(0, 0)), size);
 }
 
 QPoint ViewportWindow::_clampToOutputPixel(const QPointF &pixel) const {
-    const QSize outputSize = _host->outputSize();
+    const QSize outputSize = _host ? _host->outputSize() : QSize();
     return { std::clamp(static_cast<int>(std::lround(pixel.x())), 0,
                  std::max(0, outputSize.width() - 1)),
         std::clamp(static_cast<int>(std::lround(pixel.y())), 0,
@@ -1150,13 +979,9 @@ QPoint ViewportWindow::_mapToOutputPixel(const QPoint &logicalPoint) const {
     return _mapToOutputPixel(QPointF(logicalPoint));
 }
 
-QPoint ViewportWindow::_mapToOutputPixelRaw(const QPoint &logicalPoint) const {
-    return _mapToOutputPixelRaw(QPointF(logicalPoint));
-}
-
-QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF &logicalPoint) const {
+QPoint ViewportWindow::_mapToOutputPixel(const QPointF &logicalPoint) const {
     const QSize logicalSize = size();
-    const QSize outputSize = _host->outputSize();
+    const QSize outputSize = _host ? _host->outputSize() : QSize();
     if (logicalSize.width() <= 0 || logicalSize.height() <= 0) {
         return {};
     }
@@ -1168,7 +993,7 @@ QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF &logicalPoint) const {
 
         return logical * static_cast<double>(outputExtent - 1)
             / static_cast<double>(logicalExtent - 1);
-        };
+    };
 
     const double x = mapAxis(logicalPoint.x(), logicalSize.width(),
         outputSize.width());
@@ -1181,13 +1006,9 @@ QPoint ViewportWindow::_mapToOutputPixelRaw(const QPointF &logicalPoint) const {
             std::max(0, outputSize.height() - 1)) };
 }
 
-QPoint ViewportWindow::_mapToOutputPixel(const QPointF &logicalPoint) const {
-    return _mapToOutputPixelRaw(logicalPoint);
-}
-
 QPoint ViewportWindow::_mapToOutputDelta(const QPoint &logicalDelta) const {
     const QSize logicalSize = size();
-    const QSize outputSize = _host->outputSize();
+    const QSize outputSize = _host ? _host->outputSize() : QSize();
     if (logicalSize.width() <= 0 || logicalSize.height() <= 0) {
         return {};
     }
@@ -1207,11 +1028,11 @@ QRect ViewportWindow::_mapToOutputRect(const QRect &logicalRect) const {
 NavMode ViewportWindow::_effectiveMode() const {
     return (_spacePan || (_panning && _panButton == Qt::MiddleButton))
         ? NavMode::pan
-        : _host->navMode();
+        : (_host ? _host->navMode() : NavMode::realtimeZoom);
 }
 
 void ViewportWindow::_updateCursor() {
-    if (_minimalUI) {
+    if (_overlayWindow && _overlayWindow->minimalUIEnabled()) {
         setCursor(Qt::BlankCursor);
         return;
     }
@@ -1233,28 +1054,38 @@ void ViewportWindow::_updateCursor() {
 }
 
 void ViewportWindow::_commitPanOffset() {
-    if (!_host || _panOffset.isNull()) return;
+    if (!_host || !_d3dWidget) return;
 
-    const QPoint delta = _mapToOutputDelta(_panOffset);
-    if (delta.isNull()) return;
+    const QPoint logicalOffset = _d3dWidget->panPreviewOffset();
+    if (logicalOffset.isNull()) return;
 
+    const QPoint delta = _mapToOutputDelta(logicalOffset);
+    if (delta.isNull()) {
+        _d3dWidget->setPanPreviewOffset({});
+        _dragOrigin = _lastMousePos;
+        return;
+    }
+
+    _deferPreviewTransformRefresh = true;
     _host->panByPixels(delta);
+    _deferPreviewTransformRefresh = false;
     _dragOrigin = _lastMousePos;
-    _panOffset = {};
+    _d3dWidget->setPanPreviewOffset({});
 }
 
 void ViewportWindow::_commitZoomOutPreview() {
-    if (!_host) return;
-    if (!_zoomOutPendingCommit
-        || NumberUtil::almostEqual(_zoomOutPreviewScale, 1.0)) {
+    if (!_host || !_d3dWidget) return;
+    const double scaleMultiplier = _d3dWidget->zoomPreviewScale();
+    if (!_zoomOutPendingCommit || NumberUtil::almostEqual(scaleMultiplier, 1.0)) {
         return;
     }
 
     const QPoint viewportCenter(width() / 2, height() / 2);
-    const double scaleMultiplier = _zoomOutPreviewScale;
-    _zoomOutPreviewScale = 1.0;
     _zoomOutPendingCommit = false;
+    _deferPreviewTransformRefresh = true;
     _host->scaleAtPixel(_mapToOutputPixel(viewportCenter), scaleMultiplier);
+    _deferPreviewTransformRefresh = false;
+    _d3dWidget->setZoomPreviewScale(1.0);
 }
 
 void ViewportWindow::_applyRealtimeZoomStep(bool firstStep) {
@@ -1331,8 +1162,4 @@ void ViewportWindow::_updateRealtimeZoomAnchor(double elapsedSeconds) {
             static_cast<double>(std::max(0, output.width() - 1))),
             std::clamp(anchorPixel.y(), 0.0,
                 static_cast<double>(std::max(0, output.height() - 1))));
-}
-
-bool ViewportWindow::_usePreviewFallback() const {
-    return _host && _host->shouldUseInteractionPreviewFallback();
 }

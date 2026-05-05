@@ -207,12 +207,12 @@ void ViewportController::updateMouseCoords(const QPoint &pixel) {
             .arg(real, imag);
     }
 
-    if (_viewport) _viewport->update();
+    if (_viewport) _viewport->refreshOverlay();
 }
 
 void ViewportController::clearMouseCoords() {
     _mouseText = tr("Mouse: -");
-    if (_viewport) _viewport->update();
+    if (_viewport) _viewport->refreshOverlay();
 }
 
 void ViewportController::adjustIterationsBy(int delta) {

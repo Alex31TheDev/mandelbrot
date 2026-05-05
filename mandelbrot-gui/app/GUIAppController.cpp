@@ -202,9 +202,6 @@ GUIAppController::GUIAppController(
     connect(qApp, &QCoreApplication::aboutToQuit, this,
         &GUIAppController::_savePersistentState);
     _viewportController.attachViewport(_viewportWindow.get());
-    _renderController.setPreviewDevicePixelRatio(
-        _viewportWindow ? _viewportWindow->devicePixelRatioF() : 1.0
-    );
 }
 
 GUIAppController::~GUIAppController() = default;
@@ -238,8 +235,8 @@ bool GUIAppController::initialize() {
 }
 
 void GUIAppController::show() {
-    _controlWindow->show();
     _viewportWindow->show();
+    _controlWindow->show();
     _viewportController.resizeViewportForScalePercent(
         _sessionState.state().viewportScalePercent
     );
@@ -250,14 +247,7 @@ void GUIAppController::show() {
         if (_controlWindow && _controlWindow->isVisible()) {
             _refreshPreviews();
         }
-        if (!_viewportWindow || !_viewportWindow->isVisible()) return;
-        _renderController.setPreviewDevicePixelRatio(
-            _viewportWindow->devicePixelRatioF()
-        );
-        _viewportWindow->raise();
-        _viewportWindow->activateWindow();
-        _viewportWindow->setFocus(Qt::ActiveWindowFocusReason);
-        });
+    });
 }
 
 void GUIAppController::_connectUI() {
@@ -387,7 +377,13 @@ void GUIAppController::_connectUI() {
         &GUIAppController::_changeLightColor);
 
     connect(&_viewportController, &ViewportController::sessionStateChanged, this,
-        &GUIAppController::_refreshControlState);
+        [this]() {
+            _refreshControlState();
+            if (_viewportWindow
+                && !_viewportWindow->previewTransformRefreshDeferred()) {
+                _viewportWindow->refreshPreviewTransform();
+            }
+        });
     connect(&_viewportController, &ViewportController::renderRequested, this,
         [this]() { _requestRender(); });
     connect(&_viewportController, &ViewportController::renderRequestedWithPickAction,
@@ -412,14 +408,18 @@ void GUIAppController::_connectUI() {
             _closeAllWindows(skipDirtyViewPrompt);
         });
 
-    connect(&_renderController, &RenderController::previewImageChanged, this,
-        [this](const ViewTextState &viewState) {
-            _viewportWindow->presentFrame(viewState);
+    connect(&_renderController, &RenderController::frameReady, this,
+        [this](const PresentedFrame &frame) {
+            _viewportWindow->presentFrame(frame);
         });
     connect(&_renderController, &RenderController::renderStateChanged, this,
         [this]() {
             _refreshStatus();
-            _viewportWindow->update();
+            if (_viewportWindow
+                && !_viewportWindow->previewTransformRefreshDeferred()) {
+                _viewportWindow->refreshPreviewTransform();
+            }
+            _viewportWindow->refreshOverlay();
         });
     connect(&_renderController, &RenderController::renderFailed, this,
         [this](const QString &message) {
@@ -460,11 +460,6 @@ void GUIAppController::_requestRender(
     );
     _statusText.clear();
     _statusLinkPath.clear();
-    if (_viewportWindow) {
-        _renderController.setPreviewDevicePixelRatio(
-            _viewportWindow->devicePixelRatioF()
-        );
-    }
     _renderController.requestRender(_sessionState.snapshot(), pickAction);
     _refreshStatus();
 }

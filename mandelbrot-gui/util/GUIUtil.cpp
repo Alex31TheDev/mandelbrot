@@ -143,7 +143,7 @@ namespace GUI::Util {
     }
 
     QString defaultImageMemoryText() {
-        return QApplication::translate("GUI::Util", "Render: -  Output: -  x2");
+        return QApplication::translate("GUI::Util", "Render: -  Output: -");
     }
 
     QString defaultViewportFPSText() {
@@ -165,14 +165,14 @@ namespace GUI::Util {
             FormatUtil::formatBufferSize(event.primaryBytes)
         );
         if (!event.downscaling) {
-            return QApplication::translate("GUI::Util", "Render: %1  x2")
+            return QApplication::translate("GUI::Util", "Render: %1")
                 .arg(renderBytes);
         }
 
         const QString outputBytesText = QString::fromStdString(
             FormatUtil::formatBufferSize(event.secondaryBytes)
         );
-        return QApplication::translate("GUI::Util", "Render: %1  Output: %2  x2")
+        return QApplication::translate("GUI::Util", "Render: %1  Output: %2")
             .arg(renderBytes, outputBytesText);
     }
 

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ViewportOverlayWindow</class>
+ <widget class="QWidget" name="ViewportOverlayWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>960</width>
+    <height>540</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::FocusPolicy::NoFocus</enum>
+  </property>
+  <widget class="ViewportGridOverlayWidget" name="gridWidget">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>960</width>
+     <height>540</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::FocusPolicy::NoFocus</enum>
+   </property>
+   <property name="mouseTracking">
+    <bool>true</bool>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <widget class="ViewportZoomOverlayWidget" name="zoomWidget">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>960</width>
+     <height>540</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::FocusPolicy::NoFocus</enum>
+   </property>
+   <property name="mouseTracking">
+    <bool>true</bool>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <widget class="ViewportStatusOverlayWidget" name="statusWidget">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>960</width>
+     <height>540</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::FocusPolicy::NoFocus</enum>
+   </property>
+   <property name="mouseTracking">
+    <bool>true</bool>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+  </widget>
+  <zorder>gridWidget</zorder>
+  <zorder>zoomWidget</zorder>
+  <zorder>statusWidget</zorder>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ViewportGridOverlayWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/ViewportGridOverlayWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ViewportZoomOverlayWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/ViewportZoomOverlayWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ViewportStatusOverlayWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/ViewportStatusOverlayWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
