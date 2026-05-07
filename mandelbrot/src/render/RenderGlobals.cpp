@@ -5,7 +5,7 @@
 #include <tuple>
 
 #include "image/Image.h"
-#include "ThreadPool.h"
+#include "datastructures/ThreadPool.h"
 
 static std::unique_ptr<ThreadPool<>> _pool;
 

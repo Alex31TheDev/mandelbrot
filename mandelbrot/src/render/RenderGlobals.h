@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ThreadPool.h"
+#include "datastructures/ThreadPool.h"
 
 namespace RenderGlobals {
     extern int width, height, outputWidth, outputHeight, aaPixels;
