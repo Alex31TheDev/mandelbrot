@@ -36,6 +36,8 @@ Do not run formatting scripts over the whole tree unless the user explicitly ask
 
 Never use anonymous namespaces. Use `static` for internal linkage instead.
 
+All strings in the interface should have translation keys. There should be no hardcoded strings shown in the GUI. Translation files should be kept updated.
+
 The .ui files are crucial. Never hardcode GUI properties in windows, put them in .ui instead.
 
 To do builds, locate msbuild then call it at the solution level with the gui project. do not mess with dependencies if it doesnt work. just build the way visual studio does it

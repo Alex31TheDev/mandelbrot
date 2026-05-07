@@ -16,6 +16,11 @@ ViewportWindow::ViewportWindow(ViewportHost *host)
     , _ui(std::make_unique<Ui::ViewportWindow>())
     , _host(host) {
     _ui->setupUi(this);
+    _overlayWidget = _ui->overlayWidget;
+    if (_overlayWidget) {
+        _overlayWidget->setHost(_host);
+    }
+    refreshOverlay();
     _updateWindowTitle();
 
     const int interactionTickIntervalMs
@@ -88,7 +93,21 @@ void ViewportWindow::clearPreviewOffset() {
         _zoomOutPendingCommit = false;
         _zoomOutPreviewScale = 1.0;
     }
+    refreshPreviewTransform();
+    refreshOverlay();
+}
+
+void ViewportWindow::refreshPreviewTransform() {
     update();
+}
+
+void ViewportWindow::refreshOverlay() {
+    if (_overlayWidget) {
+        _overlayWidget->refreshOverlay();
+        _overlayWidget->raise();
+    }
+
+    _updateWindowTitle();
 }
 
 ViewTextState ViewportWindow::displayedPreviewView() const {
@@ -252,7 +271,8 @@ void ViewportWindow::paintEvent(QPaintEvent *) {
 
     const QImage &image = _host->previewImage();
     if (!image.isNull()) {
-        const bool selectionPreviewActive = !_selectionRect.isNull();
+        const bool selectionPreviewActive = _overlayWidget
+            && _overlayWidget->hasZoomSelection();
         const bool usePreviewFallback
             = _host && _host->shouldUseInteractionPreviewFallback();
         const std::optional<PreviewTransform> availableTransform
@@ -276,51 +296,6 @@ void ViewportWindow::paintEvent(QPaintEvent *) {
             painter.drawImage(rect(), image);
         }
     }
-
-    if (_minimalUI) {
-        return;
-    }
-
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    _drawGrid(painter);
-
-    if (!_selectionRect.isNull()) {
-        painter.setPen(QPen(QColor(255, 255, 255, 180), 1.0, Qt::DashLine));
-        painter.drawRect(_selectionRect.normalized());
-    }
-
-    const QString statusText = _host->viewportStatusText();
-    constexpr int overlayMargin = 8;
-    constexpr int overlayPaddingX = 8;
-    constexpr int overlayPaddingY = 6;
-    const QFontMetrics metrics = painter.fontMetrics();
-    const QString maxPrecisionMouseLine = "Mouse: 999999, 999999  |  "
-        "-1.7976931348623157e+308  "
-        "-1.7976931348623157e+308";
-    int overlayTextWidth = metrics.horizontalAdvance(maxPrecisionMouseLine);
-    for (const QString &line : statusText.split('\n')) {
-        overlayTextWidth
-            = std::max(overlayTextWidth, metrics.horizontalAdvance(line));
-    }
-    const int overlayWidth = std::min(std::max(1, width() - overlayMargin * 2),
-        overlayTextWidth + overlayPaddingX * 2 + 2);
-    const QRect textRect(overlayMargin + overlayPaddingX,
-        overlayMargin + overlayPaddingY,
-        std::max(1, overlayWidth - overlayPaddingX * 2),
-        std::max(1, height() - (overlayMargin + overlayPaddingY) * 2));
-    const QRect textBounds = metrics.boundingRect(textRect,
-        Qt::AlignTop | Qt::AlignLeft, statusText);
-    const QRect overlayRect(overlayMargin, overlayMargin, overlayWidth,
-        textBounds.height() + overlayPaddingY * 2);
-
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(80, 80, 80, 150));
-    painter.drawRoundedRect(overlayRect, 8.0, 8.0);
-
-    painter.setPen(QColor(230, 230, 230));
-    painter.drawText(overlayRect.adjusted(overlayPaddingX, overlayPaddingY,
-        -overlayPaddingX, -overlayPaddingY),
-        Qt::AlignTop | Qt::AlignLeft, statusText);
 }
 
 void ViewportWindow::mousePressEvent(QMouseEvent *event) {
@@ -353,8 +328,9 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
 
     if (_effectiveMode() == NavMode::zoom) {
         if (event->button() == Qt::LeftButton) {
-            _selectionOrigin = event->position().toPoint();
-            _selectionRect = QRect(_selectionOrigin, QSize(1, 1));
+            if (_overlayWidget) {
+                _overlayWidget->beginZoomSelection(event->position().toPoint());
+            }
             _zoomOutPending = false;
             _zoomOutDragActive = false;
             _zoomOutDragMoved = false;
@@ -362,6 +338,7 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
             _zoomOutPreviewScale = 1.0;
             _zoomOutRedrawTimer.stop();
             grabMouse();
+            refreshOverlay();
             return;
         }
 
@@ -372,9 +349,12 @@ void ViewportWindow::mousePressEvent(QMouseEvent *event) {
             _zoomOutDragLastPos = _lastMousePos;
             _zoomOutPendingCommit = false;
             _zoomOutPreviewScale = 1.0;
-            _selectionRect = {};
+            if (_overlayWidget) {
+                _overlayWidget->clearZoomSelection();
+            }
             _zoomOutRedrawTimer.stop();
             grabMouse();
+            refreshOverlay();
             return;
         }
     }
@@ -413,9 +393,8 @@ void ViewportWindow::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
 
-    if (!_selectionRect.isNull()) {
-        _selectionRect.setBottomRight(_lastMousePos);
-        update();
+    if (_overlayWidget && _overlayWidget->hasZoomSelection()) {
+        _overlayWidget->updateZoomSelection(_lastMousePos);
     }
 }
 
@@ -459,15 +438,18 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
         _zoomOutPendingCommit = false;
         _zoomOutPreviewScale = 1.0;
         _updateCursor();
-        update();
+        refreshPreviewTransform();
+        refreshOverlay();
         return;
     }
 
-    if (!_selectionRect.isNull()) {
+    if (_overlayWidget && _overlayWidget->hasZoomSelection()) {
         const bool commitSelection = event->button() == Qt::LeftButton
             || event->button() == Qt::NoButton;
-        const QRect rect = _mapToOutputRect(_selectionRect.normalized());
-        _selectionRect = {};
+        const QRect rect = _mapToOutputRect(
+            _overlayWidget->zoomSelectionRect().normalized()
+        );
+        _overlayWidget->clearZoomSelection();
         if (mouseGrabber() == this) {
             releaseMouse();
         }
@@ -480,13 +462,14 @@ void ViewportWindow::mouseReleaseEvent(QMouseEvent *event) {
 
         _zoomOutPending = false;
         _updateCursor();
-        update();
+        refreshOverlay();
         return;
     }
 
     if (_zoomOutPending && event->button() == Qt::RightButton) {
         _zoomOutPending = false;
         _host->zoomAtPixel(_mapToOutputPixel(mousePos), false);
+        refreshOverlay();
     }
 }
 
@@ -516,39 +499,19 @@ void ViewportWindow::wheelEvent(QWheelEvent *event) {
     }
 
     if (mode == NavMode::zoom) {
-        const bool resizeSelection
-            = !_selectionRect.isNull() && (event->buttons() & Qt::LeftButton);
+        const bool resizeSelection = _overlayWidget
+            && _overlayWidget->hasZoomSelection()
+            && (event->buttons() & Qt::LeftButton);
         if (!resizeSelection) {
             event->accept();
             return;
         }
 
-        const QRect current = _selectionRect.normalized();
-        const QPointF center = current.center();
         const double factor = zoomIn ? 0.9 : 1.1;
-        const double maxWidth = std::max(2.0, static_cast<double>(width() - 2));
-        const double maxHeight
-            = std::max(2.0, static_cast<double>(height() - 2));
-        const double nextWidth
-            = std::clamp(current.width() * factor, 2.0, maxWidth);
-        const double nextHeight
-            = std::clamp(current.height() * factor, 2.0, maxHeight);
-        QRect scaled(
-            static_cast<int>(std::lround(center.x() - nextWidth / 2.0)),
-            static_cast<int>(std::lround(center.y() - nextHeight / 2.0)),
-            std::max(2, static_cast<int>(std::lround(nextWidth))),
-            std::max(2, static_cast<int>(std::lround(nextHeight)))
-        );
-        const QRect bounds(0, 0, std::max(1, width()), std::max(1, height()));
-        scaled = scaled.intersected(bounds);
-        if (scaled.width() < 2 || scaled.height() < 2) {
+        if (!_overlayWidget || !_overlayWidget->scaleZoomSelection(factor)) {
             event->accept();
             return;
         }
-
-        _selectionOrigin = scaled.topLeft();
-        _selectionRect = QRect(_selectionOrigin, scaled.bottomRight());
-        update();
         event->accept();
         return;
     }
@@ -661,6 +624,7 @@ void ViewportWindow::leaveEvent(QEvent *) {
 
 void ViewportWindow::resizeEvent(QResizeEvent *event) {
     QWidget::resizeEvent(event);
+    refreshOverlay();
     if (_fullscreenTransitionPending) {
         _fullscreenResizeTimer.start();
         return;
@@ -798,21 +762,17 @@ void ViewportWindow::closeEvent(QCloseEvent *event) {
 }
 
 void ViewportWindow::cycleGridMode() {
-    int idx = 0;
-    while (idx < static_cast<int>(Constants::gridModes.size())
-        && Constants::gridModes[idx] != _gridDivisions) {
-        idx++;
+    if (_overlayWidget) {
+        _overlayWidget->cycleGridMode();
     }
-    idx = (idx + 1) % static_cast<int>(Constants::gridModes.size());
-
-    _gridDivisions = Constants::gridModes[idx];
-    update();
 }
 
 void ViewportWindow::toggleMinimalUI() {
-    _minimalUI = !_minimalUI;
+    if (_overlayWidget) {
+        _overlayWidget->toggleMinimalUI();
+    }
     _updateCursor();
-    update();
+    refreshOverlay();
 }
 
 void ViewportWindow::toggleFullscreen() {
@@ -918,11 +878,14 @@ void ViewportWindow::_stopRealtimeZoom() {
 }
 
 bool ViewportWindow::_canBeginPanInteraction() const {
-    return !_panning && !_rtZoomTimer.isActive() && _selectionRect.isNull()
+    return !_panning && !_rtZoomTimer.isActive()
+        && !(_overlayWidget && _overlayWidget->hasZoomSelection())
         && !_zoomOutDragActive;
 }
 
 void ViewportWindow::_beginPanInteraction(Qt::MouseButton button) {
+    if (!_canBeginPanInteraction()) return;
+
     _panning = true;
     _panButton = button;
     if (_host) {
@@ -930,7 +893,9 @@ void ViewportWindow::_beginPanInteraction(Qt::MouseButton button) {
     }
     _dragOrigin = _lastMousePos;
     _panOffset = {};
-    _selectionRect = {};
+    if (_overlayWidget) {
+        _overlayWidget->clearZoomSelection();
+    }
     _resetZoomOutDragState();
     _stopRealtimeZoom();
     _panRedrawTimer.stop();
@@ -939,7 +904,7 @@ void ViewportWindow::_beginPanInteraction(Qt::MouseButton button) {
     _panRedrawTimer.start();
     grabMouse();
     _updateCursor();
-    update();
+    refreshOverlay();
 }
 
 void ViewportWindow::_endPanInteraction() {
@@ -954,7 +919,7 @@ void ViewportWindow::_endPanInteraction() {
         releaseMouse();
     }
     _updateCursor();
-    update();
+    refreshOverlay();
 }
 
 void ViewportWindow::_beginRealtimeZoom(bool zoomIn) {
@@ -978,7 +943,7 @@ bool ViewportWindow::_handleArrowPanKeyPress(QKeyEvent *event) {
     if (!_host || _effectiveMode() != NavMode::pan) {
         return false;
     }
-    if (_zoomOutDragActive || !_selectionRect.isNull()
+    if (_zoomOutDragActive || (_overlayWidget && _overlayWidget->hasZoomSelection())
         || _rtZoomTimer.isActive()) {
         return false;
     }
@@ -1055,7 +1020,8 @@ void ViewportWindow::_applyArrowPanStep() {
         _arrowPanTimer.stop();
         return;
     }
-    if (_zoomOutDragActive || !_selectionRect.isNull() || _rtZoomTimer.isActive()) {
+    if (_zoomOutDragActive || (_overlayWidget && _overlayWidget->hasZoomSelection())
+        || _rtZoomTimer.isActive()) {
         return;
     }
 
@@ -1087,30 +1053,6 @@ void ViewportWindow::_applyArrowPanStep() {
                 * Constants::boostedPanSpeedFactor)));
     }
     _host->panByPixels(QPoint(xDir * step, yDir * step));
-}
-
-void ViewportWindow::_drawGrid(QPainter &painter) {
-    if (_gridDivisions <= 1) return;
-
-    const QRect area = rect();
-    if (area.width() <= 1 || area.height() <= 1) return;
-
-    painter.save();
-    painter.setRenderHint(QPainter::Antialiasing, false);
-    painter.setPen(QPen(QColor(255, 255, 255, 110), 1.0));
-
-    for (int i = 1; i < _gridDivisions; i++) {
-        const int x = static_cast<int>(std::lround(
-            static_cast<double>(area.width()) * i / _gridDivisions
-        ));
-        const int y = static_cast<int>(std::lround(
-            static_cast<double>(area.height()) * i / _gridDivisions
-        ));
-        painter.drawLine(x, area.top(), x, area.bottom());
-        painter.drawLine(area.left(), y, area.right(), y);
-    }
-
-    painter.restore();
 }
 
 void ViewportWindow::_updateWindowTitle() {
@@ -1196,7 +1138,7 @@ NavMode ViewportWindow::_effectiveMode() const {
 }
 
 void ViewportWindow::_updateCursor() {
-    if (_minimalUI) {
+    if (_overlayWidget && _overlayWidget->minimalUIEnabled()) {
         setCursor(Qt::BlankCursor);
         return;
     }
@@ -1241,7 +1183,7 @@ void ViewportWindow::_commitZoomOutPreview() {
     _zoomOutPreviewScale = 1.0;
     _zoomOutPendingCommit = false;
     _host->scaleAtPixel(_mapToOutputPixel(viewportCenter), scaleMultiplier);
-    update();
+    refreshPreviewTransform();
 }
 
 void ViewportWindow::_applyRealtimeZoomStep(bool firstStep) {

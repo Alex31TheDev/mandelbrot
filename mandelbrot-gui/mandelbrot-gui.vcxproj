@@ -161,6 +161,10 @@
     <QtMoc Include="widgets\PalettePreviewWidget.h" />
     <QtMoc Include="widgets\PaletteTimelineWidget.h" />
     <QtMoc Include="widgets\SinePreviewWidget.h" />
+    <ClInclude Include="widgets\ViewportGridOverlayWidget.h" />
+    <ClInclude Include="widgets\ViewportOverlayWidget.h" />
+    <ClInclude Include="widgets\ViewportStatusOverlayWidget.h" />
+    <ClInclude Include="widgets\ViewportZoomOverlayWidget.h" />
     <ClCompile Include="settings\AppSettings.cpp" />
     <ClCompile Include="services\NativeFileDialog.cpp" />
     <ClCompile Include="services\PaletteStore.cpp" />
@@ -188,6 +192,10 @@
     <ClCompile Include="widgets\PalettePreviewWidget.cpp" />
     <ClCompile Include="widgets\PaletteTimelineWidget.cpp" />
     <ClCompile Include="widgets\SinePreviewWidget.cpp" />
+    <ClCompile Include="widgets\ViewportGridOverlayWidget.cpp" />
+    <ClCompile Include="widgets\ViewportOverlayWidget.cpp" />
+    <ClCompile Include="widgets\ViewportStatusOverlayWidget.cpp" />
+    <ClCompile Include="widgets\ViewportZoomOverlayWidget.cpp" />
     <ClCompile Include="main.cpp" />
     <ResourceCompile Include="mandelbrot-gui.rc" />
   </ItemGroup>
@@ -226,6 +234,7 @@
   <ItemGroup>
     <QtUic Include="windows\control\ControlWindow.ui" />
     <QtUic Include="windows\viewport\ViewportWindow.ui" />
+    <QtUic Include="widgets\ViewportOverlayWidget.ui" />
     <QtUic Include="dialogs\about\AboutDialog.ui" />
     <QtUic Include="dialogs\help\HelpDialog.ui" />
     <QtUic Include="dialogs\palette\PaletteDialog.ui" />

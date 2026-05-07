@@ -9,7 +9,7 @@
         <translation>About Mandelbrot GUI</translation>
     </message>
     <message>
-        <location line="+108"/>
+        <location line="+117"/>
         <source>Mandelbrot GUI</source>
         <translation>Mandelbrot GUI</translation>
     </message>
@@ -23,24 +23,45 @@
         <source>Desktop fractal renderer</source>
         <translation>Desktop fractal renderer</translation>
     </message>
+    <message>
+        <location line="+7"/>
+        <source>Version 0.0.0</source>
+        <translation>Version 0.0.0</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Qt runtime 0.0.0</source>
+        <translation>Qt runtime 0.0.0</translation>
+    </message>
+    <message>
+        <location filename="../dialogs/about/AboutDialog.cpp" line="+13"/>
+        <source>Version %1</source>
+        <translation>Version %1</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Qt runtime %1</source>
+        <translation>Qt runtime %1</translation>
+    </message>
 </context>
 <context>
     <name>BackendCatalog</name>
     <message>
-        <location filename="../services/BackendCatalog.cpp" line="+38"/>
+        <location filename="../services/BackendCatalog.cpp" line="+39"/>
         <source>Backend directory was not found.</source>
-        <translation type="unfinished"></translation>
+        <translation>Backend directory was not found.</translation>
     </message>
     <message>
-        <location line="+30"/>
+        <location line="+31"/>
         <source>No backend DLLs were found in the backends directory.</source>
-        <translation type="unfinished"></translation>
+        <translation>No backend DLLs were found in the backends directory.</translation>
     </message>
 </context>
 <context>
     <name>ControlWindow</name>
     <message>
         <location filename="../windows/control/ControlWindow.ui" line="+14"/>
+        <location filename="../windows/control/ControlWindow.cpp" line="+993"/>
         <source>Control</source>
         <translation>Control</translation>
     </message>
@@ -73,20 +94,20 @@
     </message>
     <message>
         <location line="+10"/>
-        <location line="+1109"/>
-        <location filename="../windows/control/ControlWindow.cpp" line="+671"/>
+        <location line="+1141"/>
+        <location filename="../windows/control/ControlWindow.cpp" line="-140"/>
         <source>Render</source>
         <translation>Render</translation>
     </message>
     <message>
-        <location line="-1097"/>
+        <location line="-1129"/>
         <source>Backend</source>
         <translation>Backend</translation>
     </message>
     <message>
         <location line="+23"/>
-        <location filename="../windows/control/ControlWindow.cpp" line="-533"/>
-        <location line="+555"/>
+        <location filename="../windows/control/ControlWindow.cpp" line="-638"/>
+        <location line="+660"/>
         <source>Iterations</source>
         <translation>Iterations</translation>
     </message>
@@ -130,12 +151,12 @@
     </message>
     <message>
         <location line="-546"/>
-        <location line="+739"/>
+        <location line="+780"/>
         <source>Zoom</source>
         <translation>Zoom</translation>
     </message>
     <message>
-        <location line="-729"/>
+        <location line="-770"/>
         <source>Seed Real</source>
         <translation>Seed Real</translation>
     </message>
@@ -146,13 +167,13 @@
     </message>
     <message>
         <location line="+12"/>
-        <location line="+927"/>
+        <location line="+959"/>
         <location filename="../windows/control/ControlWindow.cpp" line="-18"/>
         <source>Save View</source>
         <translation>Save View</translation>
     </message>
     <message>
-        <location line="-920"/>
+        <location line="-952"/>
         <source>Load View</source>
         <translation>Load View</translation>
     </message>
@@ -225,19 +246,19 @@
     <message>
         <location line="+23"/>
         <location line="+77"/>
-        <location line="+308"/>
+        <location line="+349"/>
         <source>Save</source>
         <translation>Save</translation>
     </message>
     <message>
-        <location line="-360"/>
+        <location line="-401"/>
         <source>Drag the middle to pan the range. Drag the edges to resize it.</source>
         <translation>Drag the middle to pan the range. Drag the edges to resize it.</translation>
     </message>
     <message>
         <location line="+10"/>
-        <location filename="../windows/control/ControlWindow.cpp" line="-536"/>
-        <location line="+556"/>
+        <location filename="../windows/control/ControlWindow.cpp" line="-641"/>
+        <location line="+661"/>
         <source>Palette</source>
         <translation>Palette</translation>
     </message>
@@ -258,8 +279,8 @@
     </message>
     <message>
         <location line="+45"/>
-        <location filename="../windows/control/ControlWindow.cpp" line="-556"/>
-        <location line="+557"/>
+        <location filename="../windows/control/ControlWindow.cpp" line="-661"/>
+        <location line="+662"/>
         <source>Light</source>
         <translation>Light</translation>
     </message>
@@ -304,14 +325,24 @@
         <translation>Render: -  Output: -</translation>
     </message>
     <message>
+        <location line="+7"/>
+        <source>Viewport Scale</source>
+        <translation>Viewport Scale</translation>
+    </message>
+    <message>
+        <location line="+34"/>
+        <source>%</source>
+        <translation>%</translation>
+    </message>
+    <message>
         <location line="+41"/>
-        <location line="+284"/>
+        <location line="+275"/>
         <location filename="../windows/control/ControlWindow.cpp" line="-11"/>
         <source>Calculate</source>
         <translation>Calculate</translation>
     </message>
     <message>
-        <location line="-277"/>
+        <location line="-268"/>
         <source>Home</source>
         <translation>Home</translation>
     </message>
@@ -326,7 +357,7 @@
         <translation>0 pixels/s</translation>
     </message>
     <message>
-        <location line="+73"/>
+        <location line="+64"/>
         <location filename="../windows/control/ControlWindow.cpp" line="-16"/>
         <source>File</source>
         <translation>File</translation>
@@ -424,67 +455,67 @@
         <translation>About</translation>
     </message>
     <message>
-        <location line="-1161"/>
+        <location line="-1193"/>
         <source>Auto</source>
         <translation>Auto</translation>
     </message>
     <message>
-        <location filename="../windows/control/ControlWindow.cpp" line="-550"/>
-        <location line="+556"/>
+        <location filename="../windows/control/ControlWindow.cpp" line="-655"/>
+        <location line="+661"/>
         <source>Smooth Iterations</source>
         <translation>Smooth Iterations</translation>
     </message>
     <message>
-        <location line="-553"/>
-        <location line="+558"/>
+        <location line="-658"/>
+        <location line="+663"/>
         <source>Mandelbrot</source>
         <translation>Mandelbrot</translation>
     </message>
     <message>
-        <location line="-558"/>
-        <location line="+559"/>
+        <location line="-663"/>
+        <location line="+664"/>
         <source>Perpendicular</source>
         <translation>Perpendicular</translation>
     </message>
     <message>
-        <location line="-559"/>
-        <location line="+560"/>
+        <location line="-664"/>
+        <location line="+665"/>
         <source>Burning Ship</source>
         <translation>Burning Ship</translation>
     </message>
     <message>
-        <location line="-559"/>
-        <location line="+562"/>
+        <location line="-663"/>
+        <location line="+666"/>
         <source>Realtime Zoom</source>
         <translation>Realtime Zoom</translation>
     </message>
     <message>
-        <location line="-562"/>
-        <location line="+563"/>
+        <location line="-666"/>
+        <location line="+667"/>
         <source>Box Zoom</source>
         <translation>Box Zoom</translation>
     </message>
     <message>
-        <location line="-563"/>
-        <location line="+564"/>
+        <location line="-667"/>
+        <location line="+668"/>
         <source>Pan</source>
         <translation>Pan</translation>
     </message>
     <message>
-        <location line="-562"/>
-        <location line="+565"/>
+        <location line="-666"/>
+        <location line="+669"/>
         <source>Zoom Point</source>
         <translation>Zoom Point</translation>
     </message>
     <message>
-        <location line="-565"/>
-        <location line="+566"/>
+        <location line="-669"/>
+        <location line="+670"/>
         <source>Seed Point</source>
         <translation>Seed Point</translation>
     </message>
     <message>
-        <location line="-566"/>
-        <location line="+567"/>
+        <location line="-670"/>
+        <location line="+671"/>
         <source>Light Point</source>
         <translation>Light Point</translation>
     </message>
@@ -492,7 +523,7 @@
 <context>
     <name>GUI::Util</name>
     <message>
-        <location filename="../util/GUIUtil.cpp" line="+30"/>
+        <location filename="../util/GUIUtil.cpp" line="+35"/>
         <source>+ New</source>
         <translation>+ New</translation>
     </message>
@@ -502,24 +533,24 @@
         <translation> (unsaved)</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+103"/>
         <source>0 pixels/s</source>
         <translation>0 pixels/s</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Render: -  Output: -</source>
-        <translation type="unfinished">Render: -  Output: -</translation>
+        <translation>Render: -  Output: -</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>- FPS</source>
-        <translation type="unfinished"></translation>
+        <translation>- FPS</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>%1 FPS</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 FPS</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -527,12 +558,12 @@
         <translation>%1 pixels/s</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+9"/>
         <source>Render: %1</source>
         <translation>Render: %1</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+6"/>
         <source>Render: %1  Output: %2</source>
         <translation>Render: %1  Output: %2</translation>
     </message>
@@ -540,18 +571,18 @@
 <context>
     <name>GUIAppController</name>
     <message>
-        <location filename="../app/GUIAppController.cpp" line="+50"/>
-        <location line="+319"/>
+        <location filename="../app/GUIAppController.cpp" line="+217"/>
+        <location line="+410"/>
         <source>Backend</source>
-        <translation type="unfinished">Backend</translation>
+        <translation>Backend</translation>
     </message>
     <message>
-        <location line="-143"/>
+        <location line="-190"/>
         <source>Render</source>
-        <translation type="unfinished">Render</translation>
+        <translation>Render</translation>
     </message>
     <message>
-        <location line="+52"/>
+        <location line="+60"/>
         <source>Clear Saved Settings</source>
         <translation>Clear Saved Settings</translation>
     </message>
@@ -561,280 +592,282 @@
         <translation>This will remove the persisted GUI settings and close the application. Continue?</translation>
     </message>
     <message>
-        <location line="+77"/>
+        <location line="+114"/>
         <source>Saved: %1</source>
-        <translation type="unfinished">Saved: %1</translation>
+        <translation>Saved: %1</translation>
     </message>
     <message>
         <location line="+8"/>
         <source>Ready</source>
-        <translation type="unfinished">Ready</translation>
+        <translation>Ready</translation>
     </message>
     <message>
-        <location line="+110"/>
+        <location line="+144"/>
         <location line="+8"/>
         <source>Settings</source>
-        <translation type="unfinished">Settings</translation>
+        <translation>Settings</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>The selected language could not be loaded.</source>
-        <translation type="unfinished">The selected language could not be loaded.</translation>
+        <translation>The selected language could not be loaded.</translation>
     </message>
     <message>
-        <location line="+24"/>
-        <location line="+14"/>
+        <location line="+25"/>
+        <location line="+16"/>
         <source>Save</source>
-        <translation type="unfinished">Save</translation>
+        <translation>Save</translation>
     </message>
     <message>
         <location line="+10"/>
         <source>Color</source>
-        <translation type="unfinished">Color</translation>
+        <translation>Color</translation>
     </message>
     <message>
-        <location line="+33"/>
-        <location line="+7"/>
-        <location line="+20"/>
+        <location line="+39"/>
+        <location line="+8"/>
+        <location line="+22"/>
+        <location line="+335"/>
         <source>Save View</source>
-        <translation type="unfinished">Save View</translation>
+        <translation>Save View</translation>
     </message>
     <message>
-        <location line="-22"/>
+        <location line="-360"/>
         <source>View</source>
-        <translation type="unfinished">View</translation>
+        <translation>View</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <location line="+36"/>
+        <location line="+4"/>
+        <location line="+39"/>
         <source>View Files (*.txt);;All Files (*.*)</source>
-        <translation type="unfinished">View Files (*.txt);;All Files (*.*)</translation>
+        <translation>View Files (*.txt);;All Files (*.*)</translation>
     </message>
     <message>
         <location line="-6"/>
         <location line="+5"/>
         <location line="+7"/>
         <source>Load View</source>
-        <translation type="unfinished">Load View</translation>
+        <translation>Load View</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+26"/>
         <source>Import Sine Color</source>
-        <translation type="unfinished">Import Sine Color</translation>
+        <translation>Import Sine Color</translation>
     </message>
     <message>
         <location line="+1"/>
+        <location line="+48"/>
         <source>Sine Files (*.txt);;All Files (*.*)</source>
-        <translation type="unfinished">Sine Files (*.txt);;All Files (*.*)</translation>
+        <translation>Sine Files (*.txt);;All Files (*.*)</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="-41"/>
         <location line="+5"/>
-        <location line="+9"/>
-        <location line="+220"/>
+        <location line="+10"/>
+        <location line="+233"/>
         <source>Sine Color</source>
-        <translation type="unfinished">Sine Color</translation>
+        <translation>Sine Color</translation>
     </message>
     <message>
-        <location line="-198"/>
-        <location line="+6"/>
-        <location line="+8"/>
-        <location line="+7"/>
+        <location line="-216"/>
+        <location line="+5"/>
+        <location line="+17"/>
         <source>Save Sine Color</source>
-        <translation type="unfinished">Save Sine Color</translation>
+        <translation>Save Sine Color</translation>
     </message>
     <message>
-        <location line="-21"/>
-        <location line="+68"/>
-        <source>Name</source>
-        <translation type="unfinished">Name</translation>
+        <location line="+224"/>
+        <source>Current view has unsaved changes. Save it before closing?</source>
+        <translation>Current view has unsaved changes. Save it before closing?</translation>
     </message>
     <message>
-        <location line="-67"/>
+        <location line="-238"/>
         <source>sine</source>
-        <translation type="unfinished">sine</translation>
+        <translation>sine</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <location line="+68"/>
+        <location line="-1"/>
+        <location line="+60"/>
         <source>Use an ASCII name with letters, numbers, spaces, ., _, or -.</source>
-        <translation type="unfinished">Use an ASCII name with letters, numbers, spaces, ., _, or -.</translation>
+        <translation>Use an ASCII name with letters, numbers, spaces, ., _, or -.</translation>
     </message>
     <message>
-        <location line="-42"/>
-        <source>Load Palette</source>
-        <translation type="unfinished">Load Palette</translation>
+        <location line="-62"/>
+        <source>Save Sine Color As</source>
+        <translation>Save Sine Color As</translation>
     </message>
     <message>
         <location line="+1"/>
+        <source>Sine &quot;%1&quot; already exists. Overwrite it?</source>
+        <translation>Sine &quot;%1&quot; already exists. Overwrite it?</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Load Palette</source>
+        <translation>Load Palette</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <location line="+33"/>
         <source>Palette Files (*.txt);;All Files (*.*)</source>
-        <translation type="unfinished">Palette Files (*.txt);;All Files (*.*)</translation>
+        <translation>Palette Files (*.txt);;All Files (*.*)</translation>
     </message>
     <message>
-        <location line="+11"/>
-        <location line="+163"/>
+        <location line="-22"/>
+        <location line="+180"/>
         <source>Palette</source>
-        <translation type="unfinished">Palette</translation>
+        <translation>Palette</translation>
     </message>
     <message>
-        <location line="-140"/>
-        <location line="+6"/>
-        <location line="+10"/>
+        <location line="-162"/>
+        <location line="+18"/>
         <source>Save Palette</source>
-        <translation type="unfinished">Save Palette</translation>
+        <translation>Save Palette</translation>
     </message>
     <message>
-        <location line="-15"/>
+        <location line="-18"/>
+        <source>Save Palette As</source>
+        <translation>Save Palette As</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Palette &quot;%1&quot; already exists. Overwrite it?</source>
+        <translation>Palette &quot;%1&quot; already exists. Overwrite it?</translation>
+    </message>
+    <message>
+        <location line="+2"/>
         <source>palette</source>
-        <translation type="unfinished">palette</translation>
+        <translation>palette</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="-383"/>
+        <location line="+440"/>
         <source>New Sine</source>
         <translation>New Sine</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="-427"/>
+        <location line="+441"/>
         <source>New Palette</source>
         <translation>New Palette</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+27"/>
         <source>Sine file not found: %1</source>
-        <translation type="unfinished">Sine file not found: %1</translation>
+        <translation>Sine file not found: %1</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="+51"/>
         <source>Current sine palette has unsaved changes. Discard them?</source>
-        <translation type="unfinished">Current sine palette has unsaved changes. Discard them?</translation>
+        <translation>Current sine palette has unsaved changes. Discard them?</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+11"/>
         <source>Current palette has unsaved changes. Discard them?</source>
-        <translation type="unfinished">Current palette has unsaved changes. Discard them?</translation>
+        <translation>Current palette has unsaved changes. Discard them?</translation>
     </message>
 </context>
 <context>
     <name>HelpDialog</name>
     <message>
-        <location filename="../dialogs/help/HelpDialog.ui" line="+14"/>
+        <location filename="../dialogs/help/HelpDialog.ui" line="+20"/>
         <source>Help</source>
         <translation>Help</translation>
     </message>
     <message>
-        <location filename="../dialogs/help/HelpDialog.cpp" line="+15"/>
-        <source>Use the control window to edit render parameters, colors, output settings, and saved views. Use the viewport window to inspect the image and navigate through the fractal.</source>
-        <translation>Use the control window to edit render parameters, colors, output settings, and saved views. Use the viewport window to inspect the image and navigate through the fractal.</translation>
+        <location line="+27"/>
+        <source>Contents</source>
+        <translation>Contents</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <source>Left click uses the current navigation mode.&lt;br/&gt;Right click zooms out in zoom modes or pans in Pan mode.&lt;br/&gt;Mouse wheel zooms around the pointer.&lt;br/&gt;Middle-button drag temporarily pans in any mode while held.</source>
-        <translation>Left click uses the current navigation mode.&lt;br/&gt;Right click zooms out in zoom modes or pans in Pan mode.&lt;br/&gt;Mouse wheel zooms around the pointer.&lt;br/&gt;Middle-button drag temporarily pans in any mode while held.</translation>
+        <location line="+19"/>
+        <source>Index</source>
+        <translation>Index</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Filter topics</source>
+        <translation>Filter topics</translation>
+    </message>
+    <message>
+        <location line="+49"/>
+        <source>Back</source>
+        <translation>Back</translation>
     </message>
     <message>
         <location line="+5"/>
-        <source>Realtime Zoom continuously zooms while the mouse button is held.&lt;br/&gt;Box Zoom draws a rectangle and fits that area into the viewport.&lt;br/&gt;Pan drags the current view without changing the zoom target.</source>
-        <translation>Realtime Zoom continuously zooms while the mouse button is held.&lt;br/&gt;Box Zoom draws a rectangle and fits that area into the viewport.&lt;br/&gt;Pan drags the current view without changing the zoom target.</translation>
-    </message>
-    <message>
-        <location line="+4"/>
-        <source>Render starts a new image with the current settings.&lt;br/&gt;Home restores the default view.&lt;br/&gt;Zoom moves toward the center of the current viewport.&lt;br/&gt;Save writes the current image to disk.</source>
-        <translation>Render starts a new image with the current settings.&lt;br/&gt;Home restores the default view.&lt;br/&gt;Zoom moves toward the center of the current viewport.&lt;br/&gt;Save writes the current image to disk.</translation>
+        <source>Forward</source>
+        <translation>Forward</translation>
     </message>
     <message>
         <location line="+5"/>
-        <source>Open Settings to review or change shortcuts, save locations, language, viewport overlays, output sizing defaults, and interaction tuning.</source>
-        <translation>Open Settings to review or change shortcuts, save locations, language, viewport overlays, output sizing defaults, and interaction tuning.</translation>
+        <source>Home</source>
+        <translation>Home</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Views save and load the current location and zoom. Palette and sine-color presets can be saved, imported, and reused from their editors.</source>
-        <translation>Views save and load the current location and zoom. Palette and sine-color presets can be saved, imported, and reused from their editors.</translation>
+        <location filename="../dialogs/help/HelpDialog.cpp" line="+105"/>
+        <source>Help setup failed: %1</source>
+        <translation>Help setup failed: %1</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>Using the interface</source>
-        <translation>Using the interface</translation>
+        <location line="+7"/>
+        <source>Help file not found: %1</source>
+        <translation>Help file not found: %1</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Overview</source>
-        <translation>Overview</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Mouse navigation</source>
-        <translation>Mouse navigation</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Navigation modes</source>
-        <translation>Navigation modes</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Main actions</source>
-        <translation>Main actions</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Settings</source>
-        <translation>Settings</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Files and presets</source>
-        <translation>Files and presets</translation>
+        <location line="+16"/>
+        <source>Help registration failed: %1</source>
+        <translation>Help registration failed: %1</translation>
     </message>
 </context>
 <context>
     <name>NativeFileDialog</name>
     <message>
-        <location filename="../services/NativeFileDialog.cpp" line="+291"/>
-        <location line="+107"/>
+        <location filename="../services/NativeFileDialog.cpp" line="+298"/>
+        <location line="+110"/>
         <source>Save Image</source>
-        <translation type="unfinished">Save Image</translation>
+        <translation>Save Image</translation>
     </message>
     <message>
-        <location line="-105"/>
+        <location line="-108"/>
         <source>PNG Files (*.png)</source>
-        <translation type="unfinished"></translation>
+        <translation>PNG Files (*.png)</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>JPEG Files (*.jpg;*.jpeg)</source>
-        <translation type="unfinished"></translation>
+        <translation>JPEG Files (*.jpg;*.jpeg)</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Bitmap Files (*.bmp)</source>
-        <translation type="unfinished"></translation>
+        <translation>Bitmap Files (*.bmp)</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+4"/>
         <source>Append Date</source>
-        <translation type="unfinished"></translation>
+        <translation>Append Date</translation>
     </message>
     <message>
-        <location line="+100"/>
+        <location line="+101"/>
         <source>PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)</source>
-        <translation type="unfinished"></translation>
+        <translation>PNG Files (*.png);;JPEG Files (*.jpg *.jpeg);;Bitmap Files (*.bmp)</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+10"/>
         <source>Append date to filename?</source>
-        <translation type="unfinished"></translation>
+        <translation>Append date to filename?</translation>
     </message>
 </context>
 <context>
     <name>PaletteDialog</name>
     <message>
         <location filename="../dialogs/palette/PaletteDialog.ui" line="+14"/>
-        <location filename="../dialogs/palette/PaletteDialog.cpp" line="+144"/>
+        <location filename="../dialogs/palette/PaletteDialog.cpp" line="+153"/>
         <location line="+16"/>
         <location line="+8"/>
         <location line="+13"/>
-        <location line="+20"/>
+        <location line="+21"/>
         <location line="+8"/>
         <location line="+8"/>
         <source>Palette</source>
@@ -872,7 +905,7 @@
     </message>
     <message>
         <location line="+7"/>
-        <location filename="../dialogs/palette/PaletteDialog.cpp" line="-92"/>
+        <location filename="../dialogs/palette/PaletteDialog.cpp" line="-93"/>
         <source>Color</source>
         <translation>Color</translation>
     </message>
@@ -916,44 +949,44 @@
 <context>
     <name>PaletteStore</name>
     <message>
-        <location filename="../services/PaletteStore.cpp" line="+62"/>
+        <location filename="../services/PaletteStore.cpp" line="+85"/>
         <source>Failed to create palette directory: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to create palette directory: %1</translation>
     </message>
     <message>
         <location line="+36"/>
         <source>palette</source>
-        <translation type="unfinished">palette</translation>
+        <translation>palette</translation>
     </message>
     <message>
-        <location line="+78"/>
+        <location line="+88"/>
         <source>Palette name is empty.</source>
-        <translation type="unfinished"></translation>
+        <translation>Palette name is empty.</translation>
     </message>
     <message>
         <location line="+10"/>
         <source>Palette not found: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Palette not found: %1</translation>
     </message>
     <message>
-        <location line="+33"/>
-        <location line="+19"/>
+        <location line="+39"/>
+        <location line="+23"/>
         <source>Use an ASCII name with letters, numbers, spaces, ., _, or -.</source>
-        <translation type="unfinished">Use an ASCII name with letters, numbers, spaces, ., _, or -.</translation>
+        <translation>Use an ASCII name with letters, numbers, spaces, ., _, or -.</translation>
     </message>
 </context>
 <context>
     <name>PointStore</name>
     <message>
-        <location filename="../services/PointStore.cpp" line="+22"/>
+        <location filename="../services/PointStore.cpp" line="+24"/>
         <source>Failed to create views directory: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to create views directory: %1</translation>
     </message>
 </context>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../settings/Shortcuts.cpp" line="+91"/>
+        <location filename="../settings/Shortcuts.cpp" line="+89"/>
         <source>%1 cannot be empty.</source>
         <translation>%1 cannot be empty.</translation>
     </message>
@@ -962,28 +995,33 @@
         <source>%1 and %2 both use %3.</source>
         <translation>%1 and %2 both use %3.</translation>
     </message>
+    <message>
+        <location filename="../app/GUIAppController.cpp" line="-1100"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
 </context>
 <context>
     <name>RenderController</name>
     <message>
-        <location filename="../runtime/RenderController.cpp" line="+73"/>
+        <location filename="../runtime/RenderController.cpp" line="+81"/>
         <source>No backend is selected.</source>
         <translation>No backend is selected.</translation>
     </message>
     <message>
         <location line="+12"/>
         <source>Failed to create backend session.</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to create backend session.</translation>
     </message>
     <message>
         <location line="+6"/>
         <source>Failed to create navigation session.</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to create navigation session.</translation>
     </message>
     <message>
         <location line="+6"/>
         <source>Failed to create preview session.</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to create preview session.</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -993,41 +1031,36 @@
     <message>
         <location line="+5"/>
         <source>Failed to load backend.</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to load backend.</translation>
     </message>
     <message>
-        <location line="+56"/>
-        <location line="+489"/>
+        <location line="+58"/>
+        <location line="+542"/>
         <source>Rendering</source>
         <translation>Rendering</translation>
     </message>
     <message>
-        <location line="-459"/>
+        <location line="-503"/>
         <source>Render cancelled</source>
         <translation>Render cancelled</translation>
     </message>
     <message>
-        <location line="+47"/>
-        <source>No image is available.</source>
-        <translation>No image is available.</translation>
-    </message>
-    <message>
-        <location line="+299"/>
+        <location line="+386"/>
         <source>Iterations: %1 | %2 GI/s</source>
         <translation>Iterations: %1 | %2 GI/s</translation>
     </message>
     <message>
-        <location line="+380"/>
+        <location line="+422"/>
         <source>Backend not loaded.</source>
         <translation>Backend not loaded.</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+8"/>
         <source>Navigation session unavailable.</source>
         <translation>Navigation session unavailable.</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+11"/>
         <source>Backend session unavailable.</source>
         <translation>Backend session unavailable.</translation>
     </message>
@@ -1060,15 +1093,15 @@
         <translation>Shortcuts</translation>
     </message>
     <message>
-        <location filename="../dialogs/settings/SettingsDialog.cpp" line="+19"/>
+        <location filename="../dialogs/settings/SettingsDialog.cpp" line="+22"/>
         <source>English (US)</source>
-        <translation type="unfinished"></translation>
+        <translation>English (US)</translation>
     </message>
 </context>
 <context>
     <name>Shortcuts</name>
     <message>
-        <location filename="../settings/Shortcuts.cpp" line="-90"/>
+        <location filename="../settings/Shortcuts.cpp" line="-88"/>
         <source>Cancel render</source>
         <translation>Cancel render</translation>
     </message>
@@ -1136,7 +1169,7 @@
 <context>
     <name>SinePreviewWidget</name>
     <message>
-        <location filename="../widgets/SinePreviewWidget.cpp" line="+67"/>
+        <location filename="../widgets/SinePreviewWidget.cpp" line="+70"/>
         <source>Range %1 - %2</source>
         <translation>Range %1 - %2</translation>
     </message>
@@ -1144,16 +1177,16 @@
 <context>
     <name>SineStore</name>
     <message>
-        <location filename="../services/SineStore.cpp" line="+68"/>
+        <location filename="../services/SineStore.cpp" line="+78"/>
         <source>Failed to create sine directory: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Failed to create sine directory: %1</translation>
     </message>
 </context>
 <context>
     <name>ViewportController</name>
     <message>
-        <location filename="../controllers/ViewportController.cpp" line="+16"/>
-        <location line="+178"/>
+        <location filename="../controllers/ViewportController.cpp" line="+38"/>
+        <location line="+180"/>
         <source>Mouse: -</source>
         <translation>Mouse: -</translation>
     </message>
@@ -1168,7 +1201,7 @@
         <translation>Mouse: %1, %2  |  %3  %4</translation>
     </message>
     <message>
-        <location line="+85"/>
+        <location line="+206"/>
         <source>  |  %1</source>
         <translation>  |  %1</translation>
     </message>
@@ -1177,7 +1210,7 @@
     <name>ViewportWindow</name>
     <message>
         <location filename="../windows/viewport/ViewportWindow.ui" line="+14"/>
-        <location filename="../windows/viewport/ViewportWindow.cpp" line="+982"/>
+        <location filename="../windows/viewport/ViewportWindow.cpp" line="+1060"/>
         <source>Viewport</source>
         <translation>Viewport</translation>
     </message>

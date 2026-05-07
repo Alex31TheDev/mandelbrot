@@ -23,6 +23,8 @@
 
 #include "ViewportHost.h"
 
+class ViewportOverlayWidget;
+
 namespace Ui {
     class ViewportWindow;
 }
@@ -50,6 +52,11 @@ public:
     [[nodiscard]] GUI::ViewTextState displayedPreviewView() const;
     [[nodiscard]] GUI::ViewTextState targetPreviewView() const;
     [[nodiscard]] std::optional<PreviewTransform> previewTransform() const;
+    void refreshPreviewTransform();
+    void refreshOverlay();
+    [[nodiscard]] bool previewTransformRefreshDeferred() const {
+        return false;
+    }
 
 signals:
     void closeRequested(bool skipDirtyViewPrompt);
@@ -73,15 +80,14 @@ protected:
 private:
     std::unique_ptr<Ui::ViewportWindow> _ui;
     ViewportHost *_host = nullptr;
+    ViewportOverlayWidget *_overlayWidget = nullptr;
     QTimer _rtZoomTimer;
     QTimer _panRedrawTimer;
     QTimer _zoomOutRedrawTimer;
     QTimer _arrowPanTimer;
     QPoint _lastMousePos;
     QPoint _dragOrigin;
-    QPoint _selectionOrigin;
     QPoint _panOffset;
-    QRect _selectionRect;
     std::optional<QPointF> _rtZoomAnchorPixel;
     std::chrono::steady_clock::time_point _rtZoomLastStepAt{};
     bool _rtZoomZoomIn = true;
@@ -98,8 +104,6 @@ private:
     bool _arrowPanDown = false;
     QPoint _zoomOutDragLastPos;
     double _zoomOutPreviewScale = 1.0;
-    int _gridDivisions = 0;
-    bool _minimalUI = false;
     bool _fullscreenManaged = false;
     bool _fullscreenTransitionPending = false;
     bool _closeAllowed = false;
@@ -125,7 +129,6 @@ private:
     bool _handleArrowPanKeyPress(QKeyEvent *event);
     bool _handleArrowPanKeyRelease(QKeyEvent *event);
     void _applyArrowPanStep();
-    void _drawGrid(QPainter &painter);
     void _updateWindowTitle();
     QPoint _clampToOutputPixel(const QPointF &pixel) const;
     QPoint _mapToOutputPixel(const QPoint &logicalPoint) const;

@@ -388,7 +388,13 @@ void GUIAppController::_connectUI() {
         &GUIAppController::_changeLightColor);
 
     connect(&_viewportController, &ViewportController::sessionStateChanged, this,
-        &GUIAppController::_refreshControlState);
+        [this]() {
+            _refreshControlState();
+            if (_viewportWindow
+                && !_viewportWindow->previewTransformRefreshDeferred()) {
+                _viewportWindow->refreshPreviewTransform();
+            }
+        });
     connect(&_viewportController, &ViewportController::renderRequested, this,
         [this]() { _requestRender(); });
     connect(&_viewportController, &ViewportController::renderRequestedWithPickAction,
@@ -418,7 +424,13 @@ void GUIAppController::_connectUI() {
     connect(&_renderController, &RenderController::renderStateChanged, this,
         [this]() {
             _refreshStatus();
-            _viewportWindow->update();
+            if (_viewportWindow
+                && !_viewportWindow->previewTransformRefreshDeferred()) {
+                _viewportWindow->refreshPreviewTransform();
+            }
+            if (_viewportWindow) {
+                _viewportWindow->refreshOverlay();
+            }
         });
     connect(&_renderController, &RenderController::renderFailed, this,
         [this](const QString &message) {
