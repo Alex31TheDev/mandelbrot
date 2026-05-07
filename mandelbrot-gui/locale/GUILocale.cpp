@@ -22,7 +22,8 @@ bool GUILocale::setLanguage(const QString &language) {
     const std::filesystem::path qmPath = FileUtil::executableDir()
         / "translations"
         / std::filesystem::path(
-            ("mandelbrot_" + _language + ".qm").toStdString());
+            ("mandelbrot_" + _language + ".qm").toStdString()
+        );
     if (!translator->load(QString::fromStdWString(qmPath.wstring()))) {
         _translator.reset();
         return false;

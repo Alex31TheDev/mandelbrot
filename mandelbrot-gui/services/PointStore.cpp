@@ -6,6 +6,7 @@
 
 #include "parsers/point/PointParser.h"
 #include "parsers/point/PointWriter.h"
+
 #include "util/FileUtil.h"
 
 namespace GUI {
@@ -20,8 +21,8 @@ namespace GUI {
         std::filesystem::create_directories(directoryPath(), ec);
         if (!ec) return true;
 
-        errorMessage = QCoreApplication::translate(
-            "PointStore", "Failed to create views directory: %1")
+        errorMessage = QCoreApplication::translate("PointStore",
+            "Failed to create views directory: %1")
             .arg(QString::fromStdString(ec.message()));
         return false;
     }

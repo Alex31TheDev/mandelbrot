@@ -9,6 +9,7 @@
 #include <QStringList>
 
 #include "BackendAPI.h"
+
 #include "widgets/PaletteTypes.h"
 
 namespace GUI::PaletteStore {

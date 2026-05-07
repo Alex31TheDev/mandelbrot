@@ -39,10 +39,7 @@ namespace QDGlobals {
         invWidth_qd = 1.0 / static_cast<qd_number_t>(width);
         invHeight_qd = 1.0 / static_cast<qd_number_t>(height);
 
-        const qd_number_t zoomPow = pow(
-            qd_number_t(10.0),
-            zoom_qd
-        );
+        const qd_number_t zoomPow = pow(qd_number_t(10.0), zoom_qd);
 
         realScale_qd = 1.0 / zoomPow;
         imagScale_qd = realScale_qd / aspect_qd;

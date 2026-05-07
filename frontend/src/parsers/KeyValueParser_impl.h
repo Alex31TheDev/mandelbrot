@@ -24,7 +24,7 @@ bool KeyValueParser<Output>::_parseFileLine(
     const std::string &line,
     KeyValueMap &values, std::string &err
 ) const {
-    std::istringstream iss{ line };
+    std::istringstream iss(line);
     std::string token;
 
     while (iss >> token) {

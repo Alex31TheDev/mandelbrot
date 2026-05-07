@@ -24,7 +24,8 @@ MarqueeLabel::MarqueeLabel(QWidget *parent)
         QUrl url = QUrl::fromUserInput(link);
         if (url.isLocalFile() || QFileInfo::exists(link)) {
             url = QUrl::fromLocalFile(
-                url.isLocalFile() ? url.toLocalFile() : QFileInfo(link).absoluteFilePath());
+                url.isLocalFile() ? url.toLocalFile() : QFileInfo(link).absoluteFilePath()
+            );
         }
 
         if (url.isValid()) {

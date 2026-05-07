@@ -1,4 +1,6 @@
 {
+    "C_Cpp.formatting": "vcFormat",
+    "editor.formatOnSave": true,
     "VSCodeCounter.languages": {
         "translation": {
             "aliases": ["Translation"],

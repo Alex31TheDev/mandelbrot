@@ -5,6 +5,7 @@
 #include <QString>
 
 #include "BackendAPI.h"
+
 #include "GUITypes.h"
 
 class GUISessionState final : public QObject {

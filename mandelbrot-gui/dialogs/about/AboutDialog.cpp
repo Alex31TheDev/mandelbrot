@@ -5,7 +5,6 @@
 #include <QLabel>
 #include <QtVersion>
 
-
 AboutDialog::AboutDialog(const QIcon &icon, QWidget *parent)
     : QDialog(parent)
     , _ui(std::make_unique<Ui::AboutDialog>()) {

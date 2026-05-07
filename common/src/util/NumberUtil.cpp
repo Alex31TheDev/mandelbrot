@@ -14,7 +14,9 @@ static bool tryParseDouble(std::string_view value, double &out) {
 
     bool ok = false;
     out = ParserUtil::parseNumber<double>(
-        std::string(trimmed), std::ref(ok), 0.0);
+        std::string(trimmed), std::ref(ok), 0.0
+    );
+
     return ok;
 }
 

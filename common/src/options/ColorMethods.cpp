@@ -6,7 +6,7 @@
 #include "util/RangeUtil.h"
 
 namespace ColorMethods {
-    DEFINE_RANGE_ARRAY(ColorMethod, colorMethods,
+    DEFINE_RANGE_ARRAY(ColorMethodOption, colorMethods,
         { "iterations", 0 },
         { "smooth_iterations", 1 },
         { "palette", 2 },
@@ -16,7 +16,9 @@ namespace ColorMethods {
     int parseColorMethod(std::string_view str) {
         colorMethodsRange range{};
         const auto it = std::ranges::find_if(range,
-            [str](const ColorMethod &method) { return str == method.name; });
+            [str](const ColorMethodOption &method) {
+                return str == method.name;
+            });
 
         return (it != range.end()) ? it->id : -1;
     }

@@ -47,8 +47,6 @@ namespace ArgsUsage {
     }
 
     void printTopLevelUsage(const char *progName) {
-        const std::string prefix = currentPrefix();
-
         fprintf(stderr,
             "Usage:\n"
             "  %s <backend> [render args...]\n\n"
@@ -62,11 +60,12 @@ namespace ArgsUsage {
             "Short aliases:\n"
             "  float-scalar, double-scalar, float-avx2, double-avx2, mpfr\n",
             progName ? progName : "mandelbrot-cli",
-            prefix.c_str(),
-            prefix.c_str(),
-            prefix.c_str(),
-            prefix.c_str(),
-            prefix.c_str());
+            currentPrefix().c_str(),
+            currentPrefix().c_str(),
+            currentPrefix().c_str(),
+            currentPrefix().c_str(),
+            currentPrefix().c_str()
+        );
     }
 
     bool printDetailedHelp(int argc, char **argv) {

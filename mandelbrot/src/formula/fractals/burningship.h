@@ -101,10 +101,8 @@ _DERIVATIVE_OPS_FUNC({});
 
 #ifdef USE_MPFR
 
-FORCE_INLINE void normalFormula_burningship_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s
-) {
+FORCE_INLINE void normalFormula_burningship_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
     mpfr_sub(s.t[0], s.zr2, s.zi2, MPFRTypes::ROUNDING);
     mpfr_add(s.t[0], s.t[0], cr, MPFRTypes::ROUNDING);
 
@@ -118,10 +116,8 @@ FORCE_INLINE void normalFormula_burningship_mp(
     mpfr_set(s.zi, s.t[1], MPFRTypes::ROUNDING);
 }
 
-FORCE_INLINE void wholeFormula_burningship_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s
-) {
+FORCE_INLINE void wholeFormula_burningship_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
     mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);
     mpfr_abs(s.t[1], s.zi, MPFRTypes::ROUNDING);
     mpfr_neg(s.t[1], s.t[1], MPFRTypes::ROUNDING);

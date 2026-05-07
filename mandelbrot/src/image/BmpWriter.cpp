@@ -59,9 +59,7 @@ bool writeBmpStream(
        .size = static_cast <uint32_t>(
            sizeof(BmpHeader) + sizeof(DibHeader) + dataSize
            ),
-       .offset = static_cast<uint32_t>(
-           sizeof(BmpHeader) + sizeof(DibHeader)
-           )
+       .offset = static_cast<uint32_t>(sizeof(BmpHeader) + sizeof(DibHeader))
     };
 
     const DibHeader dibHeader = {

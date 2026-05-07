@@ -101,10 +101,8 @@ _DERIVATIVE_OPS_FUNC({});
 
 #ifdef USE_MPFR
 
-FORCE_INLINE void normalFormula_perpendicular_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s
-) {
+FORCE_INLINE void normalFormula_perpendicular_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
     mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);     // pzr = |zr|
     mpfr_neg(s.t[1], s.zi, MPFRTypes::ROUNDING);     // pzi = -zi
 
@@ -118,10 +116,8 @@ FORCE_INLINE void normalFormula_perpendicular_mp(
     mpfr_add(s.zi, s.t[3], ci, MPFRTypes::ROUNDING);
 }
 
-FORCE_INLINE void wholeFormula_perpendicular_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s
-) {
+FORCE_INLINE void wholeFormula_perpendicular_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
     mpfr_abs(s.t[0], s.zr, MPFRTypes::ROUNDING);
     mpfr_neg(s.t[1], s.zi, MPFRTypes::ROUNDING);
     wholePowerCore_mp(s.t[0], s.t[1], static_cast<int>(ScalarGlobals::N), s);

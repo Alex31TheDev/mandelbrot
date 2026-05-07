@@ -168,7 +168,7 @@ Image::Image(bool simdSafe, int32_t aaPixels) {
 
 const uint8_t *Image::outputPixels() const {
     if (!_resolved) resolve();
-    return _getOutputBuffer();
+    return _outputBuffer();
 }
 
 void Image::clear() {
@@ -203,7 +203,7 @@ bool Image::writeToStream(
                 &fout,
                 _outputW, _outputH,
                 STRIDE, outputPixels(),
-                _getOutputStrideW()
+                outputStrideWidth()
             );
         break;
 
@@ -221,7 +221,7 @@ bool Image::writeToStream(
                 fout,
                 outputPixels(),
                 _outputW, _outputH,
-                STRIDE, _getOutputStrideW()
+                STRIDE, outputStrideWidth()
             );
         break;
 

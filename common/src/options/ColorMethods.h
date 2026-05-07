@@ -4,14 +4,21 @@
 
 #include "util/RangeUtil.h"
 
+enum class ColorMethod : int {
+    iterations = 0,
+    smooth_iterations = 1,
+    palette = 2,
+    light = 3
+};
+
 namespace ColorMethods {
-    struct ColorMethod {
+    struct ColorMethodOption {
         const char *name;
         int id;
     };
 
-    DECLARE_RANGE_ARRAY(ColorMethod, colorMethods);
-    const ColorMethod DEFAULT_COLOR_METHOD = colorMethods[1];
+    DECLARE_RANGE_ARRAY(ColorMethodOption, colorMethods);
+    const ColorMethodOption DEFAULT_COLOR_METHOD = colorMethods[1];
 
     int parseColorMethod(std::string_view str);
 }

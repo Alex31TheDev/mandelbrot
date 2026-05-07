@@ -57,7 +57,8 @@ void IterationSpinBox::wheelEvent(QWheelEvent *event) {
     int nextValue = value();
     if (nextValue <= minimum()) {
         nextValue = std::clamp(
-            resolveAutoIterations ? resolveAutoIterations() : 1, 1, maximum());
+            resolveAutoIterations ? resolveAutoIterations() : 1, 1, maximum()
+        );
         setValue(nextValue);
         event->accept();
         return;
@@ -67,7 +68,8 @@ void IterationSpinBox::wheelEvent(QWheelEvent *event) {
         if (steps > 0) {
             nextValue = std::clamp(
                 nextValue > maximum() / 2 ? maximum() : nextValue * 2,
-                minimum(), maximum());
+                minimum(), maximum()
+            );
         } else {
             nextValue = std::clamp(nextValue / 2, 1, maximum());
         }

@@ -3,22 +3,25 @@
 #include <functional>
 #include <memory>
 
+#include <QCloseEvent>
 #include <QColor>
 #include <QComboBox>
-#include <QCloseEvent>
 #include <QEvent>
 #include <QImage>
 #include <QMainWindow>
 #include <QPixmap>
 #include <QShowEvent>
 
+#include "BackendAPI.h"
+
+#include "app/GUISessionState.h"
+#include "app/GUITypes.h"
+
 #include "settings/AppSettings.h"
 #include "settings/Shortcuts.h"
 
-#include "BackendAPI.h"
+#include "options/ColorMethods.h"
 
-#include "app/GUITypes.h"
-#include "app/GUISessionState.h"
 #include "util/GUIUtil.h"
 
 namespace Ui {
@@ -46,6 +49,7 @@ public:
         GUI::SelectionTarget selectionTarget
     );
     void syncToSessionState(GUISessionState &sessionState) const;
+    void syncImageSettingsToSessionState(GUISessionState &sessionState) const;
     void applyShortcuts(const Shortcuts &shortcuts);
     void setIterationAutoResolver(std::function<int()> resolver);
     void restoreWindowSettings(const AppSettings &settings);
@@ -90,6 +94,8 @@ signals:
     void toggleViewportFullscreenRequested();
     void navModeChanged(GUI::NavMode mode);
     void selectionTargetChanged(GUI::SelectionTarget target);
+    void panRateChanged(int value);
+    void zoomRateChanged(int value);
     void sineStateEdited();
     void sineSelectionRequested(const QString &name);
     void newSineRequested();
@@ -141,7 +147,7 @@ private:
     void _connectUI();
     void _retranslateMenus();
     void _retranslateDynamicControls();
-    void _updateModeEnablement(Backend::ColorMethod colorMethod);
+    void _updateModeEnablement(ColorMethod colorMethod);
     void _updateControlWindowSize();
     void _updateWindowTitle();
     void _updateAspectLinkedSizes(bool widthChanged);

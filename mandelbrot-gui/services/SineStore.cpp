@@ -5,13 +5,14 @@
 
 #include <QCoreApplication>
 
-#include "parsers/sine/SineParser.h"
-#include "parsers/sine/SineWriter.h"
-#include "util/NumberUtil.h"
-#include "util/FileUtil.h"
-
 #include "BackendAPI.h"
 using namespace Backend;
+
+#include "parsers/sine/SineParser.h"
+#include "parsers/sine/SineWriter.h"
+
+#include "util/FileUtil.h"
+#include "util/NumberUtil.h"
 
 namespace GUI::SineStore {
     SinePaletteConfig makeNewConfig() {
@@ -74,8 +75,8 @@ namespace GUI::SineStore {
         std::filesystem::create_directories(directoryPath(), ec);
         if (!ec) return true;
 
-        errorMessage = QCoreApplication::translate(
-            "SineStore", "Failed to create sine directory: %1")
+        errorMessage = QCoreApplication::translate("SineStore",
+            "Failed to create sine directory: %1")
             .arg(QString::fromStdString(ec.message()));
         return false;
     }

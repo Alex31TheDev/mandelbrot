@@ -1,10 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 #include <utility>
+
+#include "options/ColorMethods.h"
+#include "options/FractalTypes.h"
 
 namespace Backend {
     struct Status {
@@ -76,28 +79,16 @@ namespace Backend {
         const uint8_t *pixels = nullptr;
         const uint8_t *outputPixels = nullptr;
         float aspect = 0.0f;
+        int32_t tailBytes = 0;
+        int32_t strideWidth = 0;
         int32_t width = 0;
         int32_t height = 0;
         int32_t outputWidth = 0;
         int32_t outputHeight = 0;
-        int32_t strideWidth = 0;
-        int32_t tailBytes = 0;
+        int32_t outputStrideWidth = 0;
         size_t size = 0;
         bool downscaling = false;
         float aaScale = 1.0f;
-    };
-
-    enum class FractalType {
-        mandelbrot = 0,
-        perpendicular = 1,
-        burningship = 2
-    };
-
-    enum class ColorMethod {
-        iterations = 0,
-        smooth_iterations = 1,
-        palette = 2,
-        light = 3
     };
 
     struct LightColor {
@@ -166,11 +157,13 @@ namespace Backend {
             const ViewportState &targetView,
             int pixelX, int pixelY,
             double &mappedX, double &mappedY) = 0;
+
         virtual int currentIterationCount() const = 0;
         virtual int precisionRank() const = 0;
 
         virtual Status setImageSize(int width, int height, int aaPixels) = 0;
         virtual void setUseThreads(bool useThreads) = 0;
+
         virtual Status setZoom(int iterCount, const std::string &zoom) = 0;
         virtual Status setPoint(const std::string &real,
             const std::string &imag) = 0;
@@ -202,7 +195,7 @@ namespace Backend {
         virtual void forceKill() = 0;
 
         virtual ImageView imageView() const = 0;
-        virtual Status saveImage(const std::string &path, bool appendDate,
-            const std::string &type) = 0;
+        virtual Status saveImage(const std::string &path,
+            bool appendDate, const std::string &type) = 0;
     };
 }

@@ -6,7 +6,7 @@
 #include "util/RangeUtil.h"
 
 namespace FractalTypes {
-    DEFINE_RANGE_ARRAY(FractalType, fractalTypes,
+    DEFINE_RANGE_ARRAY(FractalTypeOption, fractalTypes,
         { "mandelbrot", 0 },
         { "perpendicular", 1 },
         { "burningship", 2 }
@@ -15,7 +15,9 @@ namespace FractalTypes {
     int parseFractalType(std::string_view str) {
         fractalTypesRange range{};
         const auto it = std::ranges::find_if(range,
-            [str](const FractalType &type) { return str == type.name; });
+            [str](const FractalTypeOption &type) {
+                return str == type.name;
+            });
 
         return (it != range.end()) ? it->id : -1;
     }

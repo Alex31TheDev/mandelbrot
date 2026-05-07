@@ -225,10 +225,8 @@ FORCE_INLINE void wholePowerCore_mp(mpfr_srcptr pzr, mpfr_srcptr pzi,
     mpfr_set(s.zi, s.t[3], MPFRTypes::ROUNDING);
 }
 
-FORCE_INLINE void fractionalPowerCore_mp(
-    mpfr_srcptr pzr, mpfr_srcptr pzi,
-    mpfr_srcptr N, mpfr_srcptr halfN, MPFRScratch &s
-) {
+FORCE_INLINE void fractionalPowerCore_mp(mpfr_srcptr pzr, mpfr_srcptr pzi,
+    mpfr_srcptr N, mpfr_srcptr halfN, MPFRScratch &s) {
     mpfr_pow(s.t[2], s.mag, halfN, MPFRTypes::ROUNDING);
     mpfr_atan2(s.t[3], pzi, pzr, MPFRTypes::ROUNDING);
     mpfr_mul(s.t[3], s.t[3], N, MPFRTypes::ROUNDING);

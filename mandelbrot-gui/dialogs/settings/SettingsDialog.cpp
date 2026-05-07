@@ -1,16 +1,18 @@
 #include "SettingsDialog.h"
+#include "ui_SettingsDialog.h"
 
 #include <algorithm>
 #include <filesystem>
 #include <vector>
 
-#include <QKeySequenceEdit>
 #include <QCoreApplication>
+#include <QKeySequenceEdit>
 #include <QLocale>
 
 #include "app/GUIConstants.h"
+
 #include "settings/AppSettings.h"
-#include "ui_SettingsDialog.h"
+
 #include "util/FileUtil.h"
 
 using namespace GUI;

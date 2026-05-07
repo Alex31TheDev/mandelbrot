@@ -7,17 +7,18 @@
 #include <optional>
 #include <thread>
 
-#include <QObject>
 #include <QImage>
+#include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
 
 #include "BackendAPI.h"
+
 #include "BackendModule.h"
 
-#include "app/GUITypes.h"
 #include "app/GUISessionState.h"
+#include "app/GUITypes.h"
 
 #include "util/GUIUtil.h"
 

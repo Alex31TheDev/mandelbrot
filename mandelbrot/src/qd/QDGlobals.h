@@ -31,8 +31,8 @@ namespace QDGlobals {
 namespace QDGlobals {
     [[maybe_unused]] static void initQD() {}
     [[maybe_unused]] static void initImageValues() {}
-    [[maybe_unused]] static void initQDValues(
-        const char *, const char *, const char *, const char *, const char *) {}
+    [[maybe_unused]] static void initQDValues(const char *, const char *,
+        const char *, const char *, const char *){}
 }
 
 #endif

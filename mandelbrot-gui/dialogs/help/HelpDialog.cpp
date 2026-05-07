@@ -26,7 +26,8 @@ static std::filesystem::path helpFilePath(const char *fileName) {
 
 static QString helpCollectionPath() {
     QString writableDir = QStandardPaths::writableLocation(
-        QStandardPaths::AppLocalDataLocation);
+        QStandardPaths::AppLocalDataLocation
+    );
     if (writableDir.isEmpty()) {
         writableDir = QString::fromStdWString(FileUtil::executableDir().wstring());
     }
@@ -37,14 +38,15 @@ static QString helpCollectionPath() {
 
 static QString helpQchPath() {
     return QString::fromStdWString(
-        helpFilePath("mandelbrot-gui-help.qch").wstring());
+        helpFilePath("mandelbrot-gui-help.qch").wstring()
+    );
 }
 
 static QUrl helpHomeUrl() {
     return QUrl(QStringLiteral("qthelp://%1/%2/%3")
-            .arg(QLatin1String(helpNamespace),
-                QLatin1String(helpVirtualFolder),
-                QLatin1String(helpHomePage)));
+        .arg(QLatin1String(helpNamespace),
+            QLatin1String(helpVirtualFolder),
+            QLatin1String(helpHomePage)));
 }
 
 HelpBrowser::HelpBrowser(QWidget *parent)
@@ -107,13 +109,15 @@ HelpDialog::HelpDialog(QWidget *parent)
     const QString qchPath = QFileInfo(helpQchPath()).absoluteFilePath();
     if (!QFileInfo::exists(qchPath)) {
         _showStatusMessage(
-            tr("Help file not found: %1").arg(QDir::toNativeSeparators(qchPath)));
+            tr("Help file not found: %1").arg(QDir::toNativeSeparators(qchPath))
+        );
         return;
     }
 
     const QString registeredPath
         = QFileInfo(_helpEngine->documentationFileName(
-              QLatin1String(helpNamespace))).absoluteFilePath();
+            QLatin1String(helpNamespace)
+        )).absoluteFilePath();
     if (!registeredPath.isEmpty()
         && registeredPath.compare(qchPath, Qt::CaseInsensitive) != 0) {
         _helpEngine->unregisterDocumentation(QLatin1String(helpNamespace));
@@ -121,7 +125,8 @@ HelpDialog::HelpDialog(QWidget *parent)
     if (_helpEngine->documentationFileName(QLatin1String(helpNamespace)).isEmpty()) {
         if (!_helpEngine->registerDocumentation(qchPath)) {
             _showStatusMessage(
-                tr("Help registration failed: %1").arg(_helpEngine->error()));
+                tr("Help registration failed: %1").arg(_helpEngine->error())
+            );
             return;
         }
         _helpEngine->setupData();

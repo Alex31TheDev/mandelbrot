@@ -5,12 +5,14 @@
 #include <QObject>
 #include <QString>
 
-#include "runtime/RenderController.h"
-#include "settings/Shortcuts.h"
-#include "windows/viewport/ViewportHost.h"
-
-#include "app/GUITypes.h"
 #include "app/GUISessionState.h"
+#include "app/GUITypes.h"
+
+#include "runtime/RenderController.h"
+
+#include "settings/Shortcuts.h"
+
+#include "windows/viewport/ViewportHost.h"
 
 class ViewportWindow;
 

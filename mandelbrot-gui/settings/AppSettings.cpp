@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "app/GUIConstants.h"
+
 #include "util/FileUtil.h"
 
 using namespace GUI;
@@ -65,8 +66,8 @@ void AppSettings::setPreferredBackend(const QString &backend) {
 }
 
 int AppSettings::previewFallbackFPS() const {
-    return _settings.value(
-        "render/previewFallbackFPS", Constants::defaultInteractionTargetFPS)
+    return _settings.value("render/previewFallbackFPS",
+        Constants::defaultInteractionTargetFPS)
         .toInt();
 }
 
@@ -75,8 +76,7 @@ void AppSettings::setPreviewFallbackFPS(int fps) {
 }
 
 int AppSettings::selectedOutputWidth() const {
-    return std::max(
-        1,
+    return std::max(1,
         _settings
         .value("render/outputWidth", Constants::defaultOutputWidth)
         .toInt());

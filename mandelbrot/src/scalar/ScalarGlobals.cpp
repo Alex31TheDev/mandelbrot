@@ -63,7 +63,7 @@ namespace ScalarGlobals {
 
         zoom = zoomScale;
         initImageValues();
-        return zoomScale > SC_SYM_H(-3.25);
+        return zoomScale > MINIMUM_ZOOM;
     }
 
     bool setZoomPoints(

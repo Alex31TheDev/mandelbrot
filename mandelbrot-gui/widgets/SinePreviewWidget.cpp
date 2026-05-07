@@ -48,12 +48,14 @@ void SinePreviewWidget::paintEvent(QPaintEvent *) {
     }
 
     painter.setPen(
-        widgetEnabled ? palette().dark().color() : palette().mid().color());
+        widgetEnabled ? palette().dark().color() : palette().mid().color()
+    );
     painter.drawRect(strip.adjusted(0, 0, -1, -1));
 
     painter.setPen(QPen(
         widgetEnabled ? QColor(255, 255, 255, 180) : palette().mid().color(),
-        1.0));
+        1.0
+    ));
     painter.drawLine(strip.left(), strip.top(), strip.left(), strip.bottom());
     painter.drawLine(strip.right(), strip.top(), strip.right(), strip.bottom());
 
@@ -61,7 +63,8 @@ void SinePreviewWidget::paintEvent(QPaintEvent *) {
     _drawHandle(painter, strip.right(), strip);
 
     painter.setPen(
-        widgetEnabled ? palette().text().color() : palette().mid().color());
+        widgetEnabled ? palette().text().color() : palette().mid().color()
+    );
     painter.drawText(rect().adjusted(2, strip.bottom() + 3, -2, -2),
         Qt::AlignLeft | Qt::AlignVCenter,
         tr("Range %1 - %2")
@@ -109,7 +112,8 @@ void SinePreviewWidget::mouseMoveEvent(QMouseEvent *event) {
         case DragMode::left:
             _applyRange(
                 std::min(_dragRangeMin + deltaValue, _dragRangeMax - minSpan),
-                _dragRangeMax);
+                _dragRangeMax
+            );
             break;
         case DragMode::right:
             _applyRange(_dragRangeMin,
@@ -149,8 +153,8 @@ SinePreviewWidget::DragMode SinePreviewWidget::_hitTest(
 void SinePreviewWidget::_drawHandle(
     QPainter &painter, int x, const QRect &strip
 ) const {
-    const QRect handle(
-        x - 2, strip.top() + 4, 4, std::max(6, strip.height() - 8));
+    const QRect handle(x - 2, strip.top() + 4, 4,
+        std::max(6, strip.height() - 8));
     painter.fillRect(handle,
         isEnabled() ? QColor(255, 255, 255, 180) : palette().mid().color());
 }

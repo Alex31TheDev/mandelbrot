@@ -308,10 +308,8 @@ _DERIVATIVE_OPS_FUNC(
 
 #ifdef USE_MPFR
 
-FORCE_INLINE void normalFormula_mandelbrot_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s
-) {
+FORCE_INLINE void normalFormula_mandelbrot_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
     mpfr_sub(s.t[0], s.zr2, s.zi2, MPFRTypes::ROUNDING);
     mpfr_add(s.t[0], s.t[0], cr, MPFRTypes::ROUNDING);
 
@@ -323,10 +321,8 @@ FORCE_INLINE void normalFormula_mandelbrot_mp(
     mpfr_set(s.zi, s.t[1], MPFRTypes::ROUNDING);
 }
 
-FORCE_INLINE void wholeFormula_mandelbrot_mp(
-    mpfr_srcptr cr, mpfr_srcptr ci,
-    MPFRScratch &s
-) {
+FORCE_INLINE void wholeFormula_mandelbrot_mp(mpfr_srcptr cr, mpfr_srcptr ci,
+    MPFRScratch &s) {
     wholePowerCore_mp(s.zr, s.zi, static_cast<int>(ScalarGlobals::N), s);
     mpfr_add(s.zr, s.zr, cr, MPFRTypes::ROUNDING);
     mpfr_add(s.zi, s.zi, ci, MPFRTypes::ROUNDING);

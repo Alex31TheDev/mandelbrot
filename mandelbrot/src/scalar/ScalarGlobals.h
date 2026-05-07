@@ -16,6 +16,7 @@
 namespace ScalarGlobals {
     constexpr int MIN_ITERATIONS = 500;
     constexpr scalar_full_t BAILOUT = SC_SYM_F(256.0);
+    constexpr scalar_full_t MINIMUM_ZOOM = -3.25;
 
     constexpr scalar_full_t DEFAULT_POINT_R = SC_SYM_F(0.0);
     constexpr scalar_full_t DEFAULT_POINT_I = SC_SYM_F(0.0);

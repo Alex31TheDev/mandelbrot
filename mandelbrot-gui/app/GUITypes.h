@@ -9,7 +9,11 @@
 #include <QString>
 
 #include "BackendAPI.h"
+
 #include "GUIConstants.h"
+
+#include "options/ColorMethods.h"
+#include "options/FractalTypes.h"
 
 namespace GUI {
     using namespace Backend;
