@@ -296,6 +296,7 @@ void GUIAppController::_connectUI() {
     connect(_controlWindow.get(), &ControlWindow::viewportResizeRequested, this,
         [this]() {
             _controlWindow->syncToSessionState(_sessionState);
+            _controlWindow->syncImageSettingsToSessionState(_sessionState);
             _viewportController.applyViewportOutputSize(_sessionState.outputSize());
         });
     connect(_controlWindow.get(), &ControlWindow::viewportScaleChanged, this,

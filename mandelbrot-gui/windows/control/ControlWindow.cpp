@@ -242,6 +242,8 @@ void ControlWindow::_connectUI() {
         [emitRender](bool) { emitRender(); });
     connect(_ui->inverseCheck, &QCheckBox::toggled, this,
         [emitRender](bool) { emitRender(); });
+    connect(_ui->aaSpin, QOverload<int>::of(&QSpinBox::valueChanged), this,
+        [emitRender](int) { emitRender(); });
     connect(_ui->exponentSlider, &QSlider::valueChanged, this,
         [this](int value) {
             const double exponent = value / 100.0;
@@ -598,6 +600,7 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
     state.useThreads = _ui->useThreadsCheckBox->isChecked();
     state.julia = _ui->juliaCheck->isChecked();
     state.inverse = _ui->inverseCheck->isChecked();
+    state.aaPixels = _ui->aaSpin->value();
     state.preserveRatio = _ui->preserveRatioCheck->isChecked();
     state.panRate = _ui->panRateSlider->value();
     state.zoomRate = _ui->zoomRateSlider->value();
@@ -613,6 +616,8 @@ void ControlWindow::syncToSessionState(GUISessionState &sessionState) const {
     const auto paletteStops = PaletteStore::configToStops(state.palette);
     state.palette = PaletteStore::stopsToConfig(paletteStops,
         paletteTotalLength, paletteOffset, state.palette.blendEnds);
+    state.outputWidth = _ui->outputWidthSpin->value();
+    state.outputHeight = _ui->outputHeightSpin->value();
     state.viewportScalePercent = std::max(1.0f,
         static_cast<float>(_ui->viewportScaleSpin->value()));
 
