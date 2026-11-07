@@ -8,6 +8,10 @@
 
 #include "IncludeWin32.h"
 
+static bool isWhitespace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+}
+
 namespace StringUtil {
     bool startsWith(std::string_view value, std::string_view prefix) {
         return value.size() >= prefix.size() &&
@@ -45,18 +49,10 @@ namespace StringUtil {
 
     std::string_view trimWhitespace(std::string_view value) {
         size_t begin = 0;
-        while (begin < value.size() && (
-            value[begin] == ' ' || value[begin] == '\t' ||
-            value[begin] == '\n' || value[begin] == '\r' ||
-            value[begin] == '\f' || value[begin] == '\v'
-            )) begin++;
+        while (begin < value.size() && isWhitespace(value[begin])) begin++;
 
         size_t end = value.size();
-        while (end > begin && (
-            value[end - 1] == ' ' || value[end - 1] == '\t' ||
-            value[end - 1] == '\n' || value[end - 1] == '\r' ||
-            value[end - 1] == '\f' || value[end - 1] == '\v'
-            )) end--;
+        while (end > begin && isWhitespace(value[end - 1])) end--;
 
         return value.substr(begin, end - begin);
     }
