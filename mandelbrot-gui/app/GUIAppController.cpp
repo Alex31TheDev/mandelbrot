@@ -804,8 +804,7 @@ void GUIAppController::_saveImage() {
 }
 
 void GUIAppController::_quickSaveImage() {
-    std::error_code ec;
-    std::filesystem::create_directories(Util::savesDirectoryPath(), ec);
+    FileUtil::ensureDirectory(Util::savesDirectoryPath());
     const QString path = QString::fromStdWString(
         (Util::savesDirectoryPath() / "mandelbrot.png").wstring()
     );

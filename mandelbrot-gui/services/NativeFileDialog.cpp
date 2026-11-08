@@ -101,8 +101,7 @@ namespace GUI {
         dialog->SetOptions(options | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST
             | FOS_OVERWRITEPROMPT);
 
-        std::error_code ec;
-        std::filesystem::create_directories(directory, ec);
+        FileUtil::ensureDirectory(directory);
         IShellItem *folder = nullptr;
         const std::wstring dir = directory.wstring();
         if (SUCCEEDED(SHCreateItemFromParsingName(dir.c_str(), nullptr,
@@ -277,8 +276,7 @@ namespace GUI {
         QWidget *parent, const QString &suggestedFile
     ) {
         const std::filesystem::path savesDir = FileUtil::executableDir() / "saves";
-        std::error_code ec;
-        std::filesystem::create_directories(savesDir, ec);
+        FileUtil::ensureDirectory(savesDir);
 
         SaveDialogResult result;
 #ifdef _WIN32

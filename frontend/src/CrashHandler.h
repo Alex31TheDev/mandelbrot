@@ -10,6 +10,7 @@
 #include <iterator>
 #include <filesystem>
 
+#include "util/FileUtil.h"
 #include "util/IncludeWin32.h"
 #include "util/StringUtil.h"
 
@@ -50,9 +51,7 @@ namespace _CrashHandlerImpl {
     };
 
     inline void writeCrashReport(const std::string &report) {
-        std::error_code err;
-        std::filesystem::create_directories("logs", err);
-        if (err) return;
+        if (FileUtil::ensureDirectory("logs")) return;
 
         const std::filesystem::path logPath = std::filesystem::path("logs")
             / ("crash_" + TimeUtil::formatCurrentTime("%Y_%m_%d-%H_%M_%S") + ".log");

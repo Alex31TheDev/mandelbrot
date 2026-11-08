@@ -1,7 +1,6 @@
 #include "PaletteStore.h"
 
 #include <algorithm>
-#include <system_error>
 
 #include <QColor>
 #include <QCoreApplication>
@@ -78,14 +77,14 @@ namespace GUI::PaletteStore {
     bool ensureDirectory(QString &errorMessage) {
         errorMessage.clear();
 
-        std::error_code ec;
-        std::filesystem::create_directories(directoryPath(), ec);
-        if (!ec) return true;
+        if (const auto ec = FileUtil::ensureDirectory(directoryPath())) {
+            errorMessage = QCoreApplication::translate("PaletteStore",
+                "Failed to create palette directory: %1")
+                .arg(QString::fromStdString(ec.message()));
+            return false;
+        }
 
-        errorMessage = QCoreApplication::translate("PaletteStore",
-            "Failed to create palette directory: %1")
-            .arg(QString::fromStdString(ec.message()));
-        return false;
+        return true;
     }
 
     QString normalizeName(const QString &name) {

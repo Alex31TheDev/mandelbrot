@@ -3,9 +3,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
-#include <filesystem>
+#include <system_error>
 #include <tuple>
 
 #include "TimeUtil.h"
@@ -115,6 +116,17 @@ namespace FileUtil {
         out.push_back('.');
         out.append(normalizedExt);
         return out;
+    }
+
+    std::error_code ensureDirectory(const std::filesystem::path &path) {
+        std::error_code ec;
+        std::filesystem::create_directories(path, ec);
+
+        if (!ec && !std::filesystem::is_directory(path, ec)) {
+            ec = std::make_error_code(std::errc::not_a_directory);
+        }
+
+        return ec;
     }
 
     bool hideFile(const std::filesystem::path &path) {

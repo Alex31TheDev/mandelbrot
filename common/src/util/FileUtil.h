@@ -1,8 +1,9 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <string_view>
-#include <filesystem>
+#include <system_error>
 #include <tuple>
 
 namespace FileUtil {
@@ -20,5 +21,7 @@ namespace FileUtil {
     std::string appendExtension(
         std::string_view filePath, const std::string &extension
     );
+
+    std::error_code ensureDirectory(const std::filesystem::path &path);
     bool hideFile(const std::filesystem::path &path);
 }

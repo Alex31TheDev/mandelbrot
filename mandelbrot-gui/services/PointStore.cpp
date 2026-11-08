@@ -1,7 +1,5 @@
 #include "PointStore.h"
 
-#include <system_error>
-
 #include <QCoreApplication>
 
 #include "parsers/point/PointParser.h"
@@ -17,14 +15,14 @@ namespace GUI {
     bool PointStore::ensureDirectory(QString &errorMessage) {
         errorMessage.clear();
 
-        std::error_code ec;
-        std::filesystem::create_directories(directoryPath(), ec);
-        if (!ec) return true;
+        if (const auto ec = FileUtil::ensureDirectory(directoryPath())) {
+            errorMessage = QCoreApplication::translate("PointStore",
+                "Failed to create views directory: %1")
+                .arg(QString::fromStdString(ec.message()));
+            return false;
+        }
 
-        errorMessage = QCoreApplication::translate("PointStore",
-            "Failed to create views directory: %1")
-            .arg(QString::fromStdString(ec.message()));
-        return false;
+        return true;
     }
 
     bool PointStore::loadFromPath(

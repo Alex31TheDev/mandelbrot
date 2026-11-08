@@ -1,7 +1,6 @@
 #include "SineStore.h"
 
 #include <algorithm>
-#include <system_error>
 
 #include <QCoreApplication>
 
@@ -71,14 +70,14 @@ namespace GUI::SineStore {
     bool ensureDirectory(QString &errorMessage) {
         errorMessage.clear();
 
-        std::error_code ec;
-        std::filesystem::create_directories(directoryPath(), ec);
-        if (!ec) return true;
+        if (const auto ec = FileUtil::ensureDirectory(directoryPath())) {
+            errorMessage = QCoreApplication::translate("SineStore",
+                "Failed to create sine directory: %1")
+                .arg(QString::fromStdString(ec.message()));
+            return false;
+        }
 
-        errorMessage = QCoreApplication::translate("SineStore",
-            "Failed to create sine directory: %1")
-            .arg(QString::fromStdString(ec.message()));
-        return false;
+        return true;
     }
 
     bool loadFromPath(

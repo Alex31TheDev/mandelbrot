@@ -5,8 +5,10 @@ using namespace Backend;
 #include <cmath>
 #include <memory>
 #include <string>
+#include <filesystem>
 
 #include "util/ParserUtil.h"
+#include "util/FileUtil.h"
 
 #include "image/Image.h"
 
@@ -710,6 +712,13 @@ public:
     ) override {
         if (!_image) {
             return makeFailure("No rendered image is available.");
+        }
+
+        const auto parentDir = std::filesystem::path(path).parent_path();
+        if (!parentDir.empty()) {
+            if (FileUtil::ensureDirectory(parentDir)) {
+                return makeFailure("Failed to create directory for image.");
+            }
         }
 
         if (!_image->saveToFile(path, appendDate, type)) {
