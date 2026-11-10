@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cmath>
+#include <iomanip>
 #include <iterator>
 #include <sstream>
-#include <iomanip>
 
 namespace FormatUtil::_impl {
     inline const char *bigNumberUnits[] = { "", "K", "M", "G", "T" };

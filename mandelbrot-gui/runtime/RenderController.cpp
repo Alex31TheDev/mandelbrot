@@ -266,9 +266,7 @@ bool RenderController::saveImage(
         : path.toStdString();
 
     if (savedPath) {
-        *savedPath = QString::fromStdString(
-            FileUtil::getAbsolutePath(outputPath)
-        );
+        *savedPath = QString::fromStdString(FileUtil::absolutePath(outputPath));
     }
 
     const Backend::Status status = _renderSession->saveImage(path.toStdString(),

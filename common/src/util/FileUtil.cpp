@@ -44,7 +44,7 @@ namespace FileUtil {
         return std::make_tuple(name, ext);
     }
 
-    std::string getAbsolutePath(const std::string &filePath) {
+    std::string absolutePath(const std::string &filePath) {
 #ifdef _WIN32
         char absPath[_MAX_PATH] = { 0 };
 
@@ -63,15 +63,15 @@ namespace FileUtil {
         return filePath;
     }
 
-    std::string appendSeqnum(std::string_view filePath, int x) {
+    std::string appendSeqnum(std::string_view filePath, int seqNum) {
         const auto [name, ext] = splitFilename(filePath);
-        const std::string x_str = std::to_string(x);
+        const std::string seqStr = std::to_string(seqNum);
 
         std::string result;
-        result.reserve(name.size() + x_str.size() + ext.size() + 1);
+        result.reserve(name.size() + seqStr.size() + ext.size() + 1);
         result.append(name);
         result.push_back('_');
-        result.append(x_str);
+        result.append(seqStr);
         result.append(ext);
         return result;
     }
@@ -101,12 +101,11 @@ namespace FileUtil {
         std::string_view filePath, const std::string &extension
     ) {
         std::string_view normalizedExt = extension;
-        if (StringUtil::startsWith(normalizedExt, "."))
-            normalizedExt.remove_prefix(1);
+        if (StringUtil::startsWith(normalizedExt, ".")) normalizedExt.remove_prefix(1);
         if (normalizedExt.empty()) return std::string(filePath);
 
-        const std::string lowerPath = StringUtil::toLower(filePath),
-            fullExt = "." + StringUtil::toLower(normalizedExt);
+        const std::string lowerPath = StringUtil::toLower(filePath);
+        const std::string fullExt = "." + StringUtil::toLower(normalizedExt);
 
         if (StringUtil::endsWith(lowerPath, fullExt)) return std::string(filePath);
 
@@ -132,9 +131,7 @@ namespace FileUtil {
     bool hideFile(const std::filesystem::path &path) {
 #ifdef _WIN32
         const DWORD attributes = GetFileAttributesW(path.c_str());
-        if (attributes == INVALID_FILE_ATTRIBUTES) {
-            return false;
-        }
+        if (attributes == INVALID_FILE_ATTRIBUTES) return false;
 
         return SetFileAttributesW(path.c_str(),
             attributes | FILE_ATTRIBUTE_HIDDEN) != 0;

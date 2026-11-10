@@ -240,7 +240,7 @@ bool Image::saveToFile(
 
     const std::string outPath = appendDate ?
         FileUtil::appendIsoDate(filePath) : filePath;
-    const std::string absPath = FileUtil::getAbsolutePath(outPath);
+    const std::string absPath = FileUtil::absolutePath(outPath);
 
     std::ofstream fout(absPath, std::ios::binary);
     const bool result = writeToStream(fout, type);

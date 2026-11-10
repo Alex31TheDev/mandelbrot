@@ -32,9 +32,7 @@ namespace BufferUtil {
 #ifdef _WIN32
             ptr = _aligned_malloc(newSize, ALIGNMENT);
 #else
-            if (posix_memalign(&ptr, ALIGNMENT, newSize) != 0) {
-                ptr = nullptr;
-            }
+            if (posix_memalign(&ptr, ALIGNMENT, newSize) != 0) ptr = nullptr;
 #endif
         } else {
             newSize = bufferSize;

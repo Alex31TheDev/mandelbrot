@@ -122,9 +122,7 @@ namespace StringUtil {
                 memcpy(ptr, text.c_str(), bytes);
                 GlobalUnlock(mem);
 
-                if (SetClipboardData(CF_UNICODETEXT, mem)) {
-                    mem = nullptr;
-                }
+                if (SetClipboardData(CF_UNICODETEXT, mem)) mem = nullptr;
             }
 
             if (mem) GlobalFree(mem);

@@ -5,7 +5,7 @@
 using namespace std::chrono;
 
 static bool safeLocaltime(time_t time, tm &out) {
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     return localtime_s(&out, &time) == 0;
 #else
     return localtime_r(&time, &out) != nullptr;
