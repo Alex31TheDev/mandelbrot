@@ -296,7 +296,7 @@ bool Image::_allocate(int32_t width, int32_t height) {
         _outputSize = _calcBufferSize(_outputW, _outputH, _outputStrideW, 0);
     }
 
-    _pixels = BufferUtil::bufferAllocPtr<ALIGNMENT>(originalSize, _bufferSize);
+    _pixels = BufferUtil::bufferAllocPtr<uint8_t, ALIGNMENT>(originalSize, _bufferSize);
     if (!_pixels) return false;
 
     if (_downscaling) {

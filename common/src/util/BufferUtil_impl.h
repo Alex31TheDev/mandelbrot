@@ -16,17 +16,21 @@ namespace BufferUtil {
         return (size + alignment - 1) & ~(alignment - 1);
     }
 
-    template <size_t ALIGNMENT>
-    uint8_t *bufferAlloc(
-        size_t bufferSize,
+    template <typename T, size_t ALIGNMENT>
+    T *bufferAlloc(
+        size_t count,
         std::optional<std::reference_wrapper<size_t>> alignedSize
     ) {
+        static_assert(std::is_trivial_v<T>);
+        static_assert(ALIGNMENT == 0 || ALIGNMENT >= alignof(T));
+
+        size_t bufSize = count * sizeof(T);
         size_t newSize;
         void *ptr = nullptr;
 
         if constexpr (ALIGNMENT > 8) {
-            newSize = bufferSize % ALIGNMENT == 0
-                ? bufferSize : alignTo(bufferSize, ALIGNMENT);
+            newSize = bufSize % ALIGNMENT == 0
+                ? bufSize : alignTo(bufSize, ALIGNMENT);
             if (alignedSize) alignedSize->get() = newSize;
 
 #ifdef _WIN32
@@ -35,18 +39,18 @@ namespace BufferUtil {
             if (posix_memalign(&ptr, ALIGNMENT, newSize) != 0) ptr = nullptr;
 #endif
         } else {
-            newSize = bufferSize;
+            newSize = bufSize;
             if (alignedSize) alignedSize->get() = newSize;
 
-            ptr = malloc(bufferSize);
+            ptr = malloc(bufSize);
         }
 
         if (ptr) memset(ptr, 0, newSize);
-        return static_cast<uint8_t *>(ptr);
+        return static_cast<T *>(ptr);
     }
 
-    template <size_t ALIGNMENT>
-    void bufferFree(uint8_t *ptr) noexcept {
+    template <typename T, size_t ALIGNMENT>
+    void bufferFree(T *ptr) noexcept {
 #if defined(_WIN32)
         if constexpr (ALIGNMENT > 8) {
             _aligned_free(ptr);
@@ -55,19 +59,16 @@ namespace BufferUtil {
             free(ptr);
     }
 
-    template <size_t ALIGNMENT>
-    void AlignedDeleter<ALIGNMENT>::operator()
-        (uint8_t *ptr) noexcept {
-        bufferFree<ALIGNMENT>(ptr);
+    template <typename T, size_t ALIGNMENT>
+    void AlignedDeleter<T, ALIGNMENT>::operator()(T *ptr) noexcept {
+        bufferFree<T, ALIGNMENT>(ptr);
     }
 
-    template <size_t ALIGNMENT>
-    AlignedBuffer<ALIGNMENT> bufferAllocPtr(
-        size_t bufferSize,
+    template <typename T, size_t ALIGNMENT>
+    AlignedBuffer<T, ALIGNMENT> bufferAllocPtr(
+        size_t count,
         std::optional<std::reference_wrapper<size_t>> alignedSize
     ) {
-        return AlignedBuffer<ALIGNMENT>(
-            bufferAlloc<ALIGNMENT>(bufferSize, alignedSize)
-        );
+        return AlignedBuffer<T, ALIGNMENT>(bufferAlloc<T, ALIGNMENT>(count, alignedSize));
     }
 }

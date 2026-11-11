@@ -109,7 +109,7 @@ private:
     int32_t _outputStrideW = 0;
     size_t _outputSize = 0;
 
-    BufferUtil::AlignedBuffer<ALIGNMENT> _pixels;
+    BufferUtil::AlignedBuffer<uint8_t, ALIGNMENT> _pixels;
     std::unique_ptr<uint8_t[]> _outputPixels;
 
     [[nodiscard]] const uint8_t *_outputBuffer() const {
