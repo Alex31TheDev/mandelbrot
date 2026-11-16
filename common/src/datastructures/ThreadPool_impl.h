@@ -48,6 +48,9 @@ _CLASS_NAME::~ThreadPool() {
     for (size_t i = 0; i < _threads.size(); i++) {
         _threads[i].request_stop();
         _tasks[i].signal.release();
+    }
+
+    for (size_t i = 0; i < _threads.size(); i++) {
         if (_threads[i].joinable()) _threads[i].join();
     }
 }
@@ -86,8 +89,11 @@ void _CLASS_NAME::enqueueDetach(Function &&func, Args &&...args) {
 
 _CLASS_TEMPLATE
 void _CLASS_NAME::waitForTasks() {
-    while (_inFlight.load(std::memory_order_acquire) > 0) {
-        _threadsComplete.wait(false);
+    auto count = _inFlight.load(std::memory_order_acquire);
+
+    while (count > 0) {
+        _inFlight.wait(count, std::memory_order_acquire);
+        count = _inFlight.load(std::memory_order_acquire);
     }
 }
 
@@ -128,8 +134,7 @@ void _CLASS_NAME::forceTerminate() {
 
     _unassigned.store(0, std::memory_order_release);
     _inFlight.store(0, std::memory_order_release);
-    _threadsComplete.store(true, std::memory_order_release);
-    _threadsComplete.notify_all();
+    _inFlight.notify_all();
 
     _threads.clear();
 }
@@ -139,7 +144,8 @@ size_t _CLASS_NAME::clearTasks() {
     const size_t removed = std::accumulate(_tasks.begin(), _tasks.end(), 0,
         [](size_t sum, auto &tlist) { return sum + tlist.tasks.clear(); });
 
-    _inFlight.fetch_sub(removed, std::memory_order_release);
+    if (removed && _inFlight.fetch_sub(removed, std::memory_order_acq_rel) == removed)
+        _inFlight.notify_all();
     _unassigned.fetch_sub(removed, std::memory_order_release);
 
     return removed;
@@ -165,7 +171,8 @@ _threadMain(InitFunction init, size_t id) {
                 while (auto task = _tasks[id].tasks.popFront()) {
                     _unassigned.fetch_sub(1, std::memory_order_release);
                     std::invoke(std::move(task.value()));
-                    _inFlight.fetch_sub(1, std::memory_order_release);
+                    if (_inFlight.fetch_sub(1, std::memory_order_acq_rel) == 1)
+                        _inFlight.notify_all();
                 }
 
                 for (size_t j = 1; j < _tasks.size(); j++) {
@@ -174,7 +181,8 @@ _threadMain(InitFunction init, size_t id) {
                     if (auto task = _tasks[index].tasks.steal()) {
                         _unassigned.fetch_sub(1, std::memory_order_release);
                         std::invoke(std::move(task.value()));
-                        _inFlight.fetch_sub(1, std::memory_order_release);
+                        if (_inFlight.fetch_sub(1, std::memory_order_acq_rel) == 1)
+                            _inFlight.notify_all();
                         break;
                     }
                 }
@@ -182,10 +190,6 @@ _threadMain(InitFunction init, size_t id) {
 
             _priorityQueue.rotateToFront(id);
 
-            if (_inFlight.load(std::memory_order_acquire) == 0) {
-                _threadsComplete.store(true, std::memory_order_release);
-                _threadsComplete.notify_one();
-            }
         } while (!stopToken.stop_requested());
         };
 }
@@ -243,12 +247,7 @@ void _CLASS_NAME::_enqueueTask(Function &&f) {
     }
 
     _unassigned.fetch_add(1, std::memory_order_release);
-    const auto prevInFlight = _inFlight.fetch_add(1,
-        std::memory_order_release);
-
-    if (prevInFlight == 0) {
-        _threadsComplete.store(false, std::memory_order_release);
-    }
+    _inFlight.fetch_add(1, std::memory_order_release);
 
     auto i = *(i_opt);
     _tasks[i].tasks.pushBack(std::forward<Function>(f));

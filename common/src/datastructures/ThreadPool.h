@@ -81,7 +81,7 @@ private:
 
     struct _TaskItem {
         ThreadSafeQueue<FunctionType> tasks;
-        std::binary_semaphore signal{ 0 };
+        std::counting_semaphore<> signal{ 0 };
     };
     std::deque<_TaskItem> _tasks;
 
@@ -91,7 +91,6 @@ private:
     std::atomic_bool _acceptingTasks{ true };
 
     std::atomic_int_fast64_t _unassigned{ 0 }, _inFlight{ 0 };
-    std::atomic_bool _threadsComplete{ false };
 };
 
 #include "ThreadPool_impl.h"
